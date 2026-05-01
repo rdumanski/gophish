@@ -1,3 +1,9 @@
+# Force LF line endings on files that must run inside Linux containers.
+# Without this, Windows clones get CRLF, and shebangs like `#!/bin/bash\r`
+# fail in Docker with "no such file or directory" on /bin/bash\r.
+*.sh         text eol=lf
+Dockerfile   text eol=lf
+
 static/api-doc/* linguist-vendored
 static/bootstrap/* linguist-vendored
 static/css/* linguist-vendored

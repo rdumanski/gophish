@@ -1,0 +1,91 @@
+# Taskfile for the rdumanski/gophish fork.
+#
+# Install task runner: https://taskfile.dev/installation/
+#   winget install Task.Task         (Windows)
+#   brew install go-task/tap/go-task (Mac)
+#   sudo snap install task --classic (Linux)
+#
+# Then run any target: `task build`, `task test`, `task dev`, etc.
+
+version: '3'
+
+vars:
+  BINARY: gophish
+  IMAGE: gophish:0.13.0-dev
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  build:
+    desc: Compile the gophish binary (CGO required for sqlite)
+    cmds:
+      - go build -o {{.BINARY}}{{exeExt}} .
+
+  build-all:
+    desc: Compile-check every package without producing a binary
+    cmds:
+      - go build ./...
+
+  test:
+    desc: Run the Go test suite
+    cmds:
+      - go test -v ./...
+
+  test-short:
+    desc: Run only fast tests (skip integration)
+    cmds:
+      - go test -short ./...
+
+  lint:
+    desc: Run golangci-lint (install with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
+    cmds:
+      - golangci-lint run ./...
+
+  vet:
+    desc: Run go vet (built into the toolchain, no install needed)
+    cmds:
+      - go vet ./...
+
+  dev:
+    desc: Run with hot reload via air (install with `go install github.com/air-verse/air@latest`)
+    cmds:
+      - air
+
+  frontend:
+    desc: Build the frontend assets (Webpack 4 + Gulp 4 — being replaced in Phase 4)
+    cmds:
+      - npm install
+      - npx gulp
+
+  docker-build:
+    desc: Build the multi-stage Docker image
+    cmds:
+      - docker build -t {{.IMAGE}} .
+
+  docker-run:
+    desc: Run the gophish image, exposing admin (3333) + phishing (8080/8443) ports
+    cmds:
+      - docker run --rm -p 3333:3333 -p 8080:8080 -p 8443:8443 {{.IMAGE}}
+
+  db-reset:
+    desc: Delete the local sqlite database (forces re-init on next start)
+    cmds:
+      - cmd: rm -f gophish.db
+        platforms: [linux, darwin]
+      - cmd: powershell -Command "Remove-Item -ErrorAction SilentlyContinue gophish.db, gophish.db-shm, gophish.db-wal"
+        platforms: [windows]
+
+  clean:
+    desc: Remove build artifacts (binary, dist, sqlite db)
+    cmds:
+      - cmd: rm -f {{.BINARY}} {{.BINARY}}.exe gophish.db*
+        platforms: [linux, darwin]
+      - cmd: powershell -Command "Remove-Item -ErrorAction SilentlyContinue {{.BINARY}}, {{.BINARY}}.exe, gophish.db, gophish.db-shm, gophish.db-wal"
+        platforms: [windows]
+      - cmd: rm -rf static/js/dist static/css/dist node_modules
+        platforms: [linux, darwin]
+      - cmd: powershell -Command "Remove-Item -Recurse -ErrorAction SilentlyContinue static/js/dist, static/css/dist, node_modules"
+        platforms: [windows]

@@ -29,3 +29,7 @@ gophish_admin.key
 *.exe
 gophish.db*
 gophish
+
+# Air hot-reload temp dir
+tmp/
+build-errors.log
