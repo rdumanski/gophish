@@ -6,8 +6,8 @@ import (
 	"net/mail"
 	"time"
 
-	log "github.com/rdumanski/gophish/logger"
 	"github.com/jinzhu/gorm"
+	log "github.com/rdumanski/gophish/logger"
 	"github.com/sirupsen/logrus"
 )
 

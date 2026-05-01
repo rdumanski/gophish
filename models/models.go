@@ -15,9 +15,9 @@ import (
 	"github.com/rdumanski/gophish/auth"
 	"github.com/rdumanski/gophish/config"
 
-	log "github.com/rdumanski/gophish/logger"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3" // Blank import needed to import sqlite3
+	log "github.com/rdumanski/gophish/logger"
 )
 
 var db *gorm.DB

@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/rdumanski/gophish/logger"
 	"github.com/jordan-wright/email"
+	log "github.com/rdumanski/gophish/logger"
 
 	"github.com/rdumanski/gophish/models"
 )

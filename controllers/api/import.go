@@ -10,11 +10,11 @@ import (
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/jordan-wright/email"
 	"github.com/rdumanski/gophish/dialer"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
 	"github.com/rdumanski/gophish/util"
-	"github.com/jordan-wright/email"
 )
 
 type cloneRequest struct {

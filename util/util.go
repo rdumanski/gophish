@@ -17,9 +17,9 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/jordan-wright/email"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
-	"github.com/jordan-wright/email"
 )
 
 var (

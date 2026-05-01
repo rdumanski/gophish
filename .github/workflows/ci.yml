@@ -45,7 +45,7 @@ jobs:
           check-latest: true
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: v2.1.6
           args: --timeout 5m
@@ -78,9 +78,10 @@ jobs:
           CGO_ENABLED: 0
         run: |
           # mattn/go-sqlite3 requires CGO, which is incompatible with cross-compile
-          # without per-target C toolchains. We compile-check only the non-DB
-          # packages to verify portability of the rest of the code.
-          # Phase 3 (modernc.org/sqlite) will allow full cross-compile with CGO off.
-          go build ./controllers/... ./mailer/... ./worker/... ./util/... \
-            ./middleware/... ./webhook/... ./auth/... ./dialer/... ./logger/... \
-            ./config/... ./context/...
+          # without per-target C toolchains. Most of the codebase transitively
+          # imports models/ -> goose -> mattn/go-sqlite3, so we only verify the
+          # leaf packages that don't depend on the database layer.
+          # Phase 3 (modernc.org/sqlite + golang-migrate) will let us cross-compile
+          # the whole tree with CGO off.
+          go build ./auth/... ./dialer/... ./logger/... ./context/... \
+            ./middleware/ratelimit/...
