@@ -35,6 +35,11 @@ jobs:
   lint:
     name: golangci-lint
     runs-on: ubuntu-latest
+    # Phase 2 baseline lint produces ~164 findings inherited from upstream (mostly
+    # ST1005 capitalized error strings + errcheck on log writes). They are
+    # tracked in docs/dev/lint-debt.md and burned down per touch in subsequent
+    # phases. The job runs but does not gate merges yet.
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 

@@ -6,6 +6,26 @@ Tracks accepted lint-rule suppressions and any findings deferred until a later p
 
 `.golangci.yml` is in place with the safe linter set (`errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gosec`, `revive`). CI uses **golangci-lint v2.12.0** (must be built with Go 1.25+ to typecheck our `go 1.25.0` go.mod).
 
+## Phase 2 baseline (commit fa57a0b on PR #3)
+
+The first authoritative lint run produced **164 findings** carried over from upstream Gophish:
+
+| Linter | Count | Dominant pattern |
+|---|---|---|
+| errcheck | 75 | unchecked `log.*`, `Close()`, and DB cleanup calls |
+| staticcheck | 74 | mostly **ST1005** (capitalized error strings in `models/*.go`); a few **S1007** (un-raw regex), **SA4003** (`uint16 > 65535` is always false) |
+| gosec | 8 | needs case-by-case review |
+| ineffassign | 4 | dead writes |
+| unused | 3 | `dialer.restrictedDialer`, `models.generateSecureKey`, `controllers/api.createTestData` |
+
+The plan called this out as the expected "lint avalanche": rules will be burned down **incrementally as each package is touched**, not in a single sweep. The CI lint job runs but currently has `continue-on-error: true` so it does not gate merges. Once findings are below ~20, switch lint to blocking.
+
+### Burn-down strategy
+
+- **Phase 3** (GORM v2 + golang-migrate): touches every model file → fix ST1005 + errcheck on DB calls there.
+- **Phase 5** (auth + IMAP backoff): re-enables csrf v1.7.x and addresses errcheck around login/IMAP code.
+- **Phase 6** (plugin architecture + API v2): cleans up unused functions and reorganizes API package.
+
 The first authoritative lint baseline is produced by **CI** (see `.github/workflows/ci.yml`), because `golangci-lint` requires CGO to type-check `models/models.go` (transitively through goose → mattn/go-sqlite3). Local lint runs on Windows without a C toolchain fail with:
 
 ```
