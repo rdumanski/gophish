@@ -1,36 +1,86 @@
 name: CI
 on:
-  - pull_request
-  - push
-jobs:
+  pull_request:
+  push:
+    branches:
+      - master
 
+jobs:
   build:
-    name: Build
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Format
+        run: diff -u <(echo -n) <(gofmt -d .)
+
+      - name: Test
+        run: go test -v -race ./...
+
+  lint:
+    name: golangci-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v2.1.6
+          args: --timeout 5m
+
+  cross-compile:
+    name: Cross-compile
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        goVer: [1.21, 1.22, 1.23]
-
+        include:
+          - { goos: linux,   goarch: amd64 }
+          - { goos: linux,   goarch: arm64 }
+          - { goos: darwin,  goarch: amd64 }
+          - { goos: darwin,  goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
     steps:
-    - name: Set up Go ${{ matrix.goVer }}
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.goVer }}
-      id: go
+      - uses: actions/checkout@v4
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        go get gopkg.in/check.v1
-
-    - name: Build
-      run: go build -v .
-    
-    - name: Format
-      run: diff -u <(echo -n) <(gofmt -d .)
-    
-    - name: Test
-      run: go test ./...
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }} (non-CGO packages only)
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          # mattn/go-sqlite3 requires CGO, which is incompatible with cross-compile
+          # without per-target C toolchains. We compile-check only the non-DB
+          # packages to verify portability of the rest of the code.
+          # Phase 3 (modernc.org/sqlite) will allow full cross-compile with CGO off.
+          go build ./controllers/... ./mailer/... ./worker/... ./util/... \
+            ./middleware/... ./webhook/... ./auth/... ./dialer/... ./logger/... \
+            ./config/... ./context/...
