@@ -4,7 +4,7 @@ Tracks accepted lint-rule suppressions and any findings deferred until a later p
 
 ## Status
 
-`.golangci.yml` is in place with the safe linter set (`errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gosec`, `revive`).
+`.golangci.yml` is in place with the safe linter set (`errcheck`, `govet`, `ineffassign`, `staticcheck`, `unused`, `gosec`, `revive`). CI uses **golangci-lint v2.12.0** (must be built with Go 1.25+ to typecheck our `go 1.25.0` go.mod).
 
 The first authoritative lint baseline is produced by **CI** (see `.github/workflows/ci.yml`), because `golangci-lint` requires CGO to type-check `models/models.go` (transitively through goose → mattn/go-sqlite3). Local lint runs on Windows without a C toolchain fail with:
 
