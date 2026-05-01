@@ -4,12 +4,18 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"database/sql"
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
-	"bitbucket.org/liamstask/goose/lib/goose"
+	"github.com/golang-migrate/migrate/v4"
+	migratemysql "github.com/golang-migrate/migrate/v4/database/mysql"
+	migratesqlite3 "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // file:// source driver
 
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/rdumanski/gophish/auth"
@@ -80,21 +86,150 @@ func generateSecureKey() string {
 	return fmt.Sprintf("%x", k)
 }
 
-func chooseDBDriver(name, openStr string) goose.DBDriver {
-	d := goose.DBDriver{Name: name, OpenStr: openStr}
+// migrationsDir returns the absolute path to the migrations directory for
+// the configured database driver.
+//
+// Two MigrationsPath formats are supported for backward compat:
+//   - runtime (config.LoadConfig appends DBName): "db/db_sqlite3"
+//     -> we add /migrations
+//   - test fixtures (hardcoded full path): "../db/db_sqlite3/migrations/"
+//     -> already complete
+func migrationsDir(c *config.Config) (string, error) {
+	dir := filepath.Clean(c.MigrationsPath)
+	if filepath.Base(dir) != "migrations" {
+		dir = filepath.Join(dir, "migrations")
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", fmt.Errorf("resolve migrations dir: %w", err)
+	}
+	return abs, nil
+}
 
-	switch name {
+// newMigrate constructs a *migrate.Migrate bound to the existing *sql.DB.
+// We use NewWithDatabaseInstance (not NewWithSourceInstance + URL) so we
+// reuse the connection that gorm already owns, avoiding a second sqlite
+// open which would conflict with the SetMaxOpenConns(1) setting.
+func newMigrate(c *config.Config, sqlDB *sql.DB) (*migrate.Migrate, error) {
+	dir, err := migrationsDir(c)
+	if err != nil {
+		return nil, err
+	}
+	sourceURL := "file://" + filepath.ToSlash(dir)
+
+	switch c.DBName {
 	case "mysql":
-		d.Import = "github.com/go-sql-driver/mysql"
-		d.Dialect = &goose.MySqlDialect{}
-
-	// Default database is sqlite3
+		drv, err := migratemysql.WithInstance(sqlDB, &migratemysql.Config{})
+		if err != nil {
+			return nil, fmt.Errorf("mysql migrate driver: %w", err)
+		}
+		return migrate.NewWithDatabaseInstance(sourceURL, "mysql", drv)
 	default:
-		d.Import = "github.com/mattn/go-sqlite3"
-		d.Dialect = &goose.Sqlite3Dialect{}
+		drv, err := migratesqlite3.WithInstance(sqlDB, &migratesqlite3.Config{})
+		if err != nil {
+			return nil, fmt.Errorf("sqlite3 migrate driver: %w", err)
+		}
+		return migrate.NewWithDatabaseInstance(sourceURL, "sqlite3", drv)
+	}
+}
+
+// gooseVersionToMigrateBootstrap looks for an existing goose_db_version table
+// and, if found, seeds golang-migrate's schema_migrations table with the
+// equivalent version. This lets a Gophish 0.12.1 (goose-managed) database
+// upgrade in place without re-running migrations that are already applied.
+//
+// Idempotent: a no-op once schema_migrations is populated.
+func gooseVersionToMigrateBootstrap(sqlDB *sql.DB, dbName string) error {
+	var hasGoose int
+	switch dbName {
+	case "mysql":
+		err := sqlDB.QueryRow(
+			"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'goose_db_version'",
+		).Scan(&hasGoose)
+		if err != nil {
+			return fmt.Errorf("probe goose_db_version (mysql): %w", err)
+		}
+	default:
+		err := sqlDB.QueryRow(
+			"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='goose_db_version'",
+		).Scan(&hasGoose)
+		if err != nil {
+			return fmt.Errorf("probe goose_db_version (sqlite3): %w", err)
+		}
+	}
+	if hasGoose == 0 {
+		return nil // fresh install or already migrated past goose
 	}
 
-	return d
+	var hasMigrate int
+	switch dbName {
+	case "mysql":
+		err := sqlDB.QueryRow(
+			"SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'schema_migrations'",
+		).Scan(&hasMigrate)
+		if err != nil {
+			return fmt.Errorf("probe schema_migrations (mysql): %w", err)
+		}
+	default:
+		err := sqlDB.QueryRow(
+			"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_migrations'",
+		).Scan(&hasMigrate)
+		if err != nil {
+			return fmt.Errorf("probe schema_migrations (sqlite3): %w", err)
+		}
+	}
+	if hasMigrate > 0 {
+		return nil // already bootstrapped
+	}
+
+	var latestGoose int64
+	if err := sqlDB.QueryRow(
+		"SELECT version_id FROM goose_db_version WHERE is_applied = 1 ORDER BY id DESC LIMIT 1",
+	).Scan(&latestGoose); err != nil {
+		return fmt.Errorf("read latest goose version: %w", err)
+	}
+
+	// golang-migrate's schema_migrations: (version BIGINT, dirty BOOL).
+	// We seed it with the latest goose version, marked clean.
+	switch dbName {
+	case "mysql":
+		_, err := sqlDB.Exec(`CREATE TABLE schema_migrations (
+			version BIGINT NOT NULL PRIMARY KEY,
+			dirty BOOL NOT NULL
+		)`)
+		if err != nil {
+			return fmt.Errorf("create schema_migrations (mysql): %w", err)
+		}
+	default:
+		_, err := sqlDB.Exec(`CREATE TABLE schema_migrations (
+			version uint64 NOT NULL PRIMARY KEY,
+			dirty BOOL NOT NULL
+		)`)
+		if err != nil {
+			return fmt.Errorf("create schema_migrations (sqlite3): %w", err)
+		}
+	}
+	if _, err := sqlDB.Exec("INSERT INTO schema_migrations (version, dirty) VALUES (?, ?)", latestGoose, false); err != nil {
+		return fmt.Errorf("seed schema_migrations: %w", err)
+	}
+	log.Infof("Bootstrapped golang-migrate from goose: pinned at version %d", latestGoose)
+	return nil
+}
+
+// runMigrations applies all pending up migrations. ErrNoChange is treated
+// as success.
+func runMigrations(c *config.Config, sqlDB *sql.DB) error {
+	if err := gooseVersionToMigrateBootstrap(sqlDB, c.DBName); err != nil {
+		return err
+	}
+	m, err := newMigrate(c, sqlDB)
+	if err != nil {
+		return err
+	}
+	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return fmt.Errorf("apply migrations: %w", err)
+	}
+	return nil
 }
 
 func createTemporaryPassword(u *User) error {
@@ -132,18 +267,6 @@ func createTemporaryPassword(u *User) error {
 func Setup(c *config.Config) error {
 	// Setup the package-scoped config
 	conf = c
-	// Setup the goose configuration
-	migrateConf := &goose.DBConf{
-		MigrationsDir: conf.MigrationsPath,
-		Env:           "production",
-		Driver:        chooseDBDriver(conf.DBName, conf.DBPath),
-	}
-	// Get the latest possible migration
-	latest, err := goose.GetMostRecentDBVersion(migrateConf.MigrationsDir)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
 
 	// Register certificates for tls encrypted db connections
 	if conf.DBSSLCaPath != "" {
@@ -169,6 +292,7 @@ func Setup(c *config.Config) error {
 	}
 
 	// Open our database connection
+	var err error
 	i := 0
 	for {
 		db, err = gorm.Open(conf.DBName, conf.DBPath)
@@ -186,13 +310,10 @@ func Setup(c *config.Config) error {
 	db.LogMode(false)
 	db.SetLogger(log.Logger)
 	db.DB().SetMaxOpenConns(1)
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-	// Migrate up to the latest version
-	err = goose.RunMigrationsOnDb(migrateConf, migrateConf.MigrationsDir, latest, db.DB())
-	if err != nil {
+
+	// Apply pending migrations (golang-migrate). Bootstrapped from any
+	// pre-existing goose_db_version table on first run.
+	if err := runMigrations(conf, db.DB()); err != nil {
 		log.Error(err)
 		return err
 	}
