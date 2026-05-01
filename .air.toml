@@ -1,0 +1,34 @@
+# Air config for hot-reloading the gophish binary during development.
+#
+# Install: go install github.com/air-verse/air@latest
+# Run:     air  (or `task dev`)
+#
+# Air will watch .go files, rebuild on change, and restart the process.
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  bin = "tmp/gophish.exe"
+  cmd = "go build -o tmp/gophish.exe ."
+  delay = 1000
+  exclude_dir = ["tmp", "node_modules", "static/js/dist", "static/css/dist", "ansible-playbook", "docker", "doc", "docs"]
+  exclude_regex = ["_test\\.go", ".*\\.swp"]
+  include_ext = ["go", "html", "tpl", "tmpl"]
+  kill_delay = "1s"
+  log = "build-errors.log"
+  send_interrupt = true
+  stop_on_error = true
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true
