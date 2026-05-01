@@ -1,16 +1,16 @@
 {
   "name": "gophish",
-  "version": "0.4.0-dev",
+  "version": "0.13.0-dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gophish/gophish.git"
+    "url": "git+https://github.com/rdumanski/gophish.git"
   },
-  "author": "Jordan Wright",
+  "author": "Jordan Wright (upstream); Radek Dumanski (fork)",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/gophish/gophish/issues"
+    "url": "https://github.com/rdumanski/gophish/issues"
   },
-  "homepage": "https://getgophish.com",
+  "homepage": "https://github.com/rdumanski/gophish",
   "devDependencies": {
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",

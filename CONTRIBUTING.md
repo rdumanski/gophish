@@ -1,44 +1,81 @@
-# Contribute to gophish
+# Contributing
 
-Thank you for your interest in contributing to gophish! It is our goal to make the best simulated phishing framework possible, and we are excited you want to help out.
+Thank you for your interest in contributing to **rdumanski's fork of Gophish**.
 
-This guide details how to contribute to gophish in a way that is efficient for everyone involved.
+This document describes the contribution model, branch strategy, and how this
+fork relates to upstream `gophish/gophish`.
 
-Gophish currently only comes in one flavor, gophish Community Edition (CE), which is our free and open source edition. In the future, we reserve the right to create an Enterprise Edition, though we're currently pouring our effort into create a rock-solid open source platform. This document will be updated if an EE edition is created.
+## Project status
 
-## Contributor license agreement
+This repository is a **fork of Gophish 0.12.1** under active modernization. Upstream
+is effectively dormant (last commit September 2024). The fork is being prepared
+for new feature development on a modernized stack — see [README.md](./README.md)
+for the high-level roadmap.
 
-By submitting code as an individual you agree to the
-[individual contributor license agreement](doc/individual_contributor_license_agreement.md).
-By submitting code as an entity you agree to the
-[corporate contributor license agreement](doc/corporate_contributor_license_agreement.md).
+The fork's posture toward upstream:
 
-## Security vulnerability disclosure
+- **No automatic rebases.** Upstream is not regularly merged into the fork because
+  the fork's modernization (Go 1.22, GORM v2, Vite frontend, plugin architecture)
+  diverges substantially from upstream's structure.
+- **Security fixes are cherry-picked.** When upstream lands a security fix that
+  applies to the fork, it is cherry-picked from `upstream/master`. The cherry-pick
+  is recorded in the commit message: `cherry-picked from upstream <sha>`.
+- **Upstream tracking remote.** The repository has an `upstream` remote pointing
+  at `https://github.com/gophish/gophish`. Maintainers periodically fetch and
+  review for security-relevant changes.
 
-Please report suspected security vulnerabilities in private to
-`security@getgophish.com`.
-Please do **NOT** create publicly viewable issues for suspected security
-vulnerabilities.
+## Branch model
 
-## Closing policy for issues and merge requests
+- `main` is the default branch and the source of truth.
+- Feature work happens on **feature branches** named `phase-N-<topic>` or
+  `feat/<topic>`. PRs target `main`.
+- Releases are tagged `vMAJOR.MINOR.PATCH` (semver, starting from `0.13.0`).
+  Pre-releases use `-alpha.N` / `-beta.N` / `-rc.N` suffixes.
+- Merges are **squash-merged** — every PR is one commit on `main`.
+- Conventional commit prefixes are encouraged but not enforced (`feat:`, `fix:`,
+  `chore:`, `refactor:`, `docs:`, `test:`).
 
-It is our goal that gophish will become a popular tool for the infosec community. If this were to happen, we may begin receiving more issues and merge requests than we can keep up with.
+## Development environment
 
-Out of respect for our volunteers, issues and merge requests not in line with the guidelines listed in this document may be closed without notice. It will always be our goal to try and provide at least a reason why the issue is closed as much as possible.
+The Go toolchain version, Node version, and build prerequisites will be documented
+in `docs/dev/build-*.md` as part of Phase 1 of the modernization roadmap. Until
+then, the build prerequisites match upstream Gophish 0.12.1 (Go 1.13+, Node 12+).
 
-Please treat our volunteers with courtesy and respect, it will go a long way
-towards getting your issue resolved.
+## Submitting a pull request
 
-Issues and merge requests should be in English and contain appropriate language
-for audiences of all ages.
+1. Fork this repository (the fork-of-a-fork pattern).
+2. Create a feature branch from `main`.
+3. Make your changes. Run `go test ./...` and ensure the smoke test (admin login,
+   send test campaign) still works.
+4. Open a PR against `main`. Describe the change and link to any relevant issue.
+5. Be patient — this is a solo-maintained project.
 
-## I want to contribute!
+## Reporting a security vulnerability
 
-**Awesome!** We're excited to have your help. If you want to contribute to gophish, but are not sure where to start,
-look for [issues with the label `contributor-friendly`][contributor-friendly]. These issues
-will be of reasonable size and challenge, as well as not requiring a ton of internal plumbing on the gophish source code.
+See [SECURITY.md](./SECURITY.md). **Do not** open a public issue for security
+matters.
 
-## Have Questions?
-If you ever have questions, please don't hesitate to reach out to us directly at `support@getgophish.com`
+## Reporting a bug or requesting a feature
 
-[contributor-friendly]: https://github.com/gophish/gophish/labels/contributor-friendly
+Use [GitHub Issues](https://github.com/rdumanski/gophish/issues). A bug report
+should include:
+
+- Affected version (commit SHA or tag).
+- Reproduction steps.
+- Expected vs actual behavior.
+- Logs or stack traces if available.
+
+A feature request should describe the use case and how the feature fits into the
+project's roadmap.
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the
+[MIT License](./LICENSE), the same license under which the project is distributed.
+There is no separate Contributor License Agreement.
+
+## Acknowledgement
+
+This fork builds on the work of **Jordan Wright** and the upstream Gophish community.
+The upstream codebase remains MIT-licensed and its copyright is preserved in all
+derivative work.
