@@ -1,36 +1,93 @@
 name: CI
 on:
-  - pull_request
-  - push
-jobs:
+  pull_request:
+  push:
+    branches:
+      - master
 
+jobs:
   build:
-    name: Build
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+
+      - name: Verify go.mod is tidy
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Build
+        run: go build -v ./...
+
+      - name: Format
+        run: diff -u <(echo -n) <(gofmt -d .)
+
+      - name: Test
+        run: go test -v -race ./...
+
+  lint:
+    name: golangci-lint (advisory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
+
+      # Phase 2 baseline lint produces ~164 findings inherited from upstream
+      # (mostly ST1005 capitalized error strings + errcheck on log writes).
+      # Tracked in docs/dev/lint-debt.md and burned down per touch in
+      # subsequent phases. continue-on-error keeps this informational rather
+      # than gating merges.
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v7
+        continue-on-error: true
+        with:
+          version: v2.12.0
+          args: --timeout 5m
+
+  cross-compile:
+    name: Cross-compile
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        goVer: [1.21, 1.22, 1.23]
-
+        include:
+          - { goos: linux,   goarch: amd64 }
+          - { goos: linux,   goarch: arm64 }
+          - { goos: darwin,  goarch: amd64 }
+          - { goos: darwin,  goarch: arm64 }
+          - { goos: windows, goarch: amd64 }
     steps:
-    - name: Set up Go ${{ matrix.goVer }}
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.goVer }}
-      id: go
+      - uses: actions/checkout@v4
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          check-latest: true
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        go get gopkg.in/check.v1
-
-    - name: Build
-      run: go build -v .
-    
-    - name: Format
-      run: diff -u <(echo -n) <(gofmt -d .)
-    
-    - name: Test
-      run: go test ./...
+      - name: Build ${{ matrix.goos }}/${{ matrix.goarch }} (non-CGO packages only)
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          # mattn/go-sqlite3 requires CGO, which is incompatible with cross-compile
+          # without per-target C toolchains. Most of the codebase transitively
+          # imports models/ -> goose -> mattn/go-sqlite3, so we only verify the
+          # leaf packages that don't depend on the database layer.
+          # Phase 3 (modernc.org/sqlite + golang-migrate) will let us cross-compile
+          # the whole tree with CGO off.
+          go build ./auth/... ./dialer/... ./logger/... ./context/... \
+            ./middleware/ratelimit/...

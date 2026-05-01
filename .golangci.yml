@@ -1,0 +1,47 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - revive
+
+  settings:
+    gosec:
+      excludes:
+        # G104 (errcheck overlap), G304 (file path traversal — false positives in template/fixtures),
+        # G404 (math/rand — codebase uses crypto/rand for secrets; math/rand only for non-security paths)
+        - G104
+        - G304
+        - G404
+    revive:
+      rules:
+        - name: var-naming
+          disabled: true   # legacy ID/URL fields shadow the warning; revisit in Phase 6
+        - name: package-comments
+          disabled: true
+        - name: exported
+          disabled: true   # not all exported types have docstrings; cosmetic
+        - name: unused-parameter
+          disabled: true   # interface satisfaction often requires unused params
+
+  exclusions:
+    rules:
+      # Tests can be looser
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+      # Generated/legacy migration code
+      - path: db/db_(sqlite3|mysql)/migrations/
+        linters:
+          - revive
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

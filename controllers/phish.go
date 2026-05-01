@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/NYTimes/gziphandler"
+	"github.com/gorilla/handlers"
+	"github.com/gorilla/mux"
+	"github.com/jordan-wright/unindexed"
 	"github.com/rdumanski/gophish/config"
 	ctx "github.com/rdumanski/gophish/context"
 	"github.com/rdumanski/gophish/controllers/api"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
 	"github.com/rdumanski/gophish/util"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/jordan-wright/unindexed"
 )
 
 // ErrInvalidRequest is thrown when a request with an invalid structure is

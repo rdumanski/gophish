@@ -3,9 +3,9 @@ package middleware
 import (
 	"encoding/gob"
 
-	"github.com/rdumanski/gophish/models"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/rdumanski/gophish/models"
 )
 
 // init registers the necessary models to be saved in the session later

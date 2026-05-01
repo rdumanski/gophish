@@ -1,12 +1,8 @@
-//go:build go1.7
-// +build go1.7
-
 package context
 
 import (
-	"net/http"
-
 	"context"
+	"net/http"
 )
 
 // Get retrieves a value from the request context

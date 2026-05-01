@@ -24,6 +24,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// Package context provides the ability to store request-scoped values on an http.Request instance. These values are cleared after every request.
-// This package was created due to Go v1.7 moving the context package into the stdlib, which had a net effect of breaking some functionality from the existing gorilla/context.
+// Package context provides request-scoped value storage on http.Request via the
+// stdlib context package. The local helpers (Get/Set/Clear) are kept for
+// historical call-site compatibility; new code should prefer r.Context() directly.
 package context

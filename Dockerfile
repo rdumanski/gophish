@@ -10,11 +10,12 @@ RUN gulp
 
 
 # Build Golang binary
-FROM golang:1.15.2 AS build-golang
+FROM golang:1.25-bookworm AS build-golang
 
 WORKDIR /go/src/github.com/rdumanski/gophish
 COPY . .
-RUN go get -v && go build -v
+RUN go build -v ./...
+RUN go build -v -o gophish .
 
 
 # Runtime container
