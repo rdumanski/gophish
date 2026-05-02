@@ -41,14 +41,19 @@ These numbers are **guardrails** for Phases 2 (Go modernization), 3 (GORM v2), a
 - `https://localhost:3333` → HTTP 307 (redirect to login) — admin server up and reachable
 - TLS handshake: self-signed cert generated on first run (logged: "Creating new self-signed certificates")
 
-## Native Windows build (deferred)
+## Native Windows build
 
-Native Go build on the host failed at this checkpoint because:
-- Go 1.26.2 is installed via winget — works.
-- A C compiler (gcc via MSYS2 mingw-w64) is **not installed**, so CGO is disabled.
-- `mattn/go-sqlite3` v2.0.3+incompatible requires CGO — `error.go` is gated behind `import "C"` and `sqlite3.Error` is undefined without it.
+**Phase 3c update (2026-05-02)**: native Windows build now works without
+gcc. Phase 3c swapped `gorm.io/driver/sqlite`'s default `mattn/go-sqlite3`
+backend to `modernc.org/sqlite` (pure Go) by pinning the gorm dialect's
+`Config.DriverName` to `"sqlite"`. The Dockerfile's build stage now sets
+`CGO_ENABLED=0` and the resulting binary is statically linked.
 
-The Docker path side-steps this entirely (CGO works in the linux/amd64 build container). Native Windows builds will be revisited in **Phase 2** when we evaluate `modernc.org/sqlite` (pure Go) — if it works, we drop the C compiler dependency on Windows.
+Local validation (Windows 11, Go 1.25, no gcc):
+- `CGO_ENABLED=0 go build ./...` — green
+- `CGO_ENABLED=0 go test ./...` — every package passes
+- `CGO_ENABLED=0 golangci-lint run` — runs to completion (was previously
+  blocked by mattn's CGO type-check failure, see lint-debt.md)
 
 ## Frontend metrics
 
