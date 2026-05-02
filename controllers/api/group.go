@@ -2,15 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	ctx "github.com/rdumanski/gophish/context"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
+	"gorm.io/gorm"
 )
 
 // Groups returns a list of groups if requested via GET.
@@ -34,7 +35,7 @@ func (as *Server) Groups(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, err = models.GetGroupByName(g.Name, ctx.Get(r, "user_id").(int64))
-		if err != gorm.ErrRecordNotFound {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			JSONResponse(w, models.Response{Success: false, Message: "Group name already in use"}, http.StatusConflict)
 			return
 		}

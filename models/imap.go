@@ -32,29 +32,29 @@ type IMAP struct {
 
 // ErrIMAPHostNotSpecified is thrown when there is no Host specified
 // in the IMAP configuration
-var ErrIMAPHostNotSpecified = errors.New("No IMAP Host specified")
+var ErrIMAPHostNotSpecified = errors.New("no IMAP host specified")
 
 // ErrIMAPPortNotSpecified is thrown when there is no Port specified
 // in the IMAP configuration
-var ErrIMAPPortNotSpecified = errors.New("No IMAP Port specified")
+var ErrIMAPPortNotSpecified = errors.New("no IMAP port specified")
 
 // ErrInvalidIMAPHost indicates that the IMAP server string is invalid
-var ErrInvalidIMAPHost = errors.New("Invalid IMAP server address")
+var ErrInvalidIMAPHost = errors.New("invalid IMAP server address")
 
 // ErrInvalidIMAPPort indicates that the IMAP Port is invalid
-var ErrInvalidIMAPPort = errors.New("Invalid IMAP Port")
+var ErrInvalidIMAPPort = errors.New("invalid IMAP port")
 
 // ErrIMAPUsernameNotSpecified is thrown when there is no Username specified
 // in the IMAP configuration
-var ErrIMAPUsernameNotSpecified = errors.New("No Username specified")
+var ErrIMAPUsernameNotSpecified = errors.New("no username specified")
 
 // ErrIMAPPasswordNotSpecified is thrown when there is no Password specified
 // in the IMAP configuration
-var ErrIMAPPasswordNotSpecified = errors.New("No Password specified")
+var ErrIMAPPasswordNotSpecified = errors.New("no password specified")
 
 // ErrInvalidIMAPFreq is thrown when the frequency for polling the
 // IMAP server is invalid
-var ErrInvalidIMAPFreq = errors.New("Invalid polling frequency")
+var ErrInvalidIMAPFreq = errors.New("invalid polling frequency")
 
 // TableName specifies the database tablename for Gorm to use
 func (im IMAP) TableName() string {
@@ -103,9 +103,7 @@ func (im *IMAP) Validate() error {
 // GetIMAP returns the IMAP server owned by the given user.
 func GetIMAP(uid int64) ([]IMAP, error) {
 	im := []IMAP{}
-	count := 0
-	err := db.Where("user_id=?", uid).Find(&im).Count(&count).Error
-
+	err := db.Where("user_id=?", uid).Find(&im).Error
 	if err != nil {
 		log.Error(err)
 		return im, err

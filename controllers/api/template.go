@@ -2,15 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	ctx "github.com/rdumanski/gophish/context"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
+	"gorm.io/gorm"
 )
 
 // Templates handles the functionality for the /api/templates endpoint
@@ -32,7 +33,7 @@ func (as *Server) Templates(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		_, err = models.GetTemplateByName(t.Name, ctx.Get(r, "user_id").(int64))
-		if err != gorm.ErrRecordNotFound {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			JSONResponse(w, models.Response{Success: false, Message: "Template name already in use"}, http.StatusConflict)
 			return
 		}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/rdumanski/gophish/config"
 	"gopkg.in/check.v1"
+	"gorm.io/gorm"
 )
 
 // Hook up gocheck into the "go test" runner.
@@ -32,18 +33,35 @@ func (s *ModelsSuite) SetUpSuite(c *check.C) {
 func (s *ModelsSuite) TearDownTest(c *check.C) {
 	// Clear database tables between each test. If new tables are
 	// used in this test suite they will need to be cleaned up here.
-	db.Delete(Group{})
-	db.Delete(Target{})
-	db.Delete(GroupTarget{})
-	db.Delete(SMTP{})
-	db.Delete(Page{})
-	db.Delete(Result{})
-	db.Delete(MailLog{})
-	db.Delete(Campaign{})
+	// gorm v2 refuses unconditional DELETEs without AllowGlobalUpdate.
+	//
+	// The original upstream list omitted Template, Webhook, Attachment,
+	// Header, EmailRequest, and IMAP — v1's loose Find() semantics
+	// happened to return the most-recently-inserted row when multiple
+	// matched on (user_id, name), which masked the missing cleanup.
+	// v2's First() is deterministic (ORDER BY id ASC LIMIT 1), so
+	// those leftover rows now collide with subsequent tests.
+	gdb := db.Session(&gorm.Session{AllowGlobalUpdate: true})
+	gdb.Delete(&Group{})
+	gdb.Delete(&Target{})
+	gdb.Delete(&GroupTarget{})
+	gdb.Delete(&SMTP{})
+	gdb.Delete(&Header{})
+	gdb.Delete(&Page{})
+	gdb.Delete(&Template{})
+	gdb.Delete(&Attachment{})
+	gdb.Delete(&Result{})
+	gdb.Delete(&MailLog{})
+	gdb.Delete(&Campaign{})
+	gdb.Delete(&Event{})
+	gdb.Delete(&EmailRequest{})
+	gdb.Delete(&Webhook{})
+	gdb.Delete(&IMAP{})
 
 	// Reset users table to default state.
-	db.Not("id", 1).Delete(User{})
-	db.Model(User{}).Update("username", "admin")
+	db.Not("id", 1).Delete(&User{})
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).
+		Model(&User{}).Update("username", "admin")
 }
 
 func (s *ModelsSuite) createCampaignDependencies(ch *check.C, optional ...string) Campaign {
@@ -117,23 +135,35 @@ func setupBenchmark(b *testing.B) {
 }
 
 func tearDownBenchmark(b *testing.B) {
-	err := db.Close()
+	sqlDB, err := db.DB()
 	if err != nil {
+		b.Fatalf("error fetching underlying *sql.DB: %v", err)
+	}
+	if err := sqlDB.Close(); err != nil {
 		b.Fatalf("error closing database: %v", err)
 	}
 }
 
 func resetBenchmark(b *testing.B) {
-	db.Delete(Group{})
-	db.Delete(Target{})
-	db.Delete(GroupTarget{})
-	db.Delete(SMTP{})
-	db.Delete(Page{})
-	db.Delete(Result{})
-	db.Delete(MailLog{})
-	db.Delete(Campaign{})
+	gdb := db.Session(&gorm.Session{AllowGlobalUpdate: true})
+	gdb.Delete(&Group{})
+	gdb.Delete(&Target{})
+	gdb.Delete(&GroupTarget{})
+	gdb.Delete(&SMTP{})
+	gdb.Delete(&Header{})
+	gdb.Delete(&Page{})
+	gdb.Delete(&Template{})
+	gdb.Delete(&Attachment{})
+	gdb.Delete(&Result{})
+	gdb.Delete(&MailLog{})
+	gdb.Delete(&Campaign{})
+	gdb.Delete(&Event{})
+	gdb.Delete(&EmailRequest{})
+	gdb.Delete(&Webhook{})
+	gdb.Delete(&IMAP{})
 
 	// Reset users table to default state.
-	db.Not("id", 1).Delete(User{})
-	db.Model(User{}).Update("username", "admin")
+	db.Not("id", 1).Delete(&User{})
+	db.Session(&gorm.Session{AllowGlobalUpdate: true}).
+		Model(&User{}).Update("username", "admin")
 }

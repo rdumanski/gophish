@@ -2,15 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 	ctx "github.com/rdumanski/gophish/context"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
+	"gorm.io/gorm"
 )
 
 // Pages handles requests for the /api/pages/ endpoint
@@ -33,7 +34,7 @@ func (as *Server) Pages(w http.ResponseWriter, r *http.Request) {
 		}
 		// Check to make sure the name is unique
 		_, err = models.GetPageByName(p.Name, ctx.Get(r, "user_id").(int64))
-		if err != gorm.ErrRecordNotFound {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			JSONResponse(w, models.Response{Success: false, Message: "Page name already in use"}, http.StatusConflict)
 			log.Error(err)
 			return

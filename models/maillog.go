@@ -17,6 +17,7 @@ import (
 	"github.com/rdumanski/gophish/config"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/mailer"
+	"gorm.io/gorm"
 )
 
 // MaxSendAttempts set to 8 since we exponentially backoff after each failed send
@@ -89,13 +90,13 @@ func (m *MailLog) Backoff(reason error) error {
 // Unlock removes the processing flag so the maillog can be processed again
 func (m *MailLog) Unlock() error {
 	m.Processing = false
-	return db.Save(&m).Error
+	return db.Save(m).Error
 }
 
 // Lock sets the processing flag so that other processes cannot modify the maillog
 func (m *MailLog) Lock() error {
 	m.Processing = true
-	return db.Save(&m).Error
+	return db.Save(m).Error
 }
 
 // Error sets the error status on the models.Result that the
@@ -300,7 +301,11 @@ func LockMailLogs(ms []*MailLog, lock bool) error {
 // in the database. This is intended to be called when Gophish is started
 // so that any previously locked maillogs can resume processing.
 func UnlockAllMailLogs() error {
-	return db.Model(&MailLog{}).Update("processing", false).Error
+	// gorm v2 refuses to issue a global UPDATE without a WHERE clause unless
+	// AllowGlobalUpdate is set on the session. We want every row's flag flipped
+	// on startup, which is the legitimate use case for this opt-in.
+	return db.Session(&gorm.Session{AllowGlobalUpdate: true}).
+		Model(&MailLog{}).Update("processing", false).Error
 }
 
 var maxBigInt = big.NewInt(math.MaxInt64)

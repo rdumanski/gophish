@@ -3,13 +3,14 @@ package models
 import (
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"net"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/oschwald/maxminddb-golang"
 	log "github.com/rdumanski/gophish/logger"
+	"gorm.io/gorm"
 )
 
 type mmCity struct {
@@ -28,12 +29,12 @@ type Result struct {
 	CampaignId   int64     `json:"-"`
 	UserId       int64     `json:"-"`
 	RId          string    `json:"id"`
-	Status       string    `json:"status" sql:"not null"`
+	Status       string    `json:"status" gorm:"not null"`
 	IP           string    `json:"ip"`
 	Latitude     float64   `json:"latitude"`
 	Longitude    float64   `json:"longitude"`
 	SendDate     time.Time `json:"send_date"`
-	Reported     bool      `json:"reported" sql:"not null"`
+	Reported     bool      `json:"reported" gorm:"not null"`
 	ModifiedDate time.Time `json:"modified_date"`
 	BaseRecipient
 }
@@ -194,7 +195,7 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 		}
 		r.RId = rid
 		err = tx.Table("results").Where("r_id=?", r.RId).First(&Result{}).Error
-		if err == gorm.ErrRecordNotFound {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			break
 		}
 	}
