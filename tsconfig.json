@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "allowImportingTsExtensions": false,
+    "noEmit": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "useUnknownInCatchVariables": false,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": false,
+    "types": ["jquery"]
+  },
+  "include": [
+    "static/js/src/app/**/*.ts",
+    "static/js/types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "static/js/dist"
+  ]
+}

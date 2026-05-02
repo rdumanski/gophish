@@ -1,4 +1,5 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common.mjs'
+// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
+import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 // labels is a map of campaign statuses to
 // CSS classes

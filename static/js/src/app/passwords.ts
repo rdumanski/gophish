@@ -36,7 +36,7 @@ const updatePasswordStrength = (e) => {
     const candidate = e.target.value
     // If there is no password, clear out the progress bar
     if (!candidate) {
-        ProgressBar.style.width = 0
+        ProgressBar.style.width = '0'
         StrengthDescription.textContent = ""
         Progress.classList.add("hidden")
         return

@@ -1,4 +1,5 @@
-import { api, errorFlash, successFlash, successFlashFade } from './common.mjs'
+// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
+import { api, errorFlash, successFlash, successFlashFade } from './common'
 
 $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip();

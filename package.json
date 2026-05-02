@@ -13,10 +13,13 @@
   },
   "homepage": "https://github.com/rdumanski/gophish",
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@types/jquery": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "zxcvbn": "^4.4.2"
