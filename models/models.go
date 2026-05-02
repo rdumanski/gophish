@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
@@ -17,12 +18,16 @@ import (
 	migratesqlite3 "github.com/golang-migrate/migrate/v4/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/v4/source/file" // file:// source driver
 
-	mysql "github.com/go-sql-driver/mysql"
+	gosqlmysql "github.com/go-sql-driver/mysql"
 	"github.com/rdumanski/gophish/auth"
 	"github.com/rdumanski/gophish/config"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/mattn/go-sqlite3" // Blank import needed to import sqlite3
+	"github.com/sirupsen/logrus"
+	gormmysql "gorm.io/driver/mysql"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+	gormlogger "gorm.io/gorm/logger"
+
 	log "github.com/rdumanski/gophish/logger"
 )
 
@@ -84,6 +89,90 @@ func generateSecureKey() string {
 	k := make([]byte, 32)
 	io.ReadFull(rand.Reader, k)
 	return fmt.Sprintf("%x", k)
+}
+
+// openGormDialect opens a gorm.DB for the configured driver. Sqlite3 is the
+// historical default; the dbName "sqlite3" is preserved here for backward
+// compatibility with existing config.json files even though gorm.io/driver/sqlite
+// internally registers the driver as "sqlite3".
+func openGormDialect(dbName, dsn string, cfg *gorm.Config) (*gorm.DB, error) {
+	switch dbName {
+	case "mysql":
+		return gorm.Open(gormmysql.Open(dsn), cfg)
+	default:
+		return gorm.Open(sqlite.Open(dsn), cfg)
+	}
+}
+
+// gormLogrusLogger adapts the package-level logrus.Logger to GORM v2's
+// logger.Interface. We default to silent logging (matching the previous
+// LogMode(false) behavior) and only emit slow-query / error messages
+// through the existing logrus pipeline.
+type gormLogrusLogger struct {
+	logger        *logrus.Logger
+	level         gormlogger.LogLevel
+	slowThreshold time.Duration
+}
+
+func newGormLogger(l *logrus.Logger) gormlogger.Interface {
+	return &gormLogrusLogger{
+		logger:        l,
+		level:         gormlogger.Silent,
+		slowThreshold: 200 * time.Millisecond,
+	}
+}
+
+func (g *gormLogrusLogger) LogMode(level gormlogger.LogLevel) gormlogger.Interface {
+	clone := *g
+	clone.level = level
+	return &clone
+}
+
+func (g *gormLogrusLogger) Info(_ context.Context, msg string, args ...interface{}) {
+	if g.level >= gormlogger.Info {
+		g.logger.Infof(msg, args...)
+	}
+}
+
+func (g *gormLogrusLogger) Warn(_ context.Context, msg string, args ...interface{}) {
+	if g.level >= gormlogger.Warn {
+		g.logger.Warnf(msg, args...)
+	}
+}
+
+func (g *gormLogrusLogger) Error(_ context.Context, msg string, args ...interface{}) {
+	if g.level >= gormlogger.Error {
+		g.logger.Errorf(msg, args...)
+	}
+}
+
+func (g *gormLogrusLogger) Trace(_ context.Context, begin time.Time, fc func() (string, int64), err error) {
+	if g.level <= gormlogger.Silent {
+		return
+	}
+	elapsed := time.Since(begin)
+	switch {
+	case err != nil && g.level >= gormlogger.Error && !errors.Is(err, gorm.ErrRecordNotFound):
+		sql, rows := fc()
+		g.logger.WithFields(logrus.Fields{
+			"elapsed_ms": elapsed.Milliseconds(),
+			"rows":       rows,
+			"sql":        sql,
+		}).Error(err)
+	case g.slowThreshold > 0 && elapsed > g.slowThreshold && g.level >= gormlogger.Warn:
+		sql, rows := fc()
+		g.logger.WithFields(logrus.Fields{
+			"elapsed_ms": elapsed.Milliseconds(),
+			"rows":       rows,
+			"sql":        sql,
+		}).Warnf("slow query > %s", g.slowThreshold)
+	case g.level >= gormlogger.Info:
+		sql, rows := fc()
+		g.logger.WithFields(logrus.Fields{
+			"elapsed_ms": elapsed.Milliseconds(),
+			"rows":       rows,
+		}).Debug(sql)
+	}
 }
 
 // migrationsDir returns the absolute path to the migrations directory for
@@ -249,7 +338,7 @@ func createTemporaryPassword(u *User) error {
 	// Anytime a temporary password is created, we will force the user
 	// to change their password
 	u.PasswordChangeRequired = true
-	err = db.Save(u).Error
+	err = db.Omit("Role").Save(u).Error
 	if err != nil {
 		return err
 	}
@@ -282,9 +371,13 @@ func Setup(c *config.Config) error {
 				log.Error("Failed to append PEM.")
 				return err
 			}
-			mysql.RegisterTLSConfig("ssl_ca", &tls.Config{
+			err = gosqlmysql.RegisterTLSConfig("ssl_ca", &tls.Config{
 				RootCAs: rootCertPool,
 			})
+			if err != nil {
+				log.Error(err)
+				return err
+			}
 			// Default database is sqlite3, which supports no tls, as connection
 			// is file based
 		default:
@@ -292,28 +385,34 @@ func Setup(c *config.Config) error {
 	}
 
 	// Open our database connection
+	gormCfg := &gorm.Config{
+		Logger: newGormLogger(log.Logger),
+	}
 	var err error
 	i := 0
 	for {
-		db, err = gorm.Open(conf.DBName, conf.DBPath)
+		db, err = openGormDialect(conf.DBName, conf.DBPath, gormCfg)
 		if err == nil {
 			break
 		}
-		if err != nil && i >= MaxDatabaseConnectionAttempts {
+		if i >= MaxDatabaseConnectionAttempts {
 			log.Error(err)
 			return err
 		}
-		i += 1
+		i++
 		log.Warn("waiting for database to be up...")
 		time.Sleep(5 * time.Second)
 	}
-	db.LogMode(false)
-	db.SetLogger(log.Logger)
-	db.DB().SetMaxOpenConns(1)
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	sqlDB.SetMaxOpenConns(1)
 
 	// Apply pending migrations (golang-migrate). Bootstrapped from any
 	// pre-existing goose_db_version table on first run.
-	if err := runMigrations(conf, db.DB()); err != nil {
+	if err := runMigrations(conf, sqlDB); err != nil {
 		log.Error(err)
 		return err
 	}
@@ -340,7 +439,7 @@ func Setup(c *config.Config) error {
 			adminUser.ApiKey = auth.GenerateSecureKey(auth.APIKeyLength)
 		}
 
-		err = db.Save(&adminUser).Error
+		err = db.Omit("Role").Save(&adminUser).Error
 		if err != nil {
 			log.Error(err)
 			return err

@@ -6,9 +6,9 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // Group contains the fields needed for a user -> group mapping
@@ -18,7 +18,7 @@ type Group struct {
 	UserId       int64     `json:"-"`
 	Name         string    `json:"name"`
 	ModifiedDate time.Time `json:"modified_date"`
-	Targets      []Target  `json:"targets" sql:"-"`
+	Targets      []Target  `json:"targets" gorm:"-"`
 }
 
 // GroupSummaries is a struct representing the overview of Groups.
@@ -86,13 +86,13 @@ func (t *Target) FormatAddress() string {
 }
 
 // ErrEmailNotSpecified is thrown when no email is specified for the Target
-var ErrEmailNotSpecified = errors.New("No email address specified")
+var ErrEmailNotSpecified = errors.New("no email address specified")
 
 // ErrGroupNameNotSpecified is thrown when a group name is not specified
-var ErrGroupNameNotSpecified = errors.New("Group name not specified")
+var ErrGroupNameNotSpecified = errors.New("group name not specified")
 
 // ErrNoTargetsSpecified is thrown when no targets are specified by the user
-var ErrNoTargetsSpecified = errors.New("No targets specified")
+var ErrNoTargetsSpecified = errors.New("no targets specified")
 
 // Validate performs validation on a group given by the user
 func (g *Group) Validate() error {
@@ -146,7 +146,7 @@ func GetGroupSummaries(uid int64) (GroupSummaries, error) {
 // GetGroup returns the group, if it exists, specified by the given id and user_id.
 func GetGroup(id int64, uid int64) (Group, error) {
 	g := Group{}
-	err := db.Where("user_id=? and id=?", uid, id).Find(&g).Error
+	err := db.Where("user_id=? and id=?", uid, id).First(&g).Error
 	if err != nil {
 		log.Error(err)
 		return g, err
@@ -178,7 +178,7 @@ func GetGroupSummary(id int64, uid int64) (GroupSummary, error) {
 // GetGroupByName returns the group, if it exists, specified by the given name and user_id.
 func GetGroupByName(n string, uid int64) (Group, error) {
 	g := Group{}
-	err := db.Where("user_id=? and name=?", uid, n).Find(&g).Error
+	err := db.Where("user_id=? and name=?", uid, n).First(&g).Error
 	if err != nil {
 		log.Error(err)
 		return g, err

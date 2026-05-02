@@ -86,7 +86,7 @@ func PostEmailRequest(s *EmailRequest) error {
 		return err
 	}
 	s.RId = fmt.Sprintf("%s%s", PreviewPrefix, rid)
-	return db.Save(&s).Error
+	return db.Save(s).Error
 }
 
 // GetEmailRequestByResultId retrieves the EmailRequest by the underlying rid

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/gophish/gomail"
-	"github.com/jinzhu/gorm"
 	"github.com/rdumanski/gophish/dialer"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/mailer"
@@ -32,7 +31,7 @@ func (d *Dialer) Dial() (mailer.Sender, error) {
 
 // SMTP contains the attributes needed to handle the sending of campaign emails
 type SMTP struct {
-	Id               int64     `json:"id" gorm:"column:id; primary_key:yes"`
+	Id               int64     `json:"id" gorm:"primaryKey;column:id"`
 	UserId           int64     `json:"-" gorm:"column:user_id"`
 	Interface        string    `json:"interface_type" gorm:"column:interface_type"`
 	Name             string    `json:"name"`
@@ -56,18 +55,18 @@ type Header struct {
 
 // ErrFromAddressNotSpecified is thrown when there is no "From" address
 // specified in the SMTP configuration
-var ErrFromAddressNotSpecified = errors.New("No From Address specified")
+var ErrFromAddressNotSpecified = errors.New("no from address specified")
 
 // ErrInvalidFromAddress is thrown when the SMTP From field in the sending
-// profiles containes a value that is not an email address
-var ErrInvalidFromAddress = errors.New("Invalid SMTP From address because it is not an email address")
+// profiles contains a value that is not an email address
+var ErrInvalidFromAddress = errors.New("invalid SMTP from address because it is not an email address")
 
 // ErrHostNotSpecified is thrown when there is no Host specified
 // in the SMTP configuration
-var ErrHostNotSpecified = errors.New("No SMTP Host specified")
+var ErrHostNotSpecified = errors.New("no SMTP host specified")
 
 // ErrInvalidHost indicates that the SMTP server string is invalid
-var ErrInvalidHost = errors.New("Invalid SMTP server address")
+var ErrInvalidHost = errors.New("invalid SMTP server address")
 
 // TableName specifies the database tablename for Gorm to use
 func (s SMTP) TableName() string {
@@ -148,7 +147,7 @@ func GetSMTPs(uid int64) ([]SMTP, error) {
 	}
 	for i := range ss {
 		err = db.Where("smtp_id=?", ss[i].Id).Find(&ss[i].Headers).Error
-		if err != nil && err != gorm.ErrRecordNotFound {
+		if err != nil {
 			log.Error(err)
 			return ss, err
 		}
@@ -159,13 +158,13 @@ func GetSMTPs(uid int64) ([]SMTP, error) {
 // GetSMTP returns the SMTP, if it exists, specified by the given id and user_id.
 func GetSMTP(id int64, uid int64) (SMTP, error) {
 	s := SMTP{}
-	err := db.Where("user_id=? and id=?", uid, id).Find(&s).Error
+	err := db.Where("user_id=? and id=?", uid, id).First(&s).Error
 	if err != nil {
 		log.Error(err)
 		return s, err
 	}
 	err = db.Where("smtp_id=?", s.Id).Find(&s.Headers).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil {
 		log.Error(err)
 		return s, err
 	}
@@ -175,13 +174,13 @@ func GetSMTP(id int64, uid int64) (SMTP, error) {
 // GetSMTPByName returns the SMTP, if it exists, specified by the given name and user_id.
 func GetSMTPByName(n string, uid int64) (SMTP, error) {
 	s := SMTP{}
-	err := db.Where("user_id=? and name=?", uid, n).Find(&s).Error
+	err := db.Where("user_id=? and name=?", uid, n).First(&s).Error
 	if err != nil {
 		log.Error(err)
 		return s, err
 	}
 	err = db.Where("smtp_id=?", s.Id).Find(&s.Headers).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil {
 		log.Error(err)
 	}
 	return s, err
@@ -225,7 +224,7 @@ func PutSMTP(s *SMTP) error {
 	}
 	// Delete all custom headers, and replace with new ones
 	err = db.Where("smtp_id=?", s.Id).Delete(&Header{}).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil {
 		log.Error(err)
 		return err
 	}
@@ -250,7 +249,7 @@ func DeleteSMTP(id int64, uid int64) error {
 		log.Error(err)
 		return err
 	}
-	err = db.Where("user_id=?", uid).Delete(SMTP{Id: id}).Error
+	err = db.Where("user_id=?", uid).Delete(&SMTP{Id: id}).Error
 	if err != nil {
 		log.Error(err)
 	}

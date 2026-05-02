@@ -10,15 +10,15 @@ import (
 // ErrModifyingOnlyAdmin occurs when there is an attempt to modify the only
 // user account with the Admin role in such a way that there will be no user
 // accounts left in Gophish with that role.
-var ErrModifyingOnlyAdmin = errors.New("Cannot remove the only administrator")
+var ErrModifyingOnlyAdmin = errors.New("cannot remove the only administrator")
 
 // User represents the user model for gophish.
 type User struct {
 	Id                     int64     `json:"id"`
-	Username               string    `json:"username" sql:"not null;unique"`
+	Username               string    `json:"username" gorm:"not null;unique"`
 	Hash                   string    `json:"-"`
-	ApiKey                 string    `json:"api_key" sql:"not null;unique"`
-	Role                   Role      `json:"role" gorm:"association_autoupdate:false;association_autocreate:false"`
+	ApiKey                 string    `json:"api_key" gorm:"not null;unique"`
+	Role                   Role      `json:"role" gorm:"foreignKey:RoleID;references:ID"`
 	RoleID                 int64     `json:"-"`
 	PasswordChangeRequired bool      `json:"password_change_required"`
 	AccountLocked          bool      `json:"account_locked"`
@@ -56,9 +56,12 @@ func GetUserByUsername(username string) (User, error) {
 	return u, err
 }
 
-// PutUser updates the given user
+// PutUser updates the given user. The Role association is intentionally
+// omitted from the upsert so that role rows are never created or modified
+// as a side effect of saving a user (preserves the v1 association_autoupdate
+// and association_autocreate semantics).
 func PutUser(u *User) error {
-	err := db.Save(u).Error
+	err := db.Omit("Role").Save(u).Error
 	return err
 }
 
@@ -70,7 +73,7 @@ func EnsureEnoughAdmins() error {
 	if err != nil {
 		return err
 	}
-	var adminCount int
+	var adminCount int64
 	err = db.Model(&User{}).Where("role_id=?", role.ID).Count(&adminCount).Error
 	if err != nil {
 		return err

@@ -8,7 +8,7 @@ import (
 
 // Webhook represents the webhook model
 type Webhook struct {
-	Id       int64  `json:"id" gorm:"column:id; primary_key:yes"`
+	Id       int64  `json:"id" gorm:"primaryKey;column:id"`
 	Name     string `json:"name"`
 	URL      string `json:"url"`
 	Secret   string `json:"secret"`
@@ -19,7 +19,7 @@ type Webhook struct {
 var ErrURLNotSpecified = errors.New("URL can't be empty")
 
 // ErrNameNotSpecified indicates there was no name specified
-var ErrNameNotSpecified = errors.New("Name can't be empty")
+var ErrNameNotSpecified = errors.New("name can't be empty")
 
 // GetWebhooks returns the webhooks
 func GetWebhooks() ([]Webhook, error) {

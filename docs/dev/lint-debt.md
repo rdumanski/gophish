@@ -26,6 +26,12 @@ The plan called this out as the expected "lint avalanche": rules will be burned 
 - **Phase 5** (auth + IMAP backoff): re-enables csrf v1.7.x and addresses errcheck around login/IMAP code.
 - **Phase 6** (plugin architecture + API v2): cleans up unused functions and reorganizes API package.
 
+### Phase 3 progress (commit on phase-3b-gorm-v2)
+
+- **ST1005**: 31 of 32 capitalized error literals in `models/*.go` lowercased (campaign, group, page, smtp, template, imap, webhook, user). `webhook.ErrURLNotSpecified` retained capitalized "URL" (acronym, ST1005 allows). Remaining ST1005 hits live in packages not touched by this phase (auth, controllers/api JSON response strings are not Go errors — exempt).
+- **errcheck on DB calls**: deferred. Wrapping every unchecked `db.*` write/delete in `models/` with explicit error handling would expand this PR significantly past the scope of "GORM v1 → v2". Fold into Phase 5 (auth/IMAP errcheck pass) per existing plan.
+- **Other linters**: untouched in 3b — all findings remain owned by their listed phase.
+
 The first authoritative lint baseline is produced by **CI** (see `.github/workflows/ci.yml`), because `golangci-lint` requires CGO to type-check `models/models.go` (transitively through goose → mattn/go-sqlite3). Local lint runs on Windows without a C toolchain fail with:
 
 ```
