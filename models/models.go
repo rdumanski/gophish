@@ -15,7 +15,7 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	migratemysql "github.com/golang-migrate/migrate/v4/database/mysql"
-	migratesqlite3 "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	_ "github.com/golang-migrate/migrate/v4/source/file" // file:// source driver
 
 	gosqlmysql "github.com/go-sql-driver/mysql"
@@ -27,6 +27,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
+	_ "modernc.org/sqlite" // registers pure-Go sqlite driver as "sqlite"
 
 	log "github.com/rdumanski/gophish/logger"
 )
@@ -91,16 +92,25 @@ func generateSecureKey() string {
 	return fmt.Sprintf("%x", k)
 }
 
-// openGormDialect opens a gorm.DB for the configured driver. Sqlite3 is the
-// historical default; the dbName "sqlite3" is preserved here for backward
-// compatibility with existing config.json files even though gorm.io/driver/sqlite
-// internally registers the driver as "sqlite3".
+// openGormDialect opens a gorm.DB for the configured driver. The sqlite
+// path uses gorm's official driver wired to modernc.org/sqlite (pure Go,
+// no CGO). The config-level dbName "sqlite3" is preserved as a backward
+// compatibility label for existing config.json files even though the
+// underlying database/sql driver is registered as "sqlite".
+//
+// gorm.io/driver/sqlite still imports github.com/mattn/go-sqlite3 (its
+// historical default), but with CGO_ENABLED=0 the mattn init is a no-op
+// and only modernc's "sqlite" registration is effective. We pin gorm to
+// that driver explicitly via Config.DriverName.
 func openGormDialect(dbName, dsn string, cfg *gorm.Config) (*gorm.DB, error) {
 	switch dbName {
 	case "mysql":
 		return gorm.Open(gormmysql.Open(dsn), cfg)
 	default:
-		return gorm.Open(sqlite.Open(dsn), cfg)
+		return gorm.Open(sqlite.New(sqlite.Config{
+			DSN:        dsn,
+			DriverName: "sqlite",
+		}), cfg)
 	}
 }
 
@@ -214,11 +224,15 @@ func newMigrate(c *config.Config, sqlDB *sql.DB) (*migrate.Migrate, error) {
 		}
 		return migrate.NewWithDatabaseInstance(sourceURL, "mysql", drv)
 	default:
-		drv, err := migratesqlite3.WithInstance(sqlDB, &migratesqlite3.Config{})
+		// Pure-Go sqlite via modernc.org/sqlite (the migrate v4 "sqlite"
+		// driver). Registers under the name "sqlite", not "sqlite3" — the
+		// config-level DBName "sqlite3" is preserved as a backward-compat
+		// label for users' existing config.json.
+		drv, err := migratesqlite.WithInstance(sqlDB, &migratesqlite.Config{})
 		if err != nil {
-			return nil, fmt.Errorf("sqlite3 migrate driver: %w", err)
+			return nil, fmt.Errorf("sqlite migrate driver: %w", err)
 		}
-		return migrate.NewWithDatabaseInstance(sourceURL, "sqlite3", drv)
+		return migrate.NewWithDatabaseInstance(sourceURL, "sqlite", drv)
 	}
 }
 

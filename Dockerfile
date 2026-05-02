@@ -12,6 +12,11 @@ RUN gulp
 # Build Golang binary
 FROM golang:1.25-bookworm AS build-golang
 
+# Pure-Go build (sqlite via modernc.org/sqlite, no libsqlite3 native dep).
+# This makes the resulting binary statically linked and removes the gcc
+# requirement from this stage.
+ENV CGO_ENABLED=0
+
 WORKDIR /go/src/github.com/rdumanski/gophish
 COPY . .
 RUN go build -v ./...

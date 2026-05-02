@@ -32,14 +32,24 @@ The plan called this out as the expected "lint avalanche": rules will be burned 
 - **errcheck on DB calls**: deferred. Wrapping every unchecked `db.*` write/delete in `models/` with explicit error handling would expand this PR significantly past the scope of "GORM v1 → v2". Fold into Phase 5 (auth/IMAP errcheck pass) per existing plan.
 - **Other linters**: untouched in 3b — all findings remain owned by their listed phase.
 
-The first authoritative lint baseline is produced by **CI** (see `.github/workflows/ci.yml`), because `golangci-lint` requires CGO to type-check `models/models.go` (transitively through goose → mattn/go-sqlite3). Local lint runs on Windows without a C toolchain fail with:
+**Phase 3c update (2026-05-02)**: local lint now works without CGO. The
+sqlite driver was swapped to `modernc.org/sqlite` (pure Go) and
+`gorm.io/driver/sqlite` was reconfigured via `Config.DriverName: "sqlite"`
+to consume it. Running `CGO_ENABLED=0 golangci-lint run --timeout 5m` on
+Windows now completes successfully. The first post-3c local run reports
+**137 findings** (down from the Phase 2 baseline of 164, mostly via the
+ST1005 burn-down that landed with 3b).
+
+Historical note: before Phase 3c, local lint runs on Windows without a C
+toolchain failed with:
 
 ```
 typechecking error: could not import bitbucket.org/liamstask/goose/lib/goose
 (-: dialect.go:119:15: undefined: sqlite3.Error)
 ```
 
-Phase 3 replaces goose with golang-migrate and evaluates `modernc.org/sqlite`; once that lands, local lint runs will work without CGO.
+Phase 3a replaced goose with golang-migrate and Phase 3c replaced the
+sqlite driver, finally removing the CGO requirement.
 
 ## Currently suppressed rules (in `.golangci.yml`)
 
