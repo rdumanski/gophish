@@ -69,19 +69,20 @@ async function ensureDir(p) {
     await mkdir(p, { recursive: true })
 }
 
-// Files that use ES6 `import` and need bundling (zxcvbn etc. resolved
-// from node_modules). Historically handled by webpack.config.js.
-const bundledApps = ['passwords.js']
-const plainApps = appFiles.filter((f) => !bundledApps.includes(f))
+// autocomplete.js is the only app file that's still a non-module
+// script: it declares top-level `var TEMPLATE_TAGS = [...]` that an
+// inline page script reads as a global. Bundling it as IIFE would
+// hide that global. Everything else is now an ESM module (Phase 4b)
+// and is bundled + IIFE-wrapped; functions called from inline HTML
+// onclick handlers are re-exported onto window inside each module.
+const plainApps = ['autocomplete.js']
+const moduleApps = appFiles.filter((f) => !plainApps.includes(f))
 
 async function buildApp() {
     await ensureDir(`${jsDist}/app`)
 
-    // Plain files: minify only, no bundling, no IIFE wrapper. Top-level
-    // `var` declarations remain page-globals exactly like the gulp+uglify
-    // pipeline produced. IIFE-wrapping these would dead-code-eliminate
-    // unreferenced top-level data tables (e.g. autocomplete.js's
-    // TEMPLATE_TAGS, used from inline page scripts).
+    // Plain (non-module) files: minify in place, no IIFE wrap, top-level
+    // declarations remain page-globals.
     await build({
         entryPoints: plainApps.map((f) => `${jsSrc}/app/${f}`),
         outdir: `${jsDist}/app`,
@@ -93,22 +94,22 @@ async function buildApp() {
         outExtension: { '.js': '.min.js' },
     })
 
-    // Bundled files: resolve npm imports + minify + IIFE-wrap.
-    // passwords.js pulls in zxcvbn (~800KB — same size as the previous
-    // webpack output; it's the English password dictionary).
-    if (bundledApps.length > 0) {
-        await build({
-            entryPoints: bundledApps.map((f) => `${jsSrc}/app/${f}`),
-            outdir: `${jsDist}/app`,
-            bundle: true,
-            minify: true,
-            target: 'es2017',
-            platform: 'browser',
-            format: 'iife',
-            logLevel: 'info',
-            outExtension: { '.js': '.min.js' },
-        })
-    }
+    // ESM files: resolve imports (mostly ./common.mjs, plus zxcvbn for
+    // passwords.js), minify, IIFE-wrap. Each entry produces a
+    // self-contained <name>.min.js that the corresponding HTML
+    // template loads via a single <script src="..."> tag, exactly as
+    // before the migration.
+    await build({
+        entryPoints: moduleApps.map((f) => `${jsSrc}/app/${f}`),
+        outdir: `${jsDist}/app`,
+        bundle: true,
+        minify: true,
+        target: 'es2017',
+        platform: 'browser',
+        format: 'iife',
+        logLevel: 'info',
+        outExtension: { '.js': '.min.js' },
+    })
 }
 
 async function bundleVendor() {

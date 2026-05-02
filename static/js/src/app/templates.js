@@ -1,3 +1,5 @@
+import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common.mjs'
+
 var templates = []
 var icons = {
     "application/vnd.ms-excel": "fa-file-excel-o",
@@ -419,3 +421,7 @@ $(document).ready(function () {
     load()
 
 })
+
+// Inline-onclick references from templates/templates.html plus
+// JS-string-built buttons in this file's load handler.
+Object.assign(window, { attach, copy, deleteTemplate, dismiss, edit, importEmail })

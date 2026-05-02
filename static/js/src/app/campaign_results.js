@@ -1,3 +1,5 @@
+import { api, capitalize, errorFlash, escapeHtml } from './common.mjs'
+
 var map = null
 var doPoll = true;
 
@@ -970,4 +972,18 @@ $(document).ready(function () {
 
     // Start the polling loop
     setRefresh = setTimeout(refresh, 60000)
+})
+
+// Functions referenced from inline onclick handlers in
+// templates/campaign_results.html and from HTML strings constructed
+// inside this file's renderTimeline / load handlers. With the file
+// bundled as an IIFE these would otherwise be invisible to those
+// inline references.
+Object.assign(window, {
+    completeCampaign,
+    deleteCampaign,
+    exportAsCSV,
+    refresh,
+    replay,
+    report_mail,
 })

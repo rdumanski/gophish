@@ -1,3 +1,5 @@
+import { api, errorFlash, escapeHtml, successFlash } from './common.mjs'
+
 var campaigns = []
 // statuses is a helper map to point result statuses to ui classes
 var statuses = {
@@ -370,3 +372,6 @@ $(document).ready(function () {
             errorFlash("Error fetching campaigns")
         })
 })
+
+// JS-string-built delete buttons reference deleteCampaign by name.
+Object.assign(window, { deleteCampaign })
