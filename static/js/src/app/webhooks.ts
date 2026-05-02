@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 let webhooks = [];
@@ -12,7 +11,7 @@ const dismiss = () => {
 };
 
 const saveWebhook = (id) => {
-    let wh = {
+    let wh: any = {
         name: $("#name").val(),
         url: $("#url").val(),
         secret: $("#secret").val(),
@@ -123,7 +122,7 @@ const deleteWebhook = (id) => {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise((resolve, reject) => {
+            return new Promise<void>((resolve, reject) => {
                 api.webhookId.delete(id)
                     .success((msg) => {
                         resolve()

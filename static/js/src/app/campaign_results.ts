@@ -1,11 +1,10 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, capitalize, errorFlash, escapeHtml } from './common'
 
 var map = null
 var doPoll = true;
 
 // statuses is a helper map to point result statuses to ui classes
-var statuses = {
+var statuses: Record<string, any> = {
     "Email Sent": {
         color: "#1abc9c",
         label: "label-success",
@@ -117,7 +116,7 @@ var progressListing = [
     "Submitted Data"
 ]
 
-var campaign = {}
+var campaign: any = {}
 var bubbles = []
 
 function dismiss() {
@@ -140,7 +139,7 @@ function deleteCampaign() {
         allowOutsideClick: false,
         showLoaderOnConfirm: true,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.campaignId.delete(campaign.id)
                     .success(function (msg) {
                         resolve()
@@ -178,7 +177,7 @@ function completeCampaign() {
         allowOutsideClick: false,
         showLoaderOnConfirm: true,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.campaignId.complete(campaign.id)
                     .success(function (msg) {
                         resolve()
@@ -195,7 +194,7 @@ function completeCampaign() {
                 'This campaign has been completed!',
                 'success'
             );
-            $('#complete_button')[0].disabled = true;
+            ($('#complete_button')[0] as HTMLButtonElement).disabled = true;
             $('#complete_button').text('Completed!')
             doPoll = false;
         }
@@ -204,7 +203,7 @@ function completeCampaign() {
 
 // Exports campaign results as a CSV file
 function exportAsCSV(scope) {
-    exportHTML = $("#exportButton").html()
+    const exportHTML = $("#exportButton").html()
     var csvScope = null
     var filename = campaign.name + ' - ' + capitalize(scope) + '.csv'
     switch (scope) {
@@ -225,8 +224,8 @@ function exportAsCSV(scope) {
     var csvData = new Blob([csvString], {
         type: 'text/csv;charset=utf-8;'
     });
-    if (navigator.msSaveBlob) {
-        navigator.msSaveBlob(csvData, filename);
+    if ((navigator as any).msSaveBlob) {
+        (navigator as any).msSaveBlob(csvData, filename);
     } else {
         var csvURL = window.URL.createObjectURL(csvData);
         var dlLink = document.createElement('a');
@@ -240,10 +239,10 @@ function exportAsCSV(scope) {
 }
 
 function replay(event_idx) {
-    request = campaign.timeline[event_idx]
-    details = JSON.parse(request.details)
-    url = null
-    form = $('<form>').attr({
+    const request = campaign.timeline[event_idx]
+    const details = JSON.parse(request.details)
+    let url: string | null = null
+    const form = $('<form>').attr({
         method: 'POST',
         target: '_blank',
     })
@@ -269,7 +268,7 @@ function replay(event_idx) {
         inputPlaceholder: "http://example.com/login",
         inputValue: url || "",
         inputValidator: function (value) {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 if (value) {
                     resolve();
                 } else {
@@ -302,8 +301,8 @@ function replay(event_idx) {
  *  timeline event
  * 
  */
-var renderDevice = function (event_details) {
-    var ua = UAParser(details.browser['user-agent'])
+var renderDevice = function (event_details: any) {
+    var ua = UAParser(event_details.browser['user-agent'])
     var detailsString = '<div class="timeline-device-details">'
 
     var deviceIcon = 'laptop'
@@ -336,7 +335,7 @@ var renderDevice = function (event_details) {
         deviceName = deviceName + ' (OS Version: ' + ua.os.version + ')'
     }
 
-    deviceString = '<div class="timeline-device-os"><span class="fa fa-stack">' +
+    const deviceString = '<div class="timeline-device-os"><span class="fa fa-stack">' +
         '<i class="fa fa-' + escapeHtml(deviceIcon) + ' fa-stack-2x"></i>' +
         '<i class="fa fa-vendor-icon fa-' + escapeHtml(deviceVendor) + ' fa-stack-1x"></i>' +
         '</span> ' + escapeHtml(deviceName) + '</div>'
@@ -368,7 +367,7 @@ var renderDevice = function (event_details) {
 }
 
 function renderTimeline(data) {
-    record = {
+    const record = {
         "id": data[0],
         "first_name": data[2],
         "last_name": data[3],
@@ -378,7 +377,7 @@ function renderTimeline(data) {
         "reported": data[7],
         "send_date": data[8]
     }
-    results = '<div class="timeline col-sm-12 well well-lg">' +
+    let results = '<div class="timeline col-sm-12 well well-lg">' +
         '<h6>Timeline for ' + escapeHtml(record.first_name) + ' ' + escapeHtml(record.last_name) +
         '</h6><span class="subtitle">Email: ' + escapeHtml(record.email) +
         '<br>Result ID: ' + escapeHtml(record.id) + '</span>' +
@@ -394,15 +393,15 @@ function renderTimeline(data) {
                 '    <div class="timeline-message">' + escapeHtml(event.message) +
                 '    <span class="timeline-date">' + moment.utc(event.time).local().format('MMMM Do YYYY h:mm:ss a') + '</span>'
             if (event.details) {
-                details = JSON.parse(event.details)
+                const details = JSON.parse(event.details)
                 if (event.message == "Clicked Link" || event.message == "Submitted Data") {
-                    deviceView = renderDevice(details)
+                    const deviceView = renderDevice(details)
                     if (deviceView) {
                         results += deviceView
                     }
                 }
                 if (event.message == "Submitted Data") {
-                    results += '<div class="timeline-replay-button"><button onclick="replay(' + i + ')" class="btn btn-success">'
+                    results += '<div class="timeline-replay-button"><button onclick="replay(' + String(i) + ')" class="btn btn-success">'
                     results += '<i class="fa fa-refresh"></i> Replay Credentials</button></div>'
                     results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> View Details</div>'
                 }
@@ -588,7 +587,7 @@ var updateMap = function (results) {
         if (result.latitude == 0 && result.longitude == 0) {
             return true;
         }
-        newIP = true
+        let newIP = true
         $.each(bubbles, function (i, bubble) {
             if (bubble.ip == result.ip) {
                 bubbles[i].radius += 1
@@ -668,8 +667,8 @@ function poll() {
                 }
                 // Backfill status values
                 var step = progressListing.indexOf(result.status)
-                for (var i = 0; i < step; i++) {
-                    email_series_data[progressListing[i]]++
+                for (let stepIdx = 0; stepIdx < step; stepIdx++) {
+                    email_series_data[progressListing[stepIdx]]++
                 }
             })
             $.each(email_series_data, function (status, count) {
@@ -693,7 +692,7 @@ function poll() {
             })
 
             /* Update the datatable */
-            resultsTable = $("#resultsTable").DataTable()
+            const resultsTable = $("#resultsTable").DataTable()
             resultsTable.rows().every(function (i, tableLoop, rowLoop) {
                 var row = this.row(i)
                 var rowData = row.data()
@@ -735,14 +734,14 @@ function load() {
                 // Set the title
                 $("#page-title").text("Results for " + c.name)
                 if (c.status == "Completed") {
-                    $('#complete_button')[0].disabled = true;
+                    ($('#complete_button')[0] as HTMLButtonElement).disabled = true;
                     $('#complete_button').text('Completed!');
                     doPoll = false;
                 }
                 // Setup viewing the details of a result
                 $("#resultsTable").on("click", ".timeline-event-details", function () {
                     // Show the parameters
-                    payloadResults = $(this).parent().find(".timeline-event-results")
+                    const payloadResults = $(this).parent().find(".timeline-event-results")
                     if (payloadResults.is(":visible")) {
                         $(this).find("i").removeClass("fa-caret-down")
                         $(this).find("i").addClass("fa-caret-right")
@@ -754,7 +753,7 @@ function load() {
                     }
                 })
                 // Setup the results table
-                resultsTable = $("#resultsTable").DataTable({
+                const resultsTable = $("#resultsTable").DataTable({
                     destroy: true,
                     "order": [
                         [2, "asc"]
@@ -814,8 +813,8 @@ function load() {
                     }
                     // Backfill status values
                     var step = progressListing.indexOf(result.status)
-                    for (var i = 0; i < step; i++) {
-                        email_series_data[progressListing[i]]++
+                    for (let stepIdx = 0; stepIdx < step; stepIdx++) {
+                        email_series_data[progressListing[stepIdx]]++
                     }
                 })
                 resultsTable.draw();
@@ -936,9 +935,9 @@ function report_mail(rid, cid) {
     }).then(function (result) {
         if (result.value){
             api.campaignId.get(cid).success((function(c) {
-                report_url = new URL(c.url)
+                const report_url = new URL(c.url)
                 report_url.pathname = '/report'
-                report_url.search = "?rid=" + rid 
+                report_url.search = "?rid=" + rid
                 fetch(report_url)
                 .then(response => {
                     if (!response.ok) {

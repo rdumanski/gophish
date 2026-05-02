@@ -1,9 +1,8 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, successFlash } from './common'
 
 var campaigns = []
 // statuses is a helper map to point result statuses to ui classes
-var statuses = {
+var statuses: Record<string, any> = {
     "Email Sent": {
         color: "#1abc9c",
         label: "label-success",
@@ -184,7 +183,7 @@ function generateStatsPieCharts(campaigns) {
         if (!(status in statsMapping)) {
             return true
         }
-        status_label = statsMapping[status]
+        const status_label = statsMapping[status]
         stats_data.push({
             name: status_label,
             y: Math.floor((count / total) * 100),
@@ -299,7 +298,7 @@ $(document).ready(function () {
             if (campaigns.length > 0) {
                 $("#dashboard").show()
                 // Create the overview chart data
-                campaignTable = $("#campaignTable").DataTable({
+                const campaignTable = $("#campaignTable").DataTable({
                     columnDefs: [{
                             orderable: false,
                             targets: "no-sort"
@@ -329,7 +328,7 @@ $(document).ready(function () {
                         [1, "desc"]
                     ]
                 });
-                campaignRows = []
+                const campaignRows: any[] = []
                 $.each(campaigns, function (i, campaign) {
                     var campaign_date = moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a')
                     var label = statuses[campaign.status].label || "label-default";

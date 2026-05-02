@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
 
 var templates = []
@@ -18,7 +17,7 @@ var icons = {
 
 // Save attempts to POST to /templates/
 function save(idx) {
-    var template = {
+    var template: any = {
         attachments: []
     }
     template.name = $("#name").val()
@@ -94,7 +93,7 @@ var deleteTemplate = function (idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.templateId.delete(templates[idx].id)
                     .success(function (msg) {
                         resolve()
@@ -118,16 +117,9 @@ var deleteTemplate = function (idx) {
     })
 }
 
-function deleteTemplate(idx) {
-    if (confirm("Delete " + templates[idx].name + "?")) {
-        api.templateId.delete(templates[idx].id)
-            .success(function (data) {
-                successFlash(data.message)
-                load()
-            })
-    }
-}
-
+// Holds the attachments DataTable instance shared between attach(),
+// edit(), copy() and the form submit / row-delete handlers.
+let attachmentsTable: any
 function attach(files) {
     attachmentsTable = $("#attachmentsTable").DataTable({
         destroy: true,
@@ -152,7 +144,7 @@ function attach(files) {
                 '<i class="fa ' + icon + '"></i>',
                 escapeHtml(file.name),
                 '<span class="remove-row"><i class="fa fa-trash-o"></i></span>',
-                reader.result.split(",")[1],
+                (reader.result as string).split(",")[1],
                 file.type || "application/octet-stream"
             ]).draw()
         }
@@ -168,7 +160,7 @@ function edit(idx) {
         save(idx)
     })
     $("#attachmentUpload").unbind('click').click(function () {
-        this.value = null
+        (this as HTMLInputElement).value = null as any
     })
     $("#html_editor").ckeditor()
     setupAutocomplete(CKEDITOR.instances["html_editor"])
@@ -186,7 +178,7 @@ function edit(idx) {
             targets: [3, 4]
         }]
     });
-    var template = {
+    var template: any = {
         attachments: []
     }
     if (idx != -1) {
@@ -197,7 +189,7 @@ function edit(idx) {
         $("#envelope-sender").val(template.envelope_sender)
         $("#html_editor").val(template.html)
         $("#text_editor").val(template.text)
-        attachmentRows = []
+        const attachmentRows: any[] = []
         $.each(template.attachments, function (i, file) {
             var icon = icons[file.type] || "fa-file-o"
             // Add the record to the modal
@@ -232,7 +224,7 @@ function copy(idx) {
         save(-1)
     })
     $("#attachmentUpload").unbind('click').click(function () {
-        this.value = null
+        (this as HTMLInputElement).value = null as any
     })
     $("#html_editor").ckeditor()
     $("#attachmentsTable").show()
@@ -249,7 +241,7 @@ function copy(idx) {
             targets: [3, 4]
         }]
     });
-    var template = {
+    var template: any = {
         attachments: []
     }
     template = templates[idx]
@@ -283,8 +275,8 @@ function copy(idx) {
 }
 
 function importEmail() {
-    raw = $("#email_content").val()
-    convert_links = $("#convert_links_checkbox").prop("checked")
+    const raw = $("#email_content").val()
+    const convert_links = $("#convert_links_checkbox").prop("checked")
     if (!raw) {
         modalError("No Content Specified!")
     } else {
@@ -319,7 +311,7 @@ function load() {
             $("#loading").hide()
             if (templates.length > 0) {
                 $("#templateTable").show()
-                templateTable = $("#templateTable").DataTable({
+                const templateTable = $("#templateTable").DataTable({
                     destroy: true,
                     columnDefs: [{
                         orderable: false,
@@ -327,7 +319,7 @@ function load() {
                     }]
                 });
                 templateTable.clear()
-                templateRows = []
+                const templateRows: any[] = []
                 $.each(templates, function (i, template) {
                     templateRows.push([
                         escapeHtml(template.name),

@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 /*
 	landing_pages.js
 	Handles the creation, editing, and deletion of landing pages
@@ -11,9 +10,9 @@ var pages = []
 
 // Save attempts to POST to /templates/
 function save(idx) {
-    var page = {}
+    var page: any = {}
     page.name = $("#name").val()
-    editor = CKEDITOR.instances["html_editor"]
+    const editor = CKEDITOR.instances["html_editor"]
     page.html = editor.getData()
     page.capture_credentials = $("#capture_credentials_checkbox").prop("checked")
     page.capture_passwords = $("#capture_passwords_checkbox").prop("checked")
@@ -64,7 +63,7 @@ var deletePage = function (idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.pageId.delete(pages[idx].id)
                     .success(function (msg) {
                         resolve()
@@ -89,7 +88,7 @@ var deletePage = function (idx) {
 }
 
 function importSite() {
-    url = $("#url").val()
+    const url = $("#url").val()
     if (!url) {
         modalError("No URL Specified!")
     } else {
@@ -114,7 +113,7 @@ function edit(idx) {
     })
     $("#html_editor").ckeditor()
     setupAutocomplete(CKEDITOR.instances["html_editor"])
-    var page = {}
+    var page: any = {}
     if (idx != -1) {
         $("#modalLabel").text("Edit Landing Page")
         page = pages[idx]
@@ -155,7 +154,7 @@ function load() {
             $("#loading").hide()
             if (pages.length > 0) {
                 $("#pagesTable").show()
-                pagesTable = $("#pagesTable").DataTable({
+                const pagesTable = $("#pagesTable").DataTable({
                     destroy: true,
                     columnDefs: [{
                         orderable: false,
@@ -163,7 +162,7 @@ function load() {
                     }]
                 });
                 pagesTable.clear()
-                pageRows = []
+                const pageRows: any[] = []
                 $.each(pages, function (i, page) {
                     pageRows.push([
                         escapeHtml(page.name),

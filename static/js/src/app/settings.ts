@@ -1,5 +1,4 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
-import { api, errorFlash, successFlash, successFlashFade } from './common'
+import { api, errorFlash, escapeHtml, successFlash, successFlashFade } from './common'
 
 $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip();
@@ -27,7 +26,7 @@ $(document).ready(function () {
     })
     //$("#imapForm").submit(function (e) {
     $("#savesettings").click(function() {
-        var imapSettings = {}
+        var imapSettings: any = {}
         imapSettings.host = $("#imaphost").val()
         imapSettings.port = $("#imapport").val()
         imapSettings.username = $("#imapusername").val()
@@ -89,7 +88,7 @@ $(document).ready(function () {
     $("#validateimap").click(function() {
 
         // Query validate imap server endpoint
-        var server = {}
+        var server: any = {}
         server.host = $("#imaphost").val()
         server.port = $("#imapport").val()
         server.username = $("#imapusername").val()
@@ -119,19 +118,19 @@ $(document).ready(function () {
 
         var oldHTML = $("#validateimap").html();
         // Disable inputs and change button text
-        $("#imaphost").attr("disabled", true);
-        $("#imapport").attr("disabled", true);
-        $("#imapusername").attr("disabled", true);
-        $("#imappassword").attr("disabled", true);
-        $("#use_imap").attr("disabled", true);
-        $("#use_tls").attr("disabled", true);
-        $('#ignorecerterrors').attr("disabled", true);
-        $("#folder").attr("disabled", true);
-        $("#restrictdomain").attr("disabled", true);
-        $('#deletecampaign').attr("disabled", true);
-        $('#lastlogin').attr("disabled", true);
-        $('#imapfreq').attr("disabled", true);
-        $("#validateimap").attr("disabled", true);  
+        $("#imaphost").prop("disabled", true);
+        $("#imapport").prop("disabled", true);
+        $("#imapusername").prop("disabled", true);
+        $("#imappassword").prop("disabled", true);
+        $("#use_imap").prop("disabled", true);
+        $("#use_tls").prop("disabled", true);
+        $('#ignorecerterrors').prop("disabled", true);
+        $("#folder").prop("disabled", true);
+        $("#restrictdomain").prop("disabled", true);
+        $('#deletecampaign').prop("disabled", true);
+        $('#lastlogin').prop("disabled", true);
+        $('#imapfreq').prop("disabled", true);
+        $("#validateimap").prop("disabled", true);  
         $("#validateimap").html("<i class='fa fa-circle-o-notch fa-spin'></i> Testing...");
         
         api.IMAP.validate(server).done(function(data) {
@@ -171,19 +170,19 @@ $(document).ready(function () {
           })
           .always(function() {
             //Re-enable inputs and change button text
-            $("#imaphost").attr("disabled", false);
-            $("#imapport").attr("disabled", false);
-            $("#imapusername").attr("disabled", false);
-            $("#imappassword").attr("disabled", false);
-            $("#use_imap").attr("disabled", false);
-            $("#use_tls").attr("disabled", false);
-            $('#ignorecerterrors').attr("disabled", false);
-            $("#folder").attr("disabled", false);
-            $("#restrictdomain").attr("disabled", false);
-            $('#deletecampaign').attr("disabled", false);
-            $('#lastlogin').attr("disabled", false);
-            $('#imapfreq').attr("disabled", false);
-            $("#validateimap").attr("disabled", false);
+            $("#imaphost").prop("disabled", false);
+            $("#imapport").prop("disabled", false);
+            $("#imapusername").prop("disabled", false);
+            $("#imappassword").prop("disabled", false);
+            $("#use_imap").prop("disabled", false);
+            $("#use_tls").prop("disabled", false);
+            $('#ignorecerterrors').prop("disabled", false);
+            $("#folder").prop("disabled", false);
+            $("#restrictdomain").prop("disabled", false);
+            $('#deletecampaign').prop("disabled", false);
+            $('#lastlogin').prop("disabled", false);
+            $('#imapfreq').prop("disabled", false);
+            $("#validateimap").prop("disabled", false);
             $("#validateimap").html(oldHTML);
 
           });
@@ -234,7 +233,7 @@ $(document).ready(function () {
     var use_map = localStorage.getItem('gophish.use_map')
     $("#use_map").prop('checked', JSON.parse(use_map))
     $("#use_map").on('change', function () {
-        localStorage.setItem('gophish.use_map', JSON.stringify(this.checked))
+        localStorage.setItem('gophish.use_map', JSON.stringify((this as HTMLInputElement).checked))
     })
 
     loadIMAPSettings()

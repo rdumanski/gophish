@@ -32,6 +32,39 @@ The plan called this out as the expected "lint avalanche": rules will be burned 
 - **errcheck on DB calls**: deferred. Wrapping every unchecked `db.*` write/delete in `models/` with explicit error handling would expand this PR significantly past the scope of "GORM v1 → v2". Fold into Phase 5 (auth/IMAP errcheck pass) per existing plan.
 - **Other linters**: untouched in 3b — all findings remain owned by their listed phase.
 
+### Phase 4d TypeScript debt (2026-05-03)
+
+All 13 app files now typecheck cleanly under the existing
+`tsconfig.json` (no `// @ts-nocheck` pragmas remain). The previous
+307 errors were resolved by:
+
+- Annotating object literals that get fields added later as
+  `: any` (e.g. `var page: any = {}` in landing_pages, similar in
+  campaigns / templates / sending_profiles / webhooks / users).
+- Adding loose `JQuery` plugin type augmentations in
+  `static/js/types/global.d.ts` for `ckeditor`, `datetimepicker`,
+  `highcharts`, plus widening `select2`/`fileupload`/`dataTable` to
+  varargs/any returns to cover their many call shapes.
+- Declaring previously-implicit-global vars: `let userRows`,
+  `let lastlogin`, `let pagesTable`, `let pageRows`, `let groupRows`,
+  etc. (~15 sites). Several were latent bugs that ES5 implicit
+  globals had been masking.
+- Replacing `.attr("disabled", boolean)` (no-op in modern jQuery)
+  with `.prop("disabled", boolean)` in users.ts and settings.ts —
+  actual upstream bug fixed in passing.
+- Removed duplicate `deleteTemplate` function in templates.ts (one
+  Swal-based, one basic confirm; the latter was dead code per
+  upstream hoisting).
+- `new Promise(...)` → `new Promise<void>(...)` in 7 SweetAlert2
+  preConfirm callbacks.
+- Various per-call-site casts (`(navigator as any).msSaveBlob`,
+  `(this as HTMLInputElement).value`, `(reader.result as string)`)
+  for IE-only / DOM-narrowing APIs.
+
+Phase 4d also kept the document.ready setup and inline-handler
+window exports unchanged. The build still produces the same per-page
+IIFE bundles at the same URLs.
+
 ### Phase 4c TypeScript debt (2026-05-03)
 
 After the JS → TS rename, `tsc --noEmit` initially reported 498 errors

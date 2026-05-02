@@ -22,8 +22,13 @@ interface JQuery {
     tooltip(action?: any, ...args: any[]): JQuery
     dataTable(opts?: any): any
     DataTable(opts?: any): any
-    select2(opts?: any): JQuery
-    fileupload(opts?: any): JQuery
+    // select2 has many call shapes (option object, "data", "val" + arg).
+    // typing args as a varargs/any return keeps every call site happy.
+    select2(...args: any[]): any
+    fileupload(...args: any[]): JQuery
+    ckeditor(...args: any[]): any
+    datetimepicker(...args: any[]): any
+    highcharts(...args: any[]): any
 }
 
 interface JQueryStatic {

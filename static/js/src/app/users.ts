@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 let users = []
@@ -10,7 +9,7 @@ const save = (id) => {
         modalError("Passwords must match.")
         return
     }
-    let user = {
+    let user: any = {
         username: $("#username").val(),
         password: $("#password").val(),
         role: $("#role").val(),
@@ -59,7 +58,7 @@ const dismiss = () => {
 }
 
 const edit = (id) => {
-    $("#username").attr("disabled", false);
+    $("#username").prop("disabled", false);
     $("#modalSubmit").unbind('click').click(() => {
         save(id)
     })
@@ -78,7 +77,7 @@ const edit = (id) => {
                 $("#force_password_change_checkbox").prop('checked', user.password_change_required)
                 $("#account_locked_checkbox").prop('checked', user.account_locked)
                 if (user.username == "admin") {
-                    $("#username").attr("disabled", true);
+                    $("#username").prop("disabled", true);
                 }
             })
             .error(function () {
@@ -111,7 +110,7 @@ const deleteUser = (id) => {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise((resolve, reject) => {
+            return new Promise<void>((resolve, reject) => {
                 api.userId.delete(id)
                     .success((msg) => {
                         resolve()
@@ -204,9 +203,9 @@ const load = () => {
                 }]
             });
             userTable.clear();
-            userRows = []
+            const userRows: any[] = []
             $.each(users, (i, user) => {
-                lastlogin = ""
+                let lastlogin = ""
                 if (user.last_login != "0001-01-01T00:00:00Z") {
                     lastlogin = moment(user.last_login).format('MMMM Do YYYY, h:mm:ss a')
                 }
