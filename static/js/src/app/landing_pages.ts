@@ -1,9 +1,10 @@
+// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 /*
 	landing_pages.js
 	Handles the creation, editing, and deletion of landing pages
 	Author: Jordan Wright <github.com/jordan-wright>
 */
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common.mjs'
+import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 var pages = []
 

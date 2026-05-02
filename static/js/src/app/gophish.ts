@@ -17,7 +17,7 @@ import {
     successFlash,
     successFlashFade,
     unescapeHtml,
-} from './common.mjs'
+} from './common'
 
 Object.assign(window, {
     api,

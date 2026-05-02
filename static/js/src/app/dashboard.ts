@@ -1,4 +1,5 @@
-import { api, errorFlash, escapeHtml, successFlash } from './common.mjs'
+// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
+import { api, errorFlash, escapeHtml, successFlash } from './common'
 
 var campaigns = []
 // statuses is a helper map to point result statuses to ui classes

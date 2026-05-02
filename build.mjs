@@ -13,19 +13,19 @@ const jsDist = 'static/js/dist'
 const cssDist = 'static/css/dist'
 
 const appFiles = [
-    'autocomplete.js',
-    'campaign_results.js',
-    'campaigns.js',
-    'dashboard.js',
-    'groups.js',
-    'landing_pages.js',
-    'sending_profiles.js',
-    'settings.js',
-    'templates.js',
-    'gophish.js',
-    'users.js',
-    'webhooks.js',
-    'passwords.js',
+    'autocomplete.ts',
+    'campaign_results.ts',
+    'campaigns.ts',
+    'dashboard.ts',
+    'groups.ts',
+    'landing_pages.ts',
+    'sending_profiles.ts',
+    'settings.ts',
+    'templates.ts',
+    'gophish.ts',
+    'users.ts',
+    'webhooks.ts',
+    'passwords.ts',
 ]
 
 const vendorOrder = [
@@ -69,13 +69,17 @@ async function ensureDir(p) {
     await mkdir(p, { recursive: true })
 }
 
-// autocomplete.js is the only app file that's still a non-module
+// autocomplete.ts is the only app file that's still a non-module
 // script: it declares top-level `var TEMPLATE_TAGS = [...]` that an
 // inline page script reads as a global. Bundling it as IIFE would
-// hide that global. Everything else is now an ESM module (Phase 4b)
-// and is bundled + IIFE-wrapped; functions called from inline HTML
-// onclick handlers are re-exported onto window inside each module.
-const plainApps = ['autocomplete.js']
+// hide that global. Everything else is an ESM module and is bundled
+// + IIFE-wrapped; functions called from inline HTML onclick handlers
+// are re-exported onto window inside each module.
+//
+// Phase 4c: source files are now TypeScript. esbuild handles .ts
+// natively (strips types and bundles); standalone type checking is
+// `npm run typecheck` (tsc --noEmit) and runs separately.
+const plainApps = ['autocomplete.ts']
 const moduleApps = appFiles.filter((f) => !plainApps.includes(f))
 
 async function buildApp() {
@@ -92,9 +96,10 @@ async function buildApp() {
         platform: 'browser',
         logLevel: 'info',
         outExtension: { '.js': '.min.js' },
+        loader: { '.ts': 'ts' },
     })
 
-    // ESM files: resolve imports (mostly ./common.mjs, plus zxcvbn for
+    // ESM files: resolve imports (mostly ./common, plus zxcvbn for
     // passwords.js), minify, IIFE-wrap. Each entry produces a
     // self-contained <name>.min.js that the corresponding HTML
     // template loads via a single <script src="..."> tag, exactly as
@@ -109,6 +114,7 @@ async function buildApp() {
         format: 'iife',
         logLevel: 'info',
         outExtension: { '.js': '.min.js' },
+        loader: { '.ts': 'ts' },
     })
 }
 

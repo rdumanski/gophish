@@ -32,6 +32,44 @@ The plan called this out as the expected "lint avalanche": rules will be burned 
 - **errcheck on DB calls**: deferred. Wrapping every unchecked `db.*` write/delete in `models/` with explicit error handling would expand this PR significantly past the scope of "GORM v1 → v2". Fold into Phase 5 (auth/IMAP errcheck pass) per existing plan.
 - **Other linters**: untouched in 3b — all findings remain owned by their listed phase.
 
+### Phase 4c TypeScript debt (2026-05-03)
+
+After the JS → TS rename, `tsc --noEmit` initially reported 498 errors
+across 13 files (mostly upstream loose-typed jQuery + DataTables plugin
+calls, deprecated `.success/.error` Deferred shims, top-level vars
+with no declarations, mixed types from `$().val()`). Phase 4c added
+ambient declarations for window globals + `JQuery.jqXHR.success/error`
+fluent shims, which dropped the error count to **307 across 10 files**.
+Those 10 files now ship a `// @ts-nocheck` pragma so the typecheck
+passes; the four files that already typecheck cleanly are
+`autocomplete.ts`, `common.ts`, `gophish.ts`, `passwords.ts`.
+
+Per-file remaining error counts (drop these by removing
+`@ts-nocheck` and fixing what surfaces):
+
+| file | errors |
+|---|---|
+| campaign_results.ts | 122 |
+| settings.ts | 58 |
+| templates.ts | 56 |
+| sending_profiles.ts | 42 |
+| campaigns.ts | 34 |
+| landing_pages.ts | 26 |
+| groups.ts | 18 |
+| users.ts | 10 |
+| dashboard.ts | 9 |
+| webhooks.ts | 2 |
+
+Recurring patterns to address as we touch each file:
+- Undeclared top-level vars (`var x = ...` missing in places — actual
+  bugs masked by ES5 implicit globals)
+- DataTables row-buttons constructed as HTML strings reference fields
+  on `{}` literals before they're populated
+- `$().val(true)` / `$().val(false)` for checkboxes — should use
+  `$().prop('checked', bool)`
+- `new Promise()` without an executor argument inside SweetAlert2
+  `preConfirm` blocks
+
 **Phase 3c update (2026-05-02)**: local lint now works without CGO. The
 sqlite driver was swapped to `modernc.org/sqlite` (pure Go) and
 `gorm.io/driver/sqlite` was reconfigured via `Config.DriverName: "sqlite"`

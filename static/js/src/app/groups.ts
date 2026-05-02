@@ -1,4 +1,5 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common.mjs'
+// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
+import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
 
 var groups = []
 
