@@ -1,3 +1,5 @@
+import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common.mjs'
+
 var profiles = []
 
 // Attempts to send a test email by POSTing to /campaigns/
@@ -333,3 +335,7 @@ $(document).ready(function () {
     });
     load()
 })
+
+// Inline-onclick references from templates/sending_profiles.html plus
+// JS-string-built buttons in this file's load handler.
+Object.assign(window, { copy, deleteProfile, dismiss, edit, sendTestEmail })

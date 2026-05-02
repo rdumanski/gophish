@@ -1,3 +1,5 @@
+import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common.mjs'
+
 var groups = []
 
 // Save attempts to POST or PUT to /groups/
@@ -294,3 +296,7 @@ $(document).ready(function () {
     });
     $("#csv-template").click(downloadCSVTemplate)
 });
+
+// Inline-onclick references from templates/groups.html plus
+// JS-string-built buttons in this file's load handler.
+Object.assign(window, { deleteGroup, dismiss, edit })

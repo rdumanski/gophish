@@ -1,3 +1,5 @@
+import { api, errorFlash, escapeHtml, modalError, successFlash } from './common.mjs'
+
 // labels is a map of campaign statuses to
 // CSS classes
 var labels = {
@@ -428,3 +430,7 @@ $(document).ready(function () {
         });
     })
 })
+
+// Inline-onclick references from templates/campaigns.html plus
+// JS-string-built buttons in this file's renderCampaignTable.
+Object.assign(window, { copy, deleteCampaign, dismiss, edit, launch, sendTestEmail })

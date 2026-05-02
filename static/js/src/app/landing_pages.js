@@ -3,6 +3,8 @@
 	Handles the creation, editing, and deletion of landing pages
 	Author: Jordan Wright <github.com/jordan-wright>
 */
+import { api, errorFlash, escapeHtml, modalError, successFlash } from './common.mjs'
+
 var pages = []
 
 
@@ -256,3 +258,7 @@ $(document).ready(function () {
 
     load()
 })
+
+// Inline-onclick references from templates/landing_pages.html plus
+// JS-string-built buttons in this file's load handler.
+Object.assign(window, { copy, deletePage, dismiss, edit, importSite })
