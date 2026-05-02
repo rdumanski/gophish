@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
 
 var groups = []
@@ -14,7 +13,7 @@ function save(id) {
             position: unescapeHtml(target[3])
         })
     })
-    var group = {
+    var group: any = {
         name: $("#name").val(),
         targets: targets
     }
@@ -55,6 +54,10 @@ function dismiss() {
     $("#modal\\.flashes").empty()
 }
 
+// Holds the jQuery DataTable instance for the targets table inside
+// the edit-group modal. Set by edit(); read by load() and the file
+// upload handler when batch-adding rows.
+let targets: any
 function edit(id) {
     targets = $("#targetsTable").dataTable({
         destroy: true, // Destroy any other instantiated table - http://datatables.net/manual/tech-notes/3#destroy
@@ -74,7 +77,7 @@ function edit(id) {
         api.groupId.get(id)
             .success(function (group) {
                 $("#name").val(group.name)
-                targetRows = []
+                const targetRows: any[] = []
                 $.each(group.targets, function (i, record) {
                   targetRows.push([
                       escapeHtml(record.first_name),
@@ -132,8 +135,9 @@ var downloadCSVTemplate = function () {
     var csvData = new Blob([csvString], {
         type: 'text/csv;charset=utf-8;'
     });
-    if (navigator.msSaveBlob) {
-        navigator.msSaveBlob(csvData, filename);
+    // navigator.msSaveBlob is an IE-only API not in lib.dom — cast to any.
+    if ((navigator as any).msSaveBlob) {
+        (navigator as any).msSaveBlob(csvData, filename);
     } else {
         var csvURL = window.URL.createObjectURL(csvData);
         var dlLink = document.createElement('a');
@@ -164,7 +168,7 @@ var deleteGroup = function (id) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.groupId.delete(id)
                     .success(function (msg) {
                         resolve()
@@ -238,7 +242,7 @@ function load() {
                     }]
                 });
                 groupTable.clear();
-                groupRows = []
+                const groupRows: any[] = []
                 $.each(groups, function (i, group) {
                     groupRows.push([
                         escapeHtml(group.name),
@@ -268,7 +272,7 @@ $(document).ready(function () {
     // Handle manual additions
     $("#targetForm").submit(function () {
         // Validate the form data
-        var targetForm = document.getElementById("targetForm")
+        var targetForm = document.getElementById("targetForm") as HTMLFormElement
         if (!targetForm.checkValidity()) {
             targetForm.reportValidity()
             return

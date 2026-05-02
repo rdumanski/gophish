@@ -1,4 +1,3 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 // labels is a map of campaign statuses to
@@ -11,8 +10,8 @@ var labels = {
     "Error": "label-danger"
 }
 
-var campaigns = []
-var campaign = {}
+var campaigns: any[] = []
+var campaign: any = {}
 
 // Launch attempts to POST to /campaigns/
 function launch() {
@@ -28,15 +27,15 @@ function launch() {
         allowOutsideClick: false,
         showLoaderOnConfirm: true,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
-                groups = []
+            return new Promise<void>(function (resolve, reject) {
+                const groups: any[] = []
                 $("#users").select2("data").forEach(function (group) {
                     groups.push({
                         name: group.text
                     });
                 })
                 // Validate our fields
-                var send_by_date = $("#send_by_date").val()
+                var send_by_date: any = $("#send_by_date").val()
                 if (send_by_date != "") {
                     send_by_date = moment(send_by_date, "MMMM Do YYYY, h:mm a").utc().format()
                 }
@@ -78,7 +77,7 @@ function launch() {
             );
         }
         $('button:contains("OK")').on('click', function () {
-            window.location = "/campaigns/" + campaign.id.toString()
+            window.location.href = "/campaigns/" + campaign.id.toString()
         })
     })
 }
@@ -101,7 +100,7 @@ function sendTestEmail() {
             name: $("#profile").select2("data")[0].text
         }
     }
-    btnHtml = $("#sendTestModalSubmit").html()
+    const btnHtml = $("#sendTestModalSubmit").html()
     $("#sendTestModalSubmit").html('<i class="fa fa-spinner fa-spin"></i> Sending')
     // Send the test email
     api.send_test_email(test_email_request)
@@ -140,7 +139,7 @@ function deleteCampaign(idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.campaignId.delete(campaigns[idx].id)
                     .success(function (msg) {
                         resolve()
@@ -167,7 +166,7 @@ function deleteCampaign(idx) {
 function setupOptions() {
     api.groups.summary()
         .success(function (summaries) {
-            groups = summaries.groups
+            const groups = summaries.groups
             if (groups.length == 0) {
                 modalError("No groups found!")
                 return false;
@@ -349,7 +348,7 @@ $(document).ready(function () {
                 $("#campaignTable").show()
                 $("#campaignTableArchive").show()
 
-                activeCampaignsTable = $("#campaignTable").DataTable({
+                const activeCampaignsTable = $("#campaignTable").DataTable({
                     columnDefs: [{
                         orderable: false,
                         targets: "no-sort"
@@ -358,7 +357,7 @@ $(document).ready(function () {
                         [1, "desc"]
                     ]
                 });
-                archivedCampaignsTable = $("#campaignTableArchive").DataTable({
+                const archivedCampaignsTable = $("#campaignTableArchive").DataTable({
                     columnDefs: [{
                         orderable: false,
                         targets: "no-sort"
@@ -367,12 +366,12 @@ $(document).ready(function () {
                         [1, "desc"]
                     ]
                 });
-                rows = {
+                const rows: { active: any[]; archived: any[] } = {
                     'active': [],
                     'archived': []
                 }
                 $.each(campaigns, function (i, campaign) {
-                    label = labels[campaign.status] || "label-default";
+                    const label = labels[campaign.status] || "label-default";
 
                     //section for tooltips on the status of a campaign to show some quick stats
                     var launchDate;

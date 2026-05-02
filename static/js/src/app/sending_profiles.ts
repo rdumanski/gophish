@@ -1,11 +1,10 @@
-// @ts-nocheck — Phase 4c: typecheck deferred per file (see docs/dev/lint-debt.md)
 import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
 
-var profiles = []
+var profiles: any[] = []
 
 // Attempts to send a test email by POSTing to /campaigns/
 function sendTestEmail() {
-    var headers = [];
+    var headers: any[] = [];
     $.each($("#headersTable").DataTable().rows().data(), function (i, header) {
         headers.push({
             key: unescapeHtml(header[0]),
@@ -28,7 +27,7 @@ function sendTestEmail() {
             headers: headers,
         }
     }
-    btnHtml = $("#sendTestModalSubmit").html()
+    const btnHtml = $("#sendTestModalSubmit").html()
     $("#sendTestModalSubmit").html('<i class="fa fa-spinner fa-spin"></i> Sending')
     // Send the test email
     api.send_test_email(test_email_request)
@@ -46,7 +45,7 @@ function sendTestEmail() {
 
 // Save attempts to POST to /smtp/
 function save(idx) {
-    var profile = {
+    var profile: any = {
         headers: []
     }
     $.each($("#headersTable").DataTable().rows().data(), function (i, header) {
@@ -118,7 +117,7 @@ var deleteProfile = function (idx) {
         reverseButtons: true,
         allowOutsideClick: false,
         preConfirm: function () {
-            return new Promise(function (resolve, reject) {
+            return new Promise<void>(function (resolve, reject) {
                 api.SMTPId.delete(profiles[idx].id)
                     .success(function (msg) {
                         resolve()
@@ -142,6 +141,9 @@ var deleteProfile = function (idx) {
     })
 }
 
+// Holds the headers DataTable instance for the SMTP profile modal —
+// also touched by load() / addCustomHeader / form submit handler.
+let headers: any
 function edit(idx) {
     headers = $("#headersTable").dataTable({
         destroy: true, // Destroy any other instantiated table - http://datatables.net/manual/tech-notes/3#destroy
@@ -154,7 +156,7 @@ function edit(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(idx)
     })
-    var profile = {}
+    var profile: any = {}
     if (idx != -1) {
         $("#profileModalLabel").text("Edit Sending Profile")
         profile = profiles[idx]
@@ -177,7 +179,7 @@ function copy(idx) {
     $("#modalSubmit").unbind('click').click(function () {
         save(-1)
     })
-    var profile = {}
+    var profile: any = {}
     profile = profiles[idx]
     $("#name").val("Copy of " + profile.name)
     $("#interface_type").val(profile.interface_type)
@@ -198,7 +200,7 @@ function load() {
             $("#loading").hide()
             if (profiles.length > 0) {
                 $("#profileTable").show()
-                profileTable = $("#profileTable").DataTable({
+                const profileTable = $("#profileTable").DataTable({
                     destroy: true,
                     columnDefs: [{
                         orderable: false,
@@ -206,7 +208,7 @@ function load() {
                     }]
                 });
                 profileTable.clear()
-                profileRows = []
+                const profileRows: any[] = []
                 $.each(profiles, function (i, profile) {
                     profileRows.push([
                         escapeHtml(profile.name),
@@ -314,8 +316,8 @@ $(document).ready(function () {
     })
     // Code to deal with custom email headers
     $("#addCustomHeader").on('click', function () {
-        headerKey = $("#headerKey").val();
-        headerValue = $("#headerValue").val();
+        const headerKey = $("#headerKey").val();
+        const headerValue = $("#headerValue").val();
 
         if (headerKey == "" || headerValue == "") {
             return false;
