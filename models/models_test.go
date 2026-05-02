@@ -34,15 +34,29 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	// Clear database tables between each test. If new tables are
 	// used in this test suite they will need to be cleaned up here.
 	// gorm v2 refuses unconditional DELETEs without AllowGlobalUpdate.
+	//
+	// The original upstream list omitted Template, Webhook, Attachment,
+	// Header, EmailRequest, and IMAP — v1's loose Find() semantics
+	// happened to return the most-recently-inserted row when multiple
+	// matched on (user_id, name), which masked the missing cleanup.
+	// v2's First() is deterministic (ORDER BY id ASC LIMIT 1), so
+	// those leftover rows now collide with subsequent tests.
 	gdb := db.Session(&gorm.Session{AllowGlobalUpdate: true})
 	gdb.Delete(&Group{})
 	gdb.Delete(&Target{})
 	gdb.Delete(&GroupTarget{})
 	gdb.Delete(&SMTP{})
+	gdb.Delete(&Header{})
 	gdb.Delete(&Page{})
+	gdb.Delete(&Template{})
+	gdb.Delete(&Attachment{})
 	gdb.Delete(&Result{})
 	gdb.Delete(&MailLog{})
 	gdb.Delete(&Campaign{})
+	gdb.Delete(&Event{})
+	gdb.Delete(&EmailRequest{})
+	gdb.Delete(&Webhook{})
+	gdb.Delete(&IMAP{})
 
 	// Reset users table to default state.
 	db.Not("id", 1).Delete(&User{})
@@ -136,10 +150,17 @@ func resetBenchmark(b *testing.B) {
 	gdb.Delete(&Target{})
 	gdb.Delete(&GroupTarget{})
 	gdb.Delete(&SMTP{})
+	gdb.Delete(&Header{})
 	gdb.Delete(&Page{})
+	gdb.Delete(&Template{})
+	gdb.Delete(&Attachment{})
 	gdb.Delete(&Result{})
 	gdb.Delete(&MailLog{})
 	gdb.Delete(&Campaign{})
+	gdb.Delete(&Event{})
+	gdb.Delete(&EmailRequest{})
+	gdb.Delete(&Webhook{})
+	gdb.Delete(&IMAP{})
 
 	// Reset users table to default state.
 	db.Not("id", 1).Delete(&User{})
