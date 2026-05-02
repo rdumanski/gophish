@@ -1,12 +1,13 @@
-# Minify client side assets (JavaScript)
-FROM node:latest AS build-js
-
-RUN npm install gulp gulp-cli -g
+# Build client side assets (JS bundling + minification, CSS concat).
+# Phase 4a: replaced gulp + webpack + babel with a single esbuild driver
+# (build.mjs). 745 transitive npm deps (47 vulns) collapsed to 4 (0 vulns).
+FROM node:22-alpine AS build-js
 
 WORKDIR /build
-COPY . .
-RUN npm install --only=dev
-RUN gulp
+COPY package.json package-lock.json build.mjs ./
+RUN npm ci
+COPY static/ ./static/
+RUN npm run build
 
 
 # Build Golang binary
