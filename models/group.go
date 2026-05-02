@@ -326,15 +326,16 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 		}).Error(err)
 		return err
 	}
-	err = tx.Save(&GroupTarget{GroupId: gid, TargetId: t.Id}).Error
-	if err != nil {
-		log.Error(err)
-		return err
-	}
+	// GroupTarget has no primary key (the table is just two bigint columns
+	// and Gophish enforces uniqueness at the application layer). v2's
+	// Save() requires a PK to decide INSERT vs UPDATE and falls back to a
+	// no-WHERE UPDATE when none is declared, which AllowGlobalUpdate would
+	// have to whitelist. Create() is unambiguous: always INSERT.
+	err = tx.Create(&GroupTarget{GroupId: gid, TargetId: t.Id}).Error
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"email": t.Email,
-		}).Error("Error adding many-many mapping")
+		}).Error(err)
 		return err
 	}
 	return nil
