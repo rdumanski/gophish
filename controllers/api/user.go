@@ -102,10 +102,15 @@ func (as *Server) Users(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
 			return
 		}
+		apiKey, err := auth.GenerateSecureKey(auth.APIKeyLength)
+		if err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
+			return
+		}
 		user := models.User{
 			Username:               ur.Username,
 			Hash:                   hash,
-			ApiKey:                 auth.GenerateSecureKey(auth.APIKeyLength),
+			ApiKey:                 apiKey,
 			Role:                   role,
 			RoleID:                 role.ID,
 			PasswordChangeRequired: ur.PasswordChangeRequired,

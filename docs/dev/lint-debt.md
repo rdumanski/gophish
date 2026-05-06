@@ -103,6 +103,35 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 5b errcheck pass on auth/ + imap/ (2026-05-06)
+
+Burns down all errcheck findings in `auth/` and `imap/`:
+
+- **`auth.GenerateSecureKey`**: signature changed from `func(int) string` to
+  `func(int) (string, error)` to match `auth.GeneratePasswordHash` style and
+  surface `crypto/rand` failures instead of silently emitting all-zero keys
+  (the previous `io.ReadFull(rand.Reader, k)` discarded the error). Five
+  callers updated: `controllers/route.go` (log.Fatalf at startup),
+  `controllers/api/reset.go` + `controllers/api/user.go` (HTTP 500), and
+  `models/models.go` x2 (return wrapped error from `createTemporaryPassword`
+  / admin-bootstrap).
+- **`models.generateSecureKey`**: dead code (was the duplicate carried for a
+  no-longer-needed cyclic-import workaround). Removed along with the now-unused
+  `crypto/rand` + `io` imports. This also retires one of the three `unused`
+  findings from the Phase 2 baseline.
+- **`imap.imap.go` Logout deferrals**: introduced a `logoutClient` helper that
+  logs cleanup errors at error level. Replaces 4 unchecked `imapClient.Logout()`
+  call sites in `Validate`, `MarkAsUnread`, `DeleteEmails`, `GetUnread`.
+- **`imap.imap.go` body Read**: `value.Read(buf)` (silently dropping error and
+  short-read) replaced with `io.ReadFull(value, buf)` + error check.
+- **`imap.monitor.go` `SuccessfulLogin`**: explicit `_ = ...` discard with a
+  comment noting that the model layer already logs DB errors internally —
+  acknowledges errcheck without double-logging.
+
+Errors now surface where they matter (fatal at startup, HTTP 500 for API
+clients, logged at error level for IMAP cleanup) and silent failures around
+secure-key generation are gone.
+
 ### Phase 5a csrf re-bump (2026-05-06)
 
 `github.com/gorilla/csrf` was un-pinned and bumped from **v1.6.2 →

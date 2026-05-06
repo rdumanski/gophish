@@ -13,8 +13,13 @@ func (as *Server) Reset(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "POST":
 		u := ctx.Get(r, "user").(models.User)
-		u.ApiKey = auth.GenerateSecureKey(auth.APIKeyLength)
-		err := models.PutUser(&u)
+		key, err := auth.GenerateSecureKey(auth.APIKeyLength)
+		if err != nil {
+			http.Error(w, "Error generating API Key", http.StatusInternalServerError)
+			return
+		}
+		u.ApiKey = key
+		err = models.PutUser(&u)
 		if err != nil {
 			http.Error(w, "Error setting API Key", http.StatusInternalServerError)
 		} else {

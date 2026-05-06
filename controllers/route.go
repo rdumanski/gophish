@@ -150,7 +150,11 @@ func (as *AdminServer) registerRoutes() {
 	// Setup CSRF Protection
 	csrfKey := []byte(as.config.CSRFKey)
 	if len(csrfKey) == 0 {
-		csrfKey = []byte(auth.GenerateSecureKey(auth.APIKeyLength))
+		key, err := auth.GenerateSecureKey(auth.APIKeyLength)
+		if err != nil {
+			log.Fatalf("could not generate CSRF key: %s", err)
+		}
+		csrfKey = []byte(key)
 	}
 	csrfHandler := csrf.Protect(csrfKey,
 		csrf.FieldName("csrf_token"),

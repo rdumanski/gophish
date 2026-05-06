@@ -133,8 +133,10 @@ func checkForNewEmails(im models.IMAP) {
 		log.Error(err)
 		return
 	}
-	// Update last_succesful_login here via im.Host
-	err = models.SuccessfulLogin(&im)
+	// Update last_successful_login here via im.Host. SuccessfulLogin already
+	// logs DB errors internally — explicit discard documents that the caller
+	// has nothing actionable to do beyond what the model layer already did.
+	_ = models.SuccessfulLogin(&im)
 
 	if len(msgs) > 0 {
 		log.Debugf("%d new emails for %s", len(msgs), im.Username)

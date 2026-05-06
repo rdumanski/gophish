@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 	"time"
@@ -17,6 +18,15 @@ import (
 
 	"github.com/jordan-wright/email"
 )
+
+// logoutClient closes the IMAP session and logs any logout error so transient
+// disconnects don't go unnoticed. Used as the deferred cleanup in functions
+// that take ownership of an *client.Client returned by newClient().
+func logoutClient(c *client.Client) {
+	if err := c.Logout(); err != nil {
+		log.Error("imap: logout failed: ", err)
+	}
+}
 
 // Client interface for IMAP interactions
 type Client interface {
@@ -67,7 +77,7 @@ func Validate(s *models.IMAP) error {
 	if err != nil {
 		log.Error(err.Error())
 	} else {
-		imapClient.Logout()
+		logoutClient(imapClient)
 	}
 	return err
 }
@@ -79,7 +89,7 @@ func (mbox *Mailbox) MarkAsUnread(seqs []uint32) error {
 		return err
 	}
 
-	defer imapClient.Logout()
+	defer logoutClient(imapClient)
 
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(seqs...)
@@ -101,7 +111,7 @@ func (mbox *Mailbox) DeleteEmails(seqs []uint32) error {
 		return err
 	}
 
-	defer imapClient.Logout()
+	defer logoutClient(imapClient)
 
 	seqSet := new(imap.SeqSet)
 	seqSet.AddNum(seqs...)
@@ -125,7 +135,7 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 		return emails, fmt.Errorf("failed to create IMAP connection: %s", err)
 	}
 
-	defer imapClient.Logout()
+	defer logoutClient(imapClient)
 
 	// Search for unread emails
 	criteria := imap.NewSearchCriteria()
@@ -158,7 +168,9 @@ func (mbox *Mailbox) GetUnread(markAsRead, delete bool) ([]Email, error) {
 		var buf []byte
 		for _, value := range msg.Body {
 			buf = make([]byte, value.Len())
-			value.Read(buf)
+			if _, err := io.ReadFull(value, buf); err != nil {
+				return emails, fmt.Errorf("failed to read message body: %s", err)
+			}
 			break // There should only ever be one item in this map, but I'm not 100% sure
 		}
 

@@ -34,12 +34,16 @@ var ErrEmptyPassword = errors.New("No password provided")
 // than MinPasswordLength
 var ErrPasswordTooShort = fmt.Errorf("Password must be at least %d characters", MinPasswordLength)
 
-// GenerateSecureKey returns the hex representation of key generated from n
-// random bytes
-func GenerateSecureKey(n int) string {
+// GenerateSecureKey returns the hex representation of a key generated from n
+// random bytes drawn from crypto/rand. It returns an error if the random
+// source fails — callers must treat this as fatal because Gophish has no safe
+// fallback for missing entropy (would silently emit predictable keys).
+func GenerateSecureKey(n int) (string, error) {
 	k := make([]byte, n)
-	io.ReadFull(rand.Reader, k)
-	return fmt.Sprintf("%x", k)
+	if _, err := io.ReadFull(rand.Reader, k); err != nil {
+		return "", fmt.Errorf("auth: read random bytes: %w", err)
+	}
+	return fmt.Sprintf("%x", k), nil
 }
 
 // GeneratePasswordHash returns the bcrypt hash for the provided password using
