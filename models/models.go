@@ -2,13 +2,11 @@ package models
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"database/sql"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -85,12 +83,6 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
-// Copy of auth.GenerateSecureKey to prevent cyclic import with auth library
-func generateSecureKey() string {
-	k := make([]byte, 32)
-	io.ReadFull(rand.Reader, k)
-	return fmt.Sprintf("%x", k)
-}
 
 // openGormDialect opens a gorm.DB for the configured driver. The sqlite
 // path uses gorm's official driver wired to modernc.org/sqlite (pure Go,
@@ -342,7 +334,11 @@ func createTemporaryPassword(u *User) error {
 	} else {
 		// This will result in a 16 character password which could be viewed as an
 		// inconvenience, but it should be ok for now.
-		temporaryPassword = auth.GenerateSecureKey(auth.MinPasswordLength)
+		var err error
+		temporaryPassword, err = auth.GenerateSecureKey(auth.MinPasswordLength)
+		if err != nil {
+			return err
+		}
 	}
 	hash, err := auth.GeneratePasswordHash(temporaryPassword)
 	if err != nil {
@@ -450,7 +446,11 @@ func Setup(c *config.Config) error {
 		if envToken := os.Getenv(InitialAdminApiToken); envToken != "" {
 			adminUser.ApiKey = envToken
 		} else {
-			adminUser.ApiKey = auth.GenerateSecureKey(auth.APIKeyLength)
+			adminUser.ApiKey, err = auth.GenerateSecureKey(auth.APIKeyLength)
+			if err != nil {
+				log.Error(err)
+				return err
+			}
 		}
 
 		err = db.Omit("Role").Save(&adminUser).Error
