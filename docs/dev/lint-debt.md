@@ -103,6 +103,36 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 5d gophish/gomail vendored to internal/gomail/ (2026-05-06)
+
+`github.com/gophish/gomail` was a 2020-vintage fork of the long-dormant
+`go-gomail/gomail` (last upstream commit 2017). With both repos effectively
+dead and only two Gophish-specific extensions worth keeping (`NewWithDialer`
+for the SSRF-safe outbound dialer, `SendCustomFrom` for envelope-from
+phishing tracking), the cleanest fix was to **vendor** the fork into
+`internal/gomail/` and drop the external dependency. See
+`internal/gomail/VENDORED.md` for full provenance and edits.
+
+Local edits during vendoring:
+
+- Removed `mime_go14.go` (Go 1.4 quoted-printable shim, gated by
+  `// +build !go1.5`). Dead code at our Go 1.25 floor; this also retires
+  the only remaining transitive dependency
+  (`gopkg.in/alexcesaro/quotedprintable.v3`, last touched 2015).
+- Dropped the `// +build go1.5` tag from `mime.go` (no longer conditional).
+- Skipped `example_test.go` (`package gomail_test`, doc-only examples).
+- Updated `doc.go` to record vendoring provenance.
+
+`.golangci.yml` was extended to exclude `internal/gomail/` from `errcheck`,
+`staticcheck`, `revive`, and `gosec`. The vendored package carries 15
+upstream-style findings (mostly unchecked `Close` calls); patching them
+would defeat the point of vendoring (preserve upstream byte-identical so
+any future diffing against an upstream PR is mechanical). If those findings
+ever become a problem the path forward is **replacement** with a maintained
+library (e.g. `wneessen/go-mail`), not piecemeal patching.
+
+Repository-wide finding count holds at 117 thanks to the exclusion.
+
 ### Phase 5c errcheck + miscellaneous burn-down on models/ (2026-05-06)
 
 Cleared every lint finding in `models/`:
