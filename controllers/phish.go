@@ -213,13 +213,13 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	var ptx models.PhishingTemplateContext
 	// Check for a preview
 	if preview, ok := ctx.Get(r, "result").(models.EmailRequest); ok {
-		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.RId)
+		ptx, err = models.NewPhishingTemplateContext(&preview, preview.BaseRecipient, preview.RID)
 		if err != nil {
 			log.Error(err)
 			http.NotFound(w, r)
 			return
 		}
-		p, err := models.GetPage(preview.PageId, preview.UserId)
+		p, err := models.GetPage(preview.PageID, preview.UserID)
 		if err != nil {
 			log.Error(err)
 			http.NotFound(w, r)
@@ -239,7 +239,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := models.GetPage(c.PageId, c.UserId)
+	p, err := models.GetPage(c.PageID, c.UserID)
 	if err != nil {
 		log.Error(err)
 		http.NotFound(w, r)
@@ -257,7 +257,7 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 	}
-	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RId)
+	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RID)
 	if err != nil {
 		log.Error(err)
 		http.NotFound(w, r)
@@ -349,7 +349,7 @@ func setupContext(r *http.Request) (*http.Request, error) {
 	if err != nil {
 		return r, err
 	}
-	c, err := models.GetCampaign(rs.CampaignId, rs.UserId)
+	c, err := models.GetCampaign(rs.CampaignID, rs.UserID)
 	if err != nil {
 		log.Error(err)
 		return r, err

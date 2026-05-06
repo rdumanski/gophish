@@ -20,16 +20,16 @@ const PreviewPrefix = "preview-"
 type EmailRequest struct {
 	Id          int64        `json:"-"`
 	Template    Template     `json:"template"`
-	TemplateId  int64        `json:"-"`
+	TemplateID  int64        `json:"-"`
 	Page        Page         `json:"page"`
-	PageId      int64        `json:"-"`
+	PageID      int64        `json:"-"`
 	SMTP        SMTP         `json:"smtp" gorm:"-"`
 	URL         string       `json:"url"`
 	Tracker     string       `json:"tracker" gorm:"-"`
 	TrackingURL string       `json:"tracking_url" gorm:"-"`
-	UserId      int64        `json:"-"`
+	UserID      int64        `json:"-"`
 	ErrorChan   chan (error) `json:"-" gorm:"-"`
-	RId         string       `json:"id"`
+	RID         string       `json:"id"`
 	FromAddress string       `json:"-"`
 	BaseRecipient
 }
@@ -85,7 +85,7 @@ func PostEmailRequest(s *EmailRequest) error {
 	if err != nil {
 		return err
 	}
-	s.RId = fmt.Sprintf("%s%s", PreviewPrefix, rid)
+	s.RID = fmt.Sprintf("%s%s", PreviewPrefix, rid)
 	return db.Save(s).Error
 }
 
@@ -106,7 +106,7 @@ func (s *EmailRequest) Generate(msg *gomail.Message) error {
 	}
 	msg.SetAddressHeader("From", f.Address, f.Name)
 
-	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.RId)
+	ptx, err := NewPhishingTemplateContext(s, s.BaseRecipient, s.RID)
 	if err != nil {
 		return err
 	}

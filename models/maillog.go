@@ -35,9 +35,9 @@ var embeddedFileExtensions = []string{".jpg", ".jpeg", ".png", ".gif"}
 // sent out.
 type MailLog struct {
 	Id          int64     `json:"-"`
-	UserId      int64     `json:"-"`
-	CampaignId  int64     `json:"campaign_id"`
-	RId         string    `json:"id"`
+	UserID      int64     `json:"-"`
+	CampaignID  int64     `json:"campaign_id"`
+	RID         string    `json:"id"`
 	SendDate    time.Time `json:"send_date"`
 	SendAttempt int       `json:"send_attempt"`
 	Processing  bool      `json:"-"`
@@ -49,9 +49,9 @@ type MailLog struct {
 // result. It sets the initial send date to match the campaign's launch date.
 func GenerateMailLog(c *Campaign, r *Result, sendDate time.Time) error {
 	m := &MailLog{
-		UserId:     c.UserId,
-		CampaignId: c.Id,
-		RId:        r.RId,
+		UserID:     c.UserID,
+		CampaignID: c.Id,
+		RID:        r.RID,
 		SendDate:   sendDate,
 	}
 	return db.Save(m).Error
@@ -62,13 +62,13 @@ func GenerateMailLog(c *Campaign, r *Result, sendDate time.Time) error {
 // too many times. Backoff also unlocks the maillog so that it can be processed
 // again in the future.
 func (m *MailLog) Backoff(reason error) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.RID)
 	if err != nil {
 		return err
 	}
 	if m.SendAttempt == MaxSendAttempts {
 		if err := r.HandleEmailError(ErrMaxSendAttempts); err != nil {
-			log.Errorf("error recording send-error event for result %s: %s", m.RId, err)
+			log.Errorf("error recording send-error event for result %s: %s", m.RID, err)
 		}
 		return ErrMaxSendAttempts
 	}
@@ -105,7 +105,7 @@ func (m *MailLog) Lock() error {
 // maillog refers to. Since MailLog errors are permanent,
 // this action also deletes the maillog.
 func (m *MailLog) Error(e error) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.RID)
 	if err != nil {
 		log.Warn(err)
 		return err
@@ -122,7 +122,7 @@ func (m *MailLog) Error(e error) error {
 // Success deletes the maillog from the database and updates the underlying
 // campaign result.
 func (m *MailLog) Success() error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.RID)
 	if err != nil {
 		return err
 	}
@@ -138,7 +138,7 @@ func (m *MailLog) Success() error {
 func (m *MailLog) GetDialer() (mailer.Dialer, error) {
 	c := m.cachedCampaign
 	if c == nil {
-		campaign, err := GetCampaignMailContext(m.CampaignId, m.UserId)
+		campaign, err := GetCampaignMailContext(m.CampaignID, m.UserID)
 		if err != nil {
 			return nil, err
 		}
@@ -150,15 +150,15 @@ func (m *MailLog) GetDialer() (mailer.Dialer, error) {
 // CacheCampaign allows bulk-mail workers to cache the otherwise expensive
 // campaign lookup operation by providing a pointer to the campaign here.
 func (m *MailLog) CacheCampaign(campaign *Campaign) error {
-	if campaign.Id != m.CampaignId {
-		return fmt.Errorf("incorrect campaign provided for caching. expected %d got %d", m.CampaignId, campaign.Id)
+	if campaign.Id != m.CampaignID {
+		return fmt.Errorf("incorrect campaign provided for caching. expected %d got %d", m.CampaignID, campaign.Id)
 	}
 	m.cachedCampaign = campaign
 	return nil
 }
 
 func (m *MailLog) GetSmtpFrom() (string, error) {
-	c, err := GetCampaign(m.CampaignId, m.UserId)
+	c, err := GetCampaign(m.CampaignID, m.UserID)
 	if err != nil {
 		return "", err
 	}
@@ -172,13 +172,13 @@ func (m *MailLog) GetSmtpFrom() (string, error) {
 // the maillog. We accept the gomail.Message as an argument so that the caller
 // can choose to re-use the message across recipients.
 func (m *MailLog) Generate(msg *gomail.Message) error {
-	r, err := GetResult(m.RId)
+	r, err := GetResult(m.RID)
 	if err != nil {
 		return err
 	}
 	c := m.cachedCampaign
 	if c == nil {
-		campaign, err := GetCampaignMailContext(m.CampaignId, m.UserId)
+		campaign, err := GetCampaignMailContext(m.CampaignID, m.UserID)
 		if err != nil {
 			return err
 		}
@@ -194,7 +194,7 @@ func (m *MailLog) Generate(msg *gomail.Message) error {
 	}
 	msg.SetAddressHeader("From", f.Address, f.Name)
 
-	ptx, err := NewPhishingTemplateContext(c, r.BaseRecipient, r.RId)
+	ptx, err := NewPhishingTemplateContext(c, r.BaseRecipient, r.RID)
 	if err != nil {
 		return err
 	}

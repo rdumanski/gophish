@@ -110,7 +110,7 @@ func (as *Server) Users(w http.ResponseWriter, r *http.Request) {
 		user := models.User{
 			Username:               ur.Username,
 			Hash:                   hash,
-			ApiKey:                 apiKey,
+			APIKey:                 apiKey,
 			Role:                   role,
 			RoleID:                 role.ID,
 			PasswordChangeRequired: ur.PasswordChangeRequired,

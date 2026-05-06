@@ -18,12 +18,12 @@ func (as *Server) Reset(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error generating API Key", http.StatusInternalServerError)
 			return
 		}
-		u.ApiKey = key
+		u.APIKey = key
 		err = models.PutUser(&u)
 		if err != nil {
 			http.Error(w, "Error setting API Key", http.StatusInternalServerError)
 		} else {
-			JSONResponse(w, models.Response{Success: true, Message: "API Key successfully reset!", Data: u.ApiKey}, http.StatusOK)
+			JSONResponse(w, models.Response{Success: true, Message: "API Key successfully reset!", Data: u.APIKey}, http.StatusOK)
 		}
 	}
 }

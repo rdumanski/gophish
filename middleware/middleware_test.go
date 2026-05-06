@@ -35,7 +35,7 @@ func setupTest(t *testing.T) *testContext {
 		t.Fatalf("error getting user: %v", err)
 	}
 	ctx := &testContext{}
-	ctx.apiKey = u.ApiKey
+	ctx.apiKey = u.APIKey
 	return ctx
 }
 

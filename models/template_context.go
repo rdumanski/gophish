@@ -22,8 +22,14 @@ type PhishingTemplateContext struct {
 	URL         string
 	Tracker     string
 	TrackingURL string
-	RId         string
-	BaseURL     string
+	RID         string
+	// RId is a backward-compat alias for RID. User-authored email templates
+	// stored in the DB before Phase 6a's naming cleanup reference {{.RId}};
+	// keeping the alias avoids forcing every existing Gophish installation
+	// to rewrite its templates on upgrade. Always populated to the same
+	// value as RID at construction time. New code should reference RID.
+	RId     string //nolint:revive // user-facing template variable, see comment above
+	BaseURL string
 	BaseRecipient
 }
 
@@ -68,6 +74,7 @@ func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string
 		TrackingURL:   trackingURL.String(),
 		Tracker:       "<img alt='' style='display: none' src='" + trackingURL.String() + "'/>",
 		From:          fn,
+		RID:           rid,
 		RId:           rid,
 	}, nil
 }
@@ -112,9 +119,9 @@ func ValidateTemplate(text string) error {
 			LastName:  "Bar",
 			Position:  "Test",
 		},
-		RId: "123456",
+		RID: "123456",
 	}
-	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.RId)
+	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.RID)
 	if err != nil {
 		return err
 	}

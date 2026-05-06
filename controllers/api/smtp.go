@@ -40,7 +40,7 @@ func (as *Server) SendingProfiles(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.ModifiedDate = time.Now().UTC()
-		s.UserId = ctx.Get(r, "user_id").(int64)
+		s.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PostSMTP(&s)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
@@ -86,7 +86,7 @@ func (as *Server) SendingProfile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.ModifiedDate = time.Now().UTC()
-		s.UserId = ctx.Get(r, "user_id").(int64)
+		s.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PutSMTP(&s)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Error updating page"}, http.StatusInternalServerError)

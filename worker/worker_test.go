@@ -53,7 +53,7 @@ func createTestData(t *testing.T, ctx *testContext) {
 				FirstName: "First",
 				LastName:  "Example"}})
 	}
-	group.UserId = 1
+	group.UserID = 1
 	models.PostGroup(&group)
 
 	// Add a template
@@ -61,18 +61,18 @@ func createTestData(t *testing.T, ctx *testContext) {
 	template.Subject = "Test subject"
 	template.Text = "Text text"
 	template.HTML = "<html>Test</html>"
-	template.UserId = 1
+	template.UserID = 1
 	models.PostTemplate(&template)
 
 	// Add a landing page
 	p := models.Page{Name: "Test Page"}
 	p.HTML = "<html>Test</html>"
-	p.UserId = 1
+	p.UserID = 1
 	models.PostPage(&p)
 
 	// Add a sending profile
 	smtp := models.SMTP{Name: "Test Page"}
-	smtp.UserId = 1
+	smtp.UserID = 1
 	smtp.Host = "example.com"
 	smtp.FromAddress = "test@test.com"
 	models.PostSMTP(&smtp)
@@ -82,7 +82,7 @@ func setupCampaign(id int) (*models.Campaign, error) {
 	// Setup and "launch" our campaign
 	// Set the status such that no emails are attempted
 	c := models.Campaign{Name: fmt.Sprintf("Test campaign - %d", id)}
-	c.UserId = 1
+	c.UserID = 1
 	template, err := models.GetTemplate(1, 1)
 	if err != nil {
 		return nil, err
@@ -106,7 +106,7 @@ func setupCampaign(id int) (*models.Campaign, error) {
 		return nil, err
 	}
 	c.Groups = []models.Group{group}
-	err = models.PostCampaign(&c, c.UserId)
+	err = models.PostCampaign(&c, c.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -148,13 +148,13 @@ func TestMailLogGrouping(t *testing.T) {
 		if !ok {
 			t.Fatalf("unable to cast mail to models.MailLog")
 		}
-		expected := maillog.CampaignId
+		expected := maillog.CampaignID
 		for _, m := range ms {
 			maillog, ok = m.(*models.MailLog)
 			if !ok {
 				t.Fatalf("unable to cast mail to models.MailLog")
 			}
-			got := maillog.CampaignId
+			got := maillog.CampaignID
 			if got != expected {
 				t.Fatalf("unexpected campaign ID received for maillog: got %d expected %d", got, expected)
 			}

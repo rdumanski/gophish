@@ -21,8 +21,6 @@ linters:
         - G404
     revive:
       rules:
-        - name: var-naming
-          disabled: true   # legacy ID/URL fields shadow the warning; revisit in Phase 6
         - name: package-comments
           disabled: true
         - name: exported

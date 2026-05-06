@@ -17,7 +17,7 @@ type User struct {
 	Id                     int64     `json:"id"`
 	Username               string    `json:"username" gorm:"not null;unique"`
 	Hash                   string    `json:"-"`
-	ApiKey                 string    `json:"api_key" gorm:"not null;unique"`
+	APIKey                 string    `json:"api_key" gorm:"not null;unique"`
 	Role                   Role      `json:"role" gorm:"foreignKey:RoleID;references:ID"`
 	RoleID                 int64     `json:"-"`
 	PasswordChangeRequired bool      `json:"password_change_required"`

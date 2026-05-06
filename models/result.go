@@ -26,9 +26,9 @@ type mmGeoPoint struct {
 // which is a representation of a target in a campaign.
 type Result struct {
 	Id           int64     `json:"-"`
-	CampaignId   int64     `json:"-"`
-	UserId       int64     `json:"-"`
-	RId          string    `json:"id"`
+	CampaignID   int64     `json:"-"`
+	UserID       int64     `json:"-"`
+	RID          string    `json:"id"`
 	Status       string    `json:"status" gorm:"not null"`
 	IP           string    `json:"ip"`
 	Latitude     float64   `json:"latitude"`
@@ -48,7 +48,7 @@ func (r *Result) createEvent(status string, details interface{}) (*Event, error)
 		}
 		e.Details = string(dj)
 	}
-	if err := AddEvent(e, r.CampaignId); err != nil {
+	if err := AddEvent(e, r.CampaignID); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -195,8 +195,8 @@ func (r *Result) GenerateId(tx *gorm.DB) error {
 		if err != nil {
 			return err
 		}
-		r.RId = rid
-		err = tx.Table("results").Where("r_id=?", r.RId).First(&Result{}).Error
+		r.RID = rid
+		err = tx.Table("results").Where("r_id=?", r.RID).First(&Result{}).Error
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			break
 		}

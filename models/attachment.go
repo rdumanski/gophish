@@ -15,7 +15,7 @@ import (
 // an email attachment
 type Attachment struct {
 	Id          int64  `json:"-"`
-	TemplateId  int64  `json:"-"`
+	TemplateID  int64  `json:"-"`
 	Content     string `json:"content"`
 	Type        string `json:"type"`
 	Name        string `json:"name"`
@@ -35,9 +35,9 @@ func (a Attachment) Validate() error {
 			LastName:  "Bar",
 			Position:  "Test",
 		},
-		RId: "123456",
+		RID: "123456",
 	}
-	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.RId)
+	ptx, err := NewPhishingTemplateContext(vc, td.BaseRecipient, td.RID)
 	if err != nil {
 		return err
 	}

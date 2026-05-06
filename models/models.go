@@ -443,9 +443,9 @@ func Setup(c *config.Config) error {
 		}
 
 		if envToken := os.Getenv(InitialAdminApiToken); envToken != "" {
-			adminUser.ApiKey = envToken
+			adminUser.APIKey = envToken
 		} else {
-			adminUser.ApiKey, err = auth.GenerateSecureKey(auth.APIKeyLength)
+			adminUser.APIKey, err = auth.GenerateSecureKey(auth.APIKeyLength)
 			if err != nil {
 				log.Error(err)
 				return err

@@ -40,7 +40,7 @@ func (as *Server) Pages(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		p.ModifiedDate = time.Now().UTC()
-		p.UserId = ctx.Get(r, "user_id").(int64)
+		p.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PostPage(&p)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)
@@ -81,7 +81,7 @@ func (as *Server) Page(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		p.ModifiedDate = time.Now().UTC()
-		p.UserId = ctx.Get(r, "user_id").(int64)
+		p.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PutPage(&p)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Error updating page: " + err.Error()}, http.StatusInternalServerError)

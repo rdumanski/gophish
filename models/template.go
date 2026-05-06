@@ -11,7 +11,7 @@ import (
 // Template models hold the attributes for an email template to be sent to targets
 type Template struct {
 	Id             int64        `json:"id" gorm:"primaryKey;column:id"`
-	UserId         int64        `json:"-" gorm:"column:user_id"`
+	UserID         int64        `json:"-" gorm:"column:user_id"`
 	Name           string       `json:"name"`
 	EnvelopeSender string       `json:"envelope_sender"`
 	Subject        string       `json:"subject"`
@@ -133,7 +133,7 @@ func PostTemplate(t *Template) error {
 
 	// Save every attachment
 	for i := range t.Attachments {
-		t.Attachments[i].TemplateId = t.Id
+		t.Attachments[i].TemplateID = t.Id
 		err := db.Save(&t.Attachments[i]).Error
 		if err != nil {
 			log.Error(err)
@@ -156,7 +156,7 @@ func PutTemplate(t *Template) error {
 		return err
 	}
 	for i := range t.Attachments {
-		t.Attachments[i].TemplateId = t.Id
+		t.Attachments[i].TemplateID = t.Id
 		err := db.Save(&t.Attachments[i]).Error
 		if err != nil {
 			log.Error(err)

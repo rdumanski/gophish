@@ -14,7 +14,7 @@ const DefaultIMAPFreq = 60 // Every 60 seconds
 // IMAP contains the attributes needed to handle logging into an IMAP server to check
 // for reported emails
 type IMAP struct {
-	UserId                      int64     `json:"-" gorm:"column:user_id"`
+	UserID                      int64     `json:"-" gorm:"column:user_id"`
 	Enabled                     bool      `json:"enabled"`
 	Host                        string    `json:"host"`
 	Port                        uint16    `json:"port,string,omitempty"`
@@ -144,7 +144,7 @@ func DeleteIMAP(uid int64) error {
 }
 
 func SuccessfulLogin(im *IMAP) error {
-	err := db.Model(&im).Where("user_id = ?", im.UserId).Update("last_login", time.Now().UTC()).Error
+	err := db.Model(&im).Where("user_id = ?", im.UserID).Update("last_login", time.Now().UTC()).Error
 	if err != nil {
 		log.Error("Unable to update database: ", err.Error())
 	}

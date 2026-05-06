@@ -38,7 +38,7 @@ func (as *Server) Templates(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		t.ModifiedDate = time.Now().UTC()
-		t.UserId = ctx.Get(r, "user_id").(int64)
+		t.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PostTemplate(&t)
 		if err == models.ErrTemplateNameNotSpecified {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
@@ -87,7 +87,7 @@ func (as *Server) Template(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		t.ModifiedDate = time.Now().UTC()
-		t.UserId = ctx.Get(r, "user_id").(int64)
+		t.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PutTemplate(&t)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)

@@ -103,6 +103,57 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 6a naming cleanup + dead code (2026-05-06)
+
+Burns down `revive`'s `var-naming` rule (suppressed since Phase 2) and
+retires the last two `unused` findings from the original lint baseline:
+
+- **Field renames** (Go identifiers only — JSON tags, GORM column tags,
+  and route URLs are unchanged):
+  - `UserId` → `UserID` across 28 files / 122 sites.
+  - `RId` → `RID` across 15 files / 81 sites for the model-level fields
+    (`Result.RID`, `MailLog.RID`, `EmailRequest.RID`, etc.). The
+    template-visible `PhishingTemplateContext` keeps **both** spellings
+    — see "Backward compat" below.
+  - `ApiKey` → `APIKey` across 10 files / 20 sites.
+  - `CampaignId`, `GroupId`, `TemplateId`, `PageId`, `Id` etc.
+    → `…ID` across the model layer and downstream callers.
+- **Dead code removed**:
+  - `dialer.restrictedDialer` (private struct, dialer/dialer.go:115-118
+    in pre-cleanup numbering — the exported `RestrictedDialer` is the
+    type that's actually in use).
+  - `controllers/api.createTestData` (test helper that was defined in
+    `controllers/api/api_test.go` but never referenced; the survey for
+    this phase initially mis-identified it as live, lint correctly
+    flagged it as dead).
+- **Lint rule re-enabled**: `var-naming: disabled: true` removed from
+  `.golangci.yml`. `golangci-lint run ./...` reports 0 `var-naming`
+  findings post-burn-down.
+
+### Backward compat: PhishingTemplateContext.RId
+
+`PhishingTemplateContext.RID` (the new spelling) is the canonical
+field, but `PhishingTemplateContext.RId` is preserved as a
+struct-field alias populated to the same value at construction.
+Reason: user-authored email and landing-page templates stored in the
+database before this phase reference `{{.RId}}`. Renaming the field
+without an alias would silently break every existing Gophish
+installation's templates on upgrade (the Go template engine would
+return an empty string for the unknown field). The alias has a
+`//nolint:revive` annotation pointing at the explanation. New code
+should use `RID`.
+
+`models.Result.RID`, `models.MailLog.RID`, and
+`models.EmailRequest.RID` were renamed without aliases because they
+are internal model fields, never exposed directly to user templates.
+
+### Numbers
+
+- Repo-wide finding floor: **117 → 115** (−2 from the two retired
+  `unused` items).
+- `var-naming`: previously suppressed; now enabled and at 0 findings.
+- `unused`: 2 → 0 (the post-Phase 5b count was 2 and both retire here).
+
 ### Phase 5d gophish/gomail vendored to internal/gomail/ (2026-05-06)
 
 `github.com/gophish/gomail` was a 2020-vintage fork of the long-dormant
@@ -249,7 +300,6 @@ sqlite driver, finally removing the CGO requirement.
 | gosec | G104 | Overlaps with `errcheck`; redundant noise |
 | gosec | G304 | False positives on template/fixture loaders that read paths from config |
 | gosec | G404 | Codebase uses `crypto/rand` for security; `math/rand` only in non-security paths |
-| revive | var-naming | Legacy `ID`/`URL`/`SMTP` field naming throughout — cleanup is its own phase |
 | revive | package-comments | Many files lack package-level docstrings; cosmetic-only |
 | revive | exported | Public types missing godoc on exported fields; would generate ~hundreds of findings |
 | revive | unused-parameter | Common in interface-satisfying methods (mailer, plugin handlers) |

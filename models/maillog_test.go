@@ -19,7 +19,7 @@ import (
 func (s *ModelsSuite) emailFromFirstMailLog(campaign Campaign, ch *check.C) *email.Email {
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
+	err := db.Where("r_id=? AND campaign_id=?", result.RID, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
@@ -48,17 +48,17 @@ func (s *ModelsSuite) TestGetQueuedMailLogs(ch *check.C) {
 	ch.Assert(err, check.Equals, nil)
 	got := make(map[string]*MailLog)
 	for _, m := range ms {
-		got[m.RId] = m
+		got[m.RID] = m
 	}
 	for _, r := range campaign.Results {
-		if m, ok := got[r.RId]; ok {
-			ch.Assert(m.RId, check.Equals, r.RId)
-			ch.Assert(m.CampaignId, check.Equals, campaign.Id)
+		if m, ok := got[r.RID]; ok {
+			ch.Assert(m.RID, check.Equals, r.RID)
+			ch.Assert(m.CampaignID, check.Equals, campaign.Id)
 			ch.Assert(m.SendDate, check.Equals, campaign.LaunchDate)
-			ch.Assert(m.UserId, check.Equals, campaign.UserId)
+			ch.Assert(m.UserID, check.Equals, campaign.UserID)
 			ch.Assert(m.SendAttempt, check.Equals, 0)
 		} else {
-			ch.Fatalf("Result not found in maillogs: %s", r.RId)
+			ch.Fatalf("Result not found in maillogs: %s", r.RID)
 		}
 	}
 }
@@ -67,7 +67,7 @@ func (s *ModelsSuite) TestMailLogBackoff(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
+	err := db.Where("r_id=? AND campaign_id=?", result.RID, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(m.SendAttempt, check.Equals, 0)
@@ -88,7 +88,7 @@ func (s *ModelsSuite) TestMailLogBackoff(ch *check.C) {
 		ch.Assert(err, check.Equals, nil)
 		ch.Assert(m.SendDate, check.Equals, expectedSendDate)
 		ch.Assert(m.Processing, check.Equals, false)
-		result, err := GetResult(m.RId)
+		result, err := GetResult(m.RID)
 		ch.Assert(err, check.Equals, nil)
 		ch.Assert(result.SendDate, check.Equals, expectedSendDate)
 		ch.Assert(result.Status, check.Equals, StatusRetry)
@@ -109,10 +109,10 @@ func (s *ModelsSuite) TestMailLogError(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
+	err := db.Where("r_id=? AND campaign_id=?", result.RID, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.RId, check.Equals, result.RId)
+	ch.Assert(m.RID, check.Equals, result.RID)
 
 	expectedError := &textproto.Error{
 		Code: 500,
@@ -122,7 +122,7 @@ func (s *ModelsSuite) TestMailLogError(ch *check.C) {
 	ch.Assert(err, check.Equals, nil)
 
 	// Get our result and make sure the status is set correctly
-	result, err = GetResult(result.RId)
+	result, err = GetResult(result.RID)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(result.Status, check.Equals, Error)
 
@@ -140,7 +140,7 @@ func (s *ModelsSuite) TestMailLogError(ch *check.C) {
 		Id:         gotEvent.Id,
 		Email:      result.Email,
 		Message:    EventSendingError,
-		CampaignId: campaign.Id,
+		CampaignID: campaign.Id,
 		Details:    string(ej),
 		Time:       gotEvent.Time,
 	}
@@ -155,16 +155,16 @@ func (s *ModelsSuite) TestMailLogSuccess(ch *check.C) {
 	campaign := s.createCampaign(ch)
 	result := campaign.Results[0]
 	m := &MailLog{}
-	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
+	err := db.Where("r_id=? AND campaign_id=?", result.RID, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.RId, check.Equals, result.RId)
+	ch.Assert(m.RID, check.Equals, result.RID)
 
 	err = m.Success()
 	ch.Assert(err, check.Equals, nil)
 
 	// Get our result and make sure the status is set correctly
-	result, err = GetResult(result.RId)
+	result, err = GetResult(result.RID)
 	ch.Assert(err, check.Equals, nil)
 	ch.Assert(result.Status, check.Equals, EventSent)
 
@@ -180,7 +180,7 @@ func (s *ModelsSuite) TestMailLogSuccess(ch *check.C) {
 		Id:         gotEvent.Id,
 		Email:      result.Email,
 		Message:    EventSent,
-		CampaignId: campaign.Id,
+		CampaignID: campaign.Id,
 		Time:       gotEvent.Time,
 	}
 	ch.Assert(gotEvent, check.DeepEquals, expectedEvent)
@@ -194,21 +194,21 @@ func (s *ModelsSuite) TestMailLogSuccess(ch *check.C) {
 func (s *ModelsSuite) TestGenerateMailLog(ch *check.C) {
 	campaign := Campaign{
 		Id:     1,
-		UserId: 1,
+		UserID: 1,
 	}
 	result := Result{
-		RId: "abc1234",
+		RID: "abc1234",
 	}
 	err := GenerateMailLog(&campaign, &result, campaign.LaunchDate)
 	ch.Assert(err, check.Equals, nil)
 
 	m := MailLog{}
-	err = db.Where("r_id=?", result.RId).Find(&m).Error
+	err = db.Where("r_id=?", result.RID).Find(&m).Error
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(m.RId, check.Equals, result.RId)
-	ch.Assert(m.CampaignId, check.Equals, campaign.Id)
+	ch.Assert(m.RID, check.Equals, result.RID)
+	ch.Assert(m.CampaignID, check.Equals, campaign.Id)
 	ch.Assert(m.SendDate, check.Equals, campaign.LaunchDate)
-	ch.Assert(m.UserId, check.Equals, campaign.UserId)
+	ch.Assert(m.UserID, check.Equals, campaign.UserID)
 	ch.Assert(m.SendAttempt, check.Equals, 0)
 	ch.Assert(m.Processing, check.Equals, false)
 }
@@ -216,7 +216,7 @@ func (s *ModelsSuite) TestGenerateMailLog(ch *check.C) {
 func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 	template := Template{
 		Name:           "OverrideSmtpFrom",
-		UserId:         1,
+		UserID:         1,
 		Text:           "dummytext",
 		HTML:           "Dummyhtml",
 		Subject:        "Dummysubject",
@@ -226,11 +226,11 @@ func (s *ModelsSuite) TestMailLogGetSmtpFrom(ch *check.C) {
 	campaign := s.createCampaignDependencies(ch)
 	campaign.Template = template
 
-	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&campaign, campaign.UserID), check.Equals, nil)
 	result := campaign.Results[0]
 
 	m := &MailLog{}
-	err := db.Where("r_id=? AND campaign_id=?", result.RId, campaign.Id).
+	err := db.Where("r_id=? AND campaign_id=?", result.RID, campaign.Id).
 		Find(m).Error
 	ch.Assert(err, check.Equals, nil)
 
@@ -252,9 +252,9 @@ func (s *ModelsSuite) TestMailLogGenerate(ch *check.C) {
 	result := campaign.Results[0]
 	expected := &email.Email{
 		From:    "test@test.com", // Default smtp.FromAddress
-		Subject: fmt.Sprintf("%s - Subject", result.RId),
-		Text:    []byte(fmt.Sprintf("%s - Text", result.RId)),
-		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RId)),
+		Subject: fmt.Sprintf("%s - Subject", result.RID),
+		Text:    []byte(fmt.Sprintf("%s - Text", result.RID)),
+		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RID)),
 	}
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.From, check.Equals, expected.From)
@@ -285,7 +285,7 @@ func (s *ModelsSuite) TestMailLogGenerateOverrideTransparencyHeaders(ch *check.C
 		Name:        "Test SMTP",
 		Host:        "1.1.1.1:25",
 		FromAddress: "foo@example.com",
-		UserId:      1,
+		UserID:      1,
 		Headers: []Header{
 			Header{Key: "X-Gophish-Contact", Value: ""},
 			Header{Key: "X-Mailer", Value: ""},
@@ -295,7 +295,7 @@ func (s *ModelsSuite) TestMailLogGenerateOverrideTransparencyHeaders(ch *check.C
 	campaign := s.createCampaignDependencies(ch)
 	campaign.SMTP = smtp
 
-	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&campaign, campaign.UserID), check.Equals, nil)
 	got := s.emailFromFirstMailLog(campaign, ch)
 	for k, v := range expectedHeaders {
 		ch.Assert(got.Headers.Get(k), check.Equals, v)
@@ -321,7 +321,7 @@ func (s *ModelsSuite) TestUnlockAllMailLogs(ch *check.C) {
 func (s *ModelsSuite) TestURLTemplateRendering(ch *check.C) {
 	template := Template{
 		Name:    "URLTemplate",
-		UserId:  1,
+		UserID:  1,
 		Text:    "{{.URL}}",
 		HTML:    "{{.URL}}",
 		Subject: "{{.URL}}",
@@ -331,9 +331,9 @@ func (s *ModelsSuite) TestURLTemplateRendering(ch *check.C) {
 	campaign.URL = "http://127.0.0.1/{{.Email}}/"
 	campaign.Template = template
 
-	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&campaign, campaign.UserID), check.Equals, nil)
 	result := campaign.Results[0]
-	expectedURL := fmt.Sprintf("http://127.0.0.1/%s/?%s=%s", result.Email, RecipientParameter, result.RId)
+	expectedURL := fmt.Sprintf("http://127.0.0.1/%s/?%s=%s", result.Email, RecipientParameter, result.RID)
 
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.Subject, check.Equals, expectedURL)
@@ -348,13 +348,13 @@ func (s *ModelsSuite) TestMailLogGenerateEmptySubject(ch *check.C) {
 	// campaign := s.createCampaign(ch)
 	campaign := s.createCampaignDependencies(ch, "") // specify empty subject
 	// Setup and "launch" our campaign
-	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&campaign, campaign.UserID), check.Equals, nil)
 	result := campaign.Results[0]
 
 	expected := &email.Email{
 		Subject: "",
-		Text:    []byte(fmt.Sprintf("%s - Text", result.RId)),
-		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RId)),
+		Text:    []byte(fmt.Sprintf("%s - Text", result.RID)),
+		HTML:    []byte(fmt.Sprintf("%s - HTML", result.RID)),
 	}
 	got := s.emailFromFirstMailLog(campaign, ch)
 	ch.Assert(got.Subject, check.Equals, expected.Subject)
@@ -394,7 +394,7 @@ func (s *ModelsSuite) TestEmbedAttachment(ch *check.C) {
 		},
 	}
 	PutTemplate(&campaign.Template)
-	ch.Assert(PostCampaign(&campaign, campaign.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&campaign, campaign.UserID), check.Equals, nil)
 	got := s.emailFromFirstMailLog(campaign, ch)
 
 	// The email package simply ignores attachments where the Content-Disposition header is set

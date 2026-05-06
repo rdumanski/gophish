@@ -73,7 +73,7 @@ func (s *ModelsSuite) createCampaignDependencies(ch *check.C, optional ...string
 		Target{BaseRecipient: BaseRecipient{Email: "test3@example.com", FirstName: "Second", LastName: "Example"}},
 		Target{BaseRecipient: BaseRecipient{Email: "test4@example.com", FirstName: "Second", LastName: "Example"}},
 	}
-	group.UserId = 1
+	group.UserID = 1
 	ch.Assert(PostGroup(&group), check.Equals, nil)
 
 	// Add a template
@@ -81,28 +81,28 @@ func (s *ModelsSuite) createCampaignDependencies(ch *check.C, optional ...string
 	if len(optional) > 0 {
 		t.Subject = optional[0]
 	} else {
-		t.Subject = "{{.RId}} - Subject"
+		t.Subject = "{{.RID}} - Subject"
 	}
-	t.Text = "{{.RId}} - Text"
-	t.HTML = "{{.RId}} - HTML"
-	t.UserId = 1
+	t.Text = "{{.RID}} - Text"
+	t.HTML = "{{.RID}} - HTML"
+	t.UserID = 1
 	ch.Assert(PostTemplate(&t), check.Equals, nil)
 
 	// Add a landing page
 	p := Page{Name: "Test Page"}
 	p.HTML = "<html>Test</html>"
-	p.UserId = 1
+	p.UserID = 1
 	ch.Assert(PostPage(&p), check.Equals, nil)
 
 	// Add a sending profile
 	smtp := SMTP{Name: "Test Page"}
-	smtp.UserId = 1
+	smtp.UserID = 1
 	smtp.Host = "example.com"
 	smtp.FromAddress = "test@test.com"
 	ch.Assert(PostSMTP(&smtp), check.Equals, nil)
 
 	c := Campaign{Name: "Test campaign"}
-	c.UserId = 1
+	c.UserID = 1
 	c.Template = t
 	c.Page = p
 	c.SMTP = smtp
@@ -113,12 +113,12 @@ func (s *ModelsSuite) createCampaignDependencies(ch *check.C, optional ...string
 func (s *ModelsSuite) createCampaign(ch *check.C) Campaign {
 	c := s.createCampaignDependencies(ch)
 	// Setup and "launch" our campaign
-	ch.Assert(PostCampaign(&c, c.UserId), check.Equals, nil)
+	ch.Assert(PostCampaign(&c, c.UserID), check.Equals, nil)
 
 	// For comparing the dates, we need to fetch the campaign again. This is
 	// to solve an issue where the campaign object right now has time down to
 	// the microsecond, while in MySQL it's rounded down to the second.
-	c, _ = GetCampaign(c.Id, c.UserId)
+	c, _ = GetCampaign(c.Id, c.UserID)
 	return c
 }
 

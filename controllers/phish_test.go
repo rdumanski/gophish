@@ -26,12 +26,12 @@ func getFirstCampaign(t *testing.T) models.Campaign {
 func getFirstEmailRequest(t *testing.T) models.EmailRequest {
 	campaign := getFirstCampaign(t)
 	req := models.EmailRequest{
-		TemplateId:    campaign.TemplateId,
+		TemplateID:    campaign.TemplateID,
 		Template:      campaign.Template,
-		PageId:        campaign.PageId,
+		PageID:        campaign.PageID,
 		Page:          campaign.Page,
 		URL:           "http://localhost.localdomain",
-		UserId:        1,
+		UserID:        1,
 		BaseRecipient: campaign.Results[0].BaseRecipient,
 		SMTP:          campaign.SMTP,
 		FromAddress:   campaign.SMTP.FromAddress,
@@ -162,7 +162,7 @@ func TestOpenedPhishingEmail(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.RId)
+	openEmail(t, ctx, result.RID)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -187,7 +187,7 @@ func TestReportedPhishingEmail(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	reportedEmail(t, ctx, result.RId)
+	reportedEmail(t, ctx, result.RID)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -213,8 +213,8 @@ func TestClickedPhishingLinkAfterOpen(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.RId)
-	clickLink(t, ctx, result.RId, campaign.Page.HTML)
+	openEmail(t, ctx, result.RID)
+	clickLink(t, ctx, result.RID, campaign.Page.HTML)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -271,7 +271,7 @@ func TestCompletedCampaignClick(t *testing.T) {
 		t.Fatalf("unexpected result status received. expected %s got %s", models.StatusSending, result.Status)
 	}
 
-	openEmail(t, ctx, result.RId)
+	openEmail(t, ctx, result.RID)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -280,8 +280,8 @@ func TestCompletedCampaignClick(t *testing.T) {
 	}
 
 	models.CompleteCampaign(campaign.Id, 1)
-	openEmail404(t, ctx, result.RId)
-	clickLink404(t, ctx, result.RId)
+	openEmail404(t, ctx, result.RID)
+	clickLink404(t, ctx, result.RID)
 
 	campaign = getFirstCampaign(t)
 	result = campaign.Results[0]
@@ -316,33 +316,33 @@ func TestRobotsHandler(t *testing.T) {
 func TestInvalidPreviewID(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	bogusRId := fmt.Sprintf("%sbogus", models.PreviewPrefix)
-	openEmail404(t, ctx, bogusRId)
-	clickLink404(t, ctx, bogusRId)
-	reportEmail404(t, ctx, bogusRId)
+	bogusRID := fmt.Sprintf("%sbogus", models.PreviewPrefix)
+	openEmail404(t, ctx, bogusRID)
+	clickLink404(t, ctx, bogusRID)
+	reportEmail404(t, ctx, bogusRID)
 }
 
 func TestPreviewTrack(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
 	req := getFirstEmailRequest(t)
-	openEmail(t, ctx, req.RId)
+	openEmail(t, ctx, req.RID)
 }
 
 func TestPreviewClick(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
 	req := getFirstEmailRequest(t)
-	clickLink(t, ctx, req.RId, req.Page.HTML)
+	clickLink(t, ctx, req.RID, req.Page.HTML)
 }
 
 func TestInvalidTransparencyRequest(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-	bogusRId := fmt.Sprintf("bogus%s", TransparencySuffix)
-	openEmail404(t, ctx, bogusRId)
-	clickLink404(t, ctx, bogusRId)
-	reportEmail404(t, ctx, bogusRId)
+	bogusRID := fmt.Sprintf("bogus%s", TransparencySuffix)
+	openEmail404(t, ctx, bogusRID)
+	clickLink404(t, ctx, bogusRID)
+	reportEmail404(t, ctx, bogusRID)
 }
 
 func TestTransparencyRequest(t *testing.T) {
@@ -350,13 +350,13 @@ func TestTransparencyRequest(t *testing.T) {
 	defer tearDown(t, ctx)
 	campaign := getFirstCampaign(t)
 	result := campaign.Results[0]
-	rid := fmt.Sprintf("%s%s", result.RId, TransparencySuffix)
+	rid := fmt.Sprintf("%s%s", result.RID, TransparencySuffix)
 	transparencyRequest(t, ctx, result, rid, "/")
 	transparencyRequest(t, ctx, result, rid, "/track")
 	transparencyRequest(t, ctx, result, rid, "/report")
 
 	// And check with the URL encoded version of a +
-	rid = fmt.Sprintf("%s%s", result.RId, "%2b")
+	rid = fmt.Sprintf("%s%s", result.RID, "%2b")
 	transparencyRequest(t, ctx, result, rid, "/")
 	transparencyRequest(t, ctx, result, rid, "/track")
 	transparencyRequest(t, ctx, result, rid, "/report")
@@ -368,8 +368,8 @@ func TestRedirectTemplating(t *testing.T) {
 	p := models.Page{
 		Name:        "Redirect Page",
 		HTML:        "<html>Test</html>",
-		UserId:      1,
-		RedirectURL: "http://example.com/{{.RId}}",
+		UserID:      1,
+		RedirectURL: "http://example.com/{{.RID}}",
 	}
 	err := models.PostPage(&p)
 	if err != nil {
@@ -380,12 +380,12 @@ func TestRedirectTemplating(t *testing.T) {
 	group, _ := models.GetGroup(1, 1)
 
 	campaign := models.Campaign{Name: "Redirect campaign"}
-	campaign.UserId = 1
+	campaign.UserID = 1
 	campaign.Template = template
 	campaign.Page = p
 	campaign.SMTP = smtp
 	campaign.Groups = []models.Group{group}
-	err = models.PostCampaign(&campaign, campaign.UserId)
+	err = models.PostCampaign(&campaign, campaign.UserID)
 	if err != nil {
 		t.Fatalf("error creating campaign: %v", err)
 	}
@@ -396,7 +396,7 @@ func TestRedirectTemplating(t *testing.T) {
 		},
 	}
 	result := campaign.Results[0]
-	resp, err := client.PostForm(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.RId), url.Values{"username": {"test"}, "password": {"test"}})
+	resp, err := client.PostForm(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.RID), url.Values{"username": {"test"}, "password": {"test"}})
 	if err != nil {
 		t.Fatalf("error requesting / endpoint: %v", err)
 	}
@@ -406,7 +406,7 @@ func TestRedirectTemplating(t *testing.T) {
 	if got != expectedStatus {
 		t.Fatalf("invalid status code received for /track endpoint. expected %d got %d", expectedStatus, got)
 	}
-	expectedURL := fmt.Sprintf("http://example.com/%s", result.RId)
+	expectedURL := fmt.Sprintf("http://example.com/%s", result.RID)
 	gotURL, err := resp.Location()
 	if err != nil {
 		t.Fatalf("error getting Location header from response: %v", err)

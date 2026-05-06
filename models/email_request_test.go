@@ -126,7 +126,7 @@ func (s *ModelsSuite) TestGetSmtpFrom(ch *check.C) {
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
-		RId:         fmt.Sprintf("%s-foobar", PreviewPrefix),
+		RID:         fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
 	msg := gomail.NewMessage()
@@ -158,14 +158,14 @@ func (s *ModelsSuite) TestEmailRequestURLTemplating(ch *check.C) {
 			Email:     "firstlast@example.com",
 		},
 		FromAddress: smtp.FromAddress,
-		RId:         fmt.Sprintf("%s-foobar", PreviewPrefix),
+		RID:         fmt.Sprintf("%s-foobar", PreviewPrefix),
 	}
 
 	msg := gomail.NewMessage()
 	err := req.Generate(msg)
 	ch.Assert(err, check.Equals, nil)
 
-	expectedURL := fmt.Sprintf("http://127.0.0.1/%s?%s=%s", req.Email, RecipientParameter, req.RId)
+	expectedURL := fmt.Sprintf("http://127.0.0.1/%s?%s=%s", req.Email, RecipientParameter, req.RID)
 
 	msgBuff := &bytes.Buffer{}
 	_, err = msg.WriteTo(msgBuff)
@@ -226,7 +226,7 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 		Subject: "",
 		Text:    "{{.Email}} - Text",
 		HTML:    "{{.Email}} - HTML",
-		UserId:  1,
+		UserID:  1,
 	}
 	err := PostTemplate(&template)
 	ch.Assert(err, check.Equals, nil)
@@ -234,15 +234,15 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 	page := Page{
 		Name:   "Test Page",
 		HTML:   "test",
-		UserId: 1,
+		UserID: 1,
 	}
 	err = PostPage(&page)
 	ch.Assert(err, check.Equals, nil)
 
 	req := &EmailRequest{
 		SMTP:       smtp,
-		TemplateId: template.Id,
-		PageId:     page.Id,
+		TemplateID: template.Id,
+		PageID:     page.Id,
 		BaseRecipient: BaseRecipient{
 			FirstName: "First",
 			LastName:  "Last",
@@ -252,8 +252,8 @@ func (s *ModelsSuite) TestPostSendTestEmailRequest(ch *check.C) {
 	err = PostEmailRequest(req)
 	ch.Assert(err, check.Equals, nil)
 
-	got, err := GetEmailRequestByResultId(req.RId)
+	got, err := GetEmailRequestByResultId(req.RID)
 	ch.Assert(err, check.Equals, nil)
-	ch.Assert(got.RId, check.Equals, req.RId)
+	ch.Assert(got.RID, check.Equals, req.RID)
 	ch.Assert(got.Email, check.Equals, req.Email)
 }
