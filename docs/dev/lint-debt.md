@@ -103,6 +103,45 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 5c errcheck + miscellaneous burn-down on models/ (2026-05-06)
+
+Cleared every lint finding in `models/`:
+
+- **errcheck (9 sites)**:
+  - `attachment.go` × 6 — `b.ReadFrom` now propagates the read error;
+    `defer ff.Close()` (read-only) wrapped in an explicit `_ =` discard;
+    the four `zipWriter.Close()` calls in error paths are explicit
+    discards (Close errors are dominated by the original error being
+    returned), and the final success-path `Close` now propagates so a
+    truncated archive (Close failure flushing the central directory)
+    surfaces correctly.
+  - `maillog.go` — `r.HandleEmailError(...)` in `Backoff` logs at error
+    level if the result-event update fails. The original send error
+    still wins as the function's return value.
+  - `result.go` × 2 — `AddEvent(...)` now propagates from `createEvent`
+    so callers don't silently lose campaign-event writes; `mmdb.Close()`
+    (read-only maxminddb handle) wrapped in `_ =`.
+- **ineffassign (1 site)**: `email_request_test.go` — added the missing
+  `ch.Assert(err, ...)` between two `err :=` lines.
+- **staticcheck (3 sites)**:
+  - `attachment.go` — `if a.vanillaFile == true` → `if a.vanillaFile`
+    (S1002).
+  - `imap.go` — dropped the dead `im.Port > 65535` check; `Port` is a
+    `uint16` so the upper bound is statically guaranteed (SA4003).
+  - `smtp.go` — `validateFromAddress` regex switched to a raw string
+    literal (S1007).
+- **gosec (G402)**: `models.SMTP.GetDialer` sets
+  `tls.Config.InsecureSkipVerify` from the user-controlled
+  `IgnoreCertErrors` SMTP profile flag. This is intentional (admin opt-in
+  for self-signed dev/staging relays). Annotated inline with
+  `//nolint:gosec` and a comment explaining the design rather than
+  blanket-excluding G402 in `.golangci.yml` — keeps the linter useful for
+  any future TLS misconfiguration elsewhere in the codebase.
+
+After this PR `golangci-lint run ./models/...` reports **0 issues**.
+Repository-wide floor moves from **137 → 117** findings (Phase 3c
+baseline → post-5c).
+
 ### Phase 5b errcheck pass on auth/ + imap/ (2026-05-06)
 
 Burns down all errcheck findings in `auth/` and `imap/`:

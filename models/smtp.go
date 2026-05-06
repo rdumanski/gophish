@@ -103,7 +103,7 @@ func (s *SMTP) Validate() error {
 
 // validateFromAddress validates
 func validateFromAddress(email string) bool {
-	r, _ := regexp.Compile("^([a-zA-Z0-9_\\-\\.]+)@([a-zA-Z0-9_\\-\\.]+)\\.([a-zA-Z]{2,18})$")
+	r, _ := regexp.Compile(`^([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,18})$`)
 	return r.MatchString(email)
 }
 
@@ -125,8 +125,11 @@ func (s *SMTP) GetDialer() (mailer.Dialer, error) {
 	dialer := dialer.Dialer()
 	d := gomail.NewWithDialer(dialer, host, port, s.Username, s.Password)
 	d.TLSConfig = &tls.Config{
-		ServerName:         host,
-		InsecureSkipVerify: s.IgnoreCertErrors,
+		ServerName: host,
+		// IgnoreCertErrors is a user-controlled SMTP profile option that lets
+		// admins target self-signed dev/staging mail relays. Enforced via UI;
+		// not a hardcoded skip.
+		InsecureSkipVerify: s.IgnoreCertErrors, //nolint:gosec
 	}
 	hostname, err := os.Hostname()
 	if err != nil {

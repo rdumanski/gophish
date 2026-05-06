@@ -48,7 +48,9 @@ func (r *Result) createEvent(status string, details interface{}) (*Event, error)
 		}
 		e.Details = string(dj)
 	}
-	AddEvent(e, r.CampaignId)
+	if err := AddEvent(e, r.CampaignId); err != nil {
+		return nil, err
+	}
 	return e, nil
 }
 
@@ -156,7 +158,7 @@ func (r *Result) UpdateGeo(addr string) error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer mmdb.Close()
+	defer func() { _ = mmdb.Close() }()
 	ip := net.ParseIP(addr)
 	var city mmCity
 	// Get the record
