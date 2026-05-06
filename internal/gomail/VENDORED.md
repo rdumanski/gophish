@@ -37,6 +37,12 @@ license per the fork's original terms.
 - **Skipped `example_test.go`** (package `gomail_test`, doc-only examples that
   would pull `os.Stdout`-style fixtures with no value to the in-tree tests).
 - **Updated `doc.go`** to document the vendoring provenance.
+- **Re-formatted `send_test.go`** with `gofmt`: the upstream file had a
+  misaligned `const` block (`testAlternativeFrom` was longer than the other
+  identifiers but the rest of the block kept the original 1-space gutter)
+  and a stray double blank line before `TestSend`. The repo's CI runs
+  `gofmt -d .` as a hard gate, so we can't carry the upstream non-canonical
+  whitespace without breaking the Build & Test job. Behavior unchanged.
 
 No other source changes were made; method signatures, exported identifiers,
 and behavior are byte-identical to the upstream fork. Diffs against future

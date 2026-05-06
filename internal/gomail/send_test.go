@@ -9,12 +9,12 @@ import (
 )
 
 const (
-	testTo1  = "to1@example.com"
-	testTo2  = "to2@example.com"
-	testFrom = "from@example.com"
+	testTo1             = "to1@example.com"
+	testTo2             = "to2@example.com"
+	testFrom            = "from@example.com"
 	testAlternativeFrom = "from@evildomain.com"
-	testBody = "Test message"
-	testMsg  = "To: " + testTo1 + ", " + testTo2 + "\r\n" +
+	testBody            = "Test message"
+	testMsg             = "To: " + testTo1 + ", " + testTo2 + "\r\n" +
 		"From: " + testFrom + "\r\n" +
 		"Mime-Version: 1.0\r\n" +
 		"Date: Wed, 25 Jun 2014 17:46:00 +0000\r\n" +
@@ -60,7 +60,6 @@ func TestSendSpoof(t *testing.T) {
 		t.Errorf("Send(): %v", err)
 	}
 }
-
 
 func TestSend(t *testing.T) {
 	s := &mockSendCloser{
