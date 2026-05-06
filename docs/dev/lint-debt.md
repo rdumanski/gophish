@@ -23,7 +23,7 @@ The plan called this out as the expected "lint avalanche": rules will be burned 
 ### Burn-down strategy
 
 - **Phase 3** (GORM v2 + golang-migrate): touches every model file → fix ST1005 + errcheck on DB calls there.
-- **Phase 5** (auth + IMAP backoff): re-enables csrf v1.7.x and addresses errcheck around login/IMAP code.
+- **Phase 5** (auth + IMAP backoff): addresses errcheck around login/IMAP code (csrf v1.7.x re-bumped in Phase 5a — see below).
 - **Phase 6** (plugin architecture + API v2): cleans up unused functions and reorganizes API package.
 
 ### Phase 3 progress (commit on phase-3b-gorm-v2)
@@ -102,6 +102,28 @@ Recurring patterns to address as we touch each file:
   `$().prop('checked', bool)`
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
+
+### Phase 5a csrf re-bump (2026-05-06)
+
+`github.com/gorilla/csrf` was un-pinned and bumped from **v1.6.2 →
+v1.7.3** (latest, picks up CVE-2025-24358). The v1.7 line introduces
+context-driven scheme detection: the middleware now defaults to
+"assume HTTPS" and enforces a strict Referer check on every
+state-changing POST unless the request context carries
+`csrf.PlaintextHTTPContextKey=true`. The previous v1.6.2 only ran the
+strict check when `r.URL.Scheme == "https"`, which is always empty for
+server-side requests — so the check was effectively dead code on the
+server, masking the issue.
+
+The fix lives in `controllers/route.go`: when `as.config.UseTLS` is
+false, the admin handler is wrapped to call `csrf.PlaintextHTTPRequest(r)`
+before the csrf middleware runs. This restores the previous behavior
+for plain-HTTP deployments (e.g. behind a TLS-terminating reverse
+proxy) and keeps strict Referer enforcement intact when TLS is enabled
+in-process. The four controllers tests that used to fail with 403
+(`TestInvalidCredentials`, `TestSuccessfulLogin`,
+`TestSuccessfulRedirect`, `TestAccountLocked`) now pass without
+modification because the test config defaults to `UseTLS=false`.
 
 **Phase 3c update (2026-05-02)**: local lint now works without CGO. The
 sqlite driver was swapped to `modernc.org/sqlite` (pure Go) and

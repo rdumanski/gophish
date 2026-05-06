@@ -157,6 +157,16 @@ func (as *AdminServer) registerRoutes() {
 		csrf.Secure(as.config.UseTLS),
 		csrf.TrustedOrigins(as.config.TrustedOrigins))
 	adminHandler := csrfHandler(router)
+	// gorilla/csrf v1.7+ defaults to assuming HTTPS and enforces a strict
+	// Referer check. Opt out via PlaintextHTTPRequest when the admin server
+	// is configured to serve plain HTTP, otherwise every state-changing POST
+	// without a Referer header is rejected with 403.
+	if !as.config.UseTLS {
+		inner := adminHandler
+		adminHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			inner.ServeHTTP(w, csrf.PlaintextHTTPRequest(r))
+		})
+	}
 	adminHandler = mid.Use(adminHandler.ServeHTTP, mid.CSRFExceptions, mid.GetContext, mid.ApplySecurityHeaders)
 
 	// Setup GZIP compression
