@@ -83,7 +83,6 @@ type Response struct {
 	Data    interface{} `json:"data"`
 }
 
-
 // openGormDialect opens a gorm.DB for the configured driver. The sqlite
 // path uses gorm's official driver wired to modernc.org/sqlite (pure Go,
 // no CGO). The config-level dbName "sqlite3" is preserved as a backward
