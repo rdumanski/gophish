@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rdumanski/gophish/internal/gomail"
 	"github.com/rdumanski/gophish/dialer"
+	"github.com/rdumanski/gophish/internal/gomail"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/mailer"
 )

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rdumanski/gophish/internal/gomail"
 	"github.com/rdumanski/gophish/config"
+	"github.com/rdumanski/gophish/internal/gomail"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/mailer"
 	"gorm.io/gorm"
