@@ -22,7 +22,7 @@ func createUnpriviledgedUser(t *testing.T, slug string) *models.User {
 	unauthorizedUser := &models.User{
 		Username: "foo",
 		Hash:     "bar",
-		ApiKey:   "12345",
+		APIKey:   "12345",
 		Role:     role,
 		RoleID:   role.ID,
 	}
@@ -117,7 +117,7 @@ func TestModifyUser(t *testing.T) {
 	url := fmt.Sprintf("/api/users/%d", unpriviledgedUser.Id)
 	r := httptest.NewRequest(http.MethodPut, url, bytes.NewBuffer(body))
 	r.Header.Set("Content-Type", "application/json")
-	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unpriviledgedUser.ApiKey))
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unpriviledgedUser.APIKey))
 	w := httptest.NewRecorder()
 
 	testCtx.apiServer.ServeHTTP(w, r)
@@ -158,7 +158,7 @@ func TestUnauthorizedListUsers(t *testing.T) {
 	// but we need to go through the router for this test to ensure the
 	// middleware gets applied.
 	r := httptest.NewRequest(http.MethodGet, "/api/users/", nil)
-	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.ApiKey))
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.APIKey))
 	w := httptest.NewRecorder()
 
 	testCtx.apiServer.ServeHTTP(w, r)
@@ -177,7 +177,7 @@ func TestUnauthorizedGetUser(t *testing.T) {
 	unauthorizedUser := createUnpriviledgedUser(t, models.RoleUser)
 	url := fmt.Sprintf("/api/users/%d", testCtx.admin.Id)
 	r := httptest.NewRequest(http.MethodGet, url, nil)
-	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.ApiKey))
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.APIKey))
 	w := httptest.NewRecorder()
 
 	testCtx.apiServer.ServeHTTP(w, r)
@@ -203,7 +203,7 @@ func TestUnauthorizedSetRole(t *testing.T) {
 		t.Fatalf("error marshaling userRequest payload: %v", err)
 	}
 	r := httptest.NewRequest(http.MethodPut, url, bytes.NewBuffer(body))
-	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.ApiKey))
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.APIKey))
 	w := httptest.NewRecorder()
 
 	testCtx.apiServer.ServeHTTP(w, r)
@@ -236,7 +236,7 @@ func TestModifyWithExistingUsername(t *testing.T) {
 	}
 	url := fmt.Sprintf("/api/users/%d", unauthorizedUser.Id)
 	r := httptest.NewRequest(http.MethodPut, url, bytes.NewReader(body))
-	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.ApiKey))
+	r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", unauthorizedUser.APIKey))
 	w := httptest.NewRecorder()
 
 	testCtx.apiServer.ServeHTTP(w, r)

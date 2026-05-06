@@ -15,7 +15,7 @@ import (
 // Groups contain 1..* Targets
 type Group struct {
 	Id           int64     `json:"id"`
-	UserId       int64     `json:"-"`
+	UserID       int64     `json:"-"`
 	Name         string    `json:"name"`
 	ModifiedDate time.Time `json:"modified_date"`
 	Targets      []Target  `json:"targets" gorm:"-"`
@@ -39,7 +39,7 @@ type GroupSummary struct {
 
 // GroupTarget is used for a many-to-many relationship between 1..* Groups and 1..* Targets
 type GroupTarget struct {
-	GroupId  int64 `json:"-"`
+	GroupID  int64 `json:"-"`
 	TargetId int64 `json:"-"`
 }
 
@@ -331,7 +331,7 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 	// Save() requires a PK to decide INSERT vs UPDATE and falls back to a
 	// no-WHERE UPDATE when none is declared, which AllowGlobalUpdate would
 	// have to whitelist. Create() is unambiguous: always INSERT.
-	err = tx.Create(&GroupTarget{GroupId: gid, TargetId: t.Id}).Error
+	err = tx.Create(&GroupTarget{GroupID: gid, TargetId: t.Id}).Error
 	if err != nil {
 		log.WithFields(logrus.Fields{
 			"email": t.Email,

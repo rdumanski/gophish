@@ -40,7 +40,7 @@ func (as *Server) Groups(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		g.ModifiedDate = time.Now().UTC()
-		g.UserId = ctx.Get(r, "user_id").(int64)
+		g.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PostGroup(&g)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
@@ -98,7 +98,7 @@ func (as *Server) Group(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		g.ModifiedDate = time.Now().UTC()
-		g.UserId = ctx.Get(r, "user_id").(int64)
+		g.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PutGroup(&g)
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)

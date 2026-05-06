@@ -51,7 +51,7 @@ func (as *Server) IMAPServer(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		im.ModifiedDate = time.Now().UTC()
-		im.UserId = ctx.Get(r, "user_id").(int64)
+		im.UserID = ctx.Get(r, "user_id").(int64)
 		err = models.PostIMAP(&im, ctx.Get(r, "user_id").(int64))
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusInternalServerError)

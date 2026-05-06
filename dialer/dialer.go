@@ -112,11 +112,6 @@ var allInternal = []string{
 
 type dialControl = func(network, address string, c syscall.RawConn) error
 
-type restrictedDialer struct {
-	*net.Dialer
-	allowed []string
-}
-
 func restrictedControl(allowed []*net.IPNet) dialControl {
 	return func(network string, address string, conn syscall.RawConn) error {
 		if !(network == "tcp4" || network == "tcp6") {

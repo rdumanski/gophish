@@ -18,7 +18,7 @@ import (
 func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 	s := &models.EmailRequest{
 		ErrorChan: make(chan error),
-		UserId:    ctx.Get(r, "user_id").(int64),
+		UserID:    ctx.Get(r, "user_id").(int64),
 	}
 	if r.Method != "POST" {
 		JSONResponse(w, models.Response{Success: false, Message: "Method not allowed"}, http.StatusBadRequest)
@@ -48,7 +48,7 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 		s.Template = t
 	} else {
 		// Get the Template requested by name
-		s.Template, err = models.GetTemplateByName(s.Template.Name, s.UserId)
+		s.Template, err = models.GetTemplateByName(s.Template.Name, s.UserID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.WithFields(logrus.Fields{
 				"template": s.Template.Name,
@@ -60,14 +60,14 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 			return
 		}
-		s.TemplateId = s.Template.Id
+		s.TemplateID = s.Template.Id
 		// We'll only save the test request to the database if there is a
 		// user-specified template to use.
 		storeRequest = true
 	}
 
 	if s.Page.Name != "" {
-		s.Page, err = models.GetPageByName(s.Page.Name, s.UserId)
+		s.Page, err = models.GetPageByName(s.Page.Name, s.UserID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.WithFields(logrus.Fields{
 				"page": s.Page.Name,
@@ -79,13 +79,13 @@ func (as *Server) SendTestEmail(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 			return
 		}
-		s.PageId = s.Page.Id
+		s.PageID = s.Page.Id
 	}
 
 	// If a complete sending profile is provided use it
 	if err := s.SMTP.Validate(); err != nil {
 		// Otherwise get the SMTP requested by name
-		smtp, lookupErr := models.GetSMTPByName(s.SMTP.Name, s.UserId)
+		smtp, lookupErr := models.GetSMTPByName(s.SMTP.Name, s.UserID)
 		// If the Sending Profile doesn't exist, let's err on the side
 		// of caution and assume that the validation failure was more important.
 		if lookupErr != nil {

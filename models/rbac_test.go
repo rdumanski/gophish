@@ -30,7 +30,7 @@ func (s *ModelsSuite) TestHasPermission(c *check.C) {
 		user := User{
 			Username: fmt.Sprintf("test-%s", r),
 			Hash:     "12345",
-			ApiKey:   fmt.Sprintf("%s-key", r),
+			APIKey:   fmt.Sprintf("%s-key", r),
 			RoleID:   role.ID,
 		}
 		PutUser(&user)

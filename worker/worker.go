@@ -67,16 +67,16 @@ func (w *DefaultWorker) processCampaigns(t time.Time) error {
 	for _, m := range ms {
 		// We cache the campaign here to greatly reduce the time it takes to
 		// generate the message (ref #1726)
-		c, ok := campaignCache[m.CampaignId]
+		c, ok := campaignCache[m.CampaignID]
 		if !ok {
-			c, err = models.GetCampaignMailContext(m.CampaignId, m.UserId)
+			c, err = models.GetCampaignMailContext(m.CampaignID, m.UserID)
 			if err != nil {
 				return err
 			}
 			campaignCache[c.Id] = c
 		}
 		m.CacheCampaign(&c)
-		msg[m.CampaignId] = append(msg[m.CampaignId], m)
+		msg[m.CampaignID] = append(msg[m.CampaignID], m)
 	}
 
 	// Next, we process each group of maillogs in parallel
@@ -125,7 +125,7 @@ func (w *DefaultWorker) LaunchCampaign(c models.Campaign) {
 	// that implements an interface as a slice of that interface.
 	mailEntries := []mailer.Mail{}
 	currentTime := time.Now().UTC()
-	campaignMailCtx, err := models.GetCampaignMailContext(c.Id, c.UserId)
+	campaignMailCtx, err := models.GetCampaignMailContext(c.Id, c.UserID)
 	if err != nil {
 		log.Error(err)
 		return

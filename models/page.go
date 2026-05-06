@@ -12,7 +12,7 @@ import (
 // Page contains the fields used for a Page model
 type Page struct {
 	Id                 int64     `json:"id" gorm:"primaryKey;column:id"`
-	UserId             int64     `json:"-" gorm:"column:user_id"`
+	UserID             int64     `json:"-" gorm:"column:user_id"`
 	Name               string    `json:"name"`
 	HTML               string    `json:"html" gorm:"column:html"`
 	CaptureCredentials bool      `json:"capture_credentials" gorm:"column:capture_credentials"`

@@ -14,15 +14,15 @@ import (
 // Campaign is a struct representing a created campaign
 type Campaign struct {
 	Id            int64     `json:"id"`
-	UserId        int64     `json:"-"`
+	UserID        int64     `json:"-"`
 	Name          string    `json:"name" sql:"not null"`
 	CreatedDate   time.Time `json:"created_date"`
 	LaunchDate    time.Time `json:"launch_date"`
 	SendByDate    time.Time `json:"send_by_date"`
 	CompletedDate time.Time `json:"completed_date"`
-	TemplateId    int64     `json:"-"`
+	TemplateID    int64     `json:"-"`
 	Template      Template  `json:"template"`
-	PageId        int64     `json:"-"`
+	PageID        int64     `json:"-"`
 	Page          Page      `json:"page"`
 	Status        string    `json:"status"`
 	Results       []Result  `json:"results,omitempty"`
@@ -75,7 +75,7 @@ type CampaignStats struct {
 // that occurs during the campaign
 type Event struct {
 	Id         int64     `json:"-"`
-	CampaignId int64     `json:"campaign_id"`
+	CampaignID int64     `json:"campaign_id"`
 	Email      string    `json:"email"`
 	Time       time.Time `json:"time"`
 	Message    string    `json:"message"`
@@ -156,7 +156,7 @@ func (c *Campaign) UpdateStatus(s string) error {
 
 // AddEvent creates a new campaign event in the database
 func AddEvent(e *Event, campaignID int64) error {
-	e.CampaignId = campaignID
+	e.CampaignID = campaignID
 	e.Time = time.Now().UTC()
 
 	whs, err := GetActiveWebhooks()
@@ -191,7 +191,7 @@ func (c *Campaign) getDetails() error {
 		log.Warnf("%s: events not found for campaign", err)
 		return err
 	}
-	err = db.Table("templates").Where("id=?", c.TemplateId).First(&c.Template).Error
+	err = db.Table("templates").Where("id=?", c.TemplateID).First(&c.Template).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -204,7 +204,7 @@ func (c *Campaign) getDetails() error {
 		log.Warn(err)
 		return err
 	}
-	err = db.Table("pages").Where("id=?", c.PageId).First(&c.Page).Error
+	err = db.Table("pages").Where("id=?", c.PageID).First(&c.Page).Error
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -383,7 +383,7 @@ func GetCampaignMailContext(id int64, uid int64) (Campaign, error) {
 	if err != nil {
 		return c, err
 	}
-	err = db.Table("templates").Where("id=?", c.TemplateId).First(&c.Template).Error
+	err = db.Table("templates").Where("id=?", c.TemplateID).First(&c.Template).Error
 	if err != nil {
 		return c, err
 	}
@@ -455,7 +455,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 		return err
 	}
 	// Fill in the details
-	c.UserId = uid
+	c.UserID = uid
 	c.CreatedDate = time.Now().UTC()
 	c.CompletedDate = time.Time{}
 	c.Status = CampaignQueued
@@ -499,7 +499,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 		return err
 	}
 	c.Template = t
-	c.TemplateId = t.Id
+	c.TemplateID = t.Id
 	// Check to make sure the page exists
 	p, err := GetPageByName(c.Page.Name, uid)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -512,7 +512,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 		return err
 	}
 	c.Page = p
-	c.PageId = p.Id
+	c.PageID = p.Id
 	// Check to make sure the sending profile exists
 	s, err := GetSMTPByName(c.SMTP.Name, uid)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -558,8 +558,8 @@ func PostCampaign(c *Campaign, uid int64) error {
 					LastName:  t.LastName,
 				},
 				Status:       StatusScheduled,
-				CampaignId:   c.Id,
-				UserId:       c.UserId,
+				CampaignID:   c.Id,
+				UserID:       c.UserID,
 				SendDate:     sendDate,
 				Reported:     false,
 				ModifiedDate: c.CreatedDate,
@@ -589,9 +589,9 @@ func PostCampaign(c *Campaign, uid int64) error {
 				"send_date": sendDate,
 			}).Debug("creating maillog")
 			m := &MailLog{
-				UserId:     c.UserId,
-				CampaignId: c.Id,
-				RId:        r.RId,
+				UserID:     c.UserID,
+				CampaignID: c.Id,
+				RID:        r.RID,
 				SendDate:   sendDate,
 				Processing: processing,
 			}

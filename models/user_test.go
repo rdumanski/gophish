@@ -27,7 +27,7 @@ func (s *ModelsSuite) TestGetUserByAPIKeyWithExistingAPIKey(c *check.C) {
 	u, err := GetUser(1)
 	c.Assert(err, check.Equals, nil)
 
-	got, err := GetUserByAPIKey(u.ApiKey)
+	got, err := GetUserByAPIKey(u.APIKey)
 	c.Assert(err, check.Equals, nil)
 	c.Assert(got.Id, check.Equals, u.Id)
 }
@@ -36,7 +36,7 @@ func (s *ModelsSuite) TestGetUserByAPIKeyWithNotExistingAPIKey(c *check.C) {
 	u, err := GetUser(1)
 	c.Assert(err, check.Equals, nil)
 
-	u, err = GetUserByAPIKey(u.ApiKey + "test")
+	u, err = GetUserByAPIKey(u.APIKey + "test")
 	c.Assert(err, check.Equals, gorm.ErrRecordNotFound)
 	c.Assert(u.Username, check.Equals, "")
 }
@@ -60,7 +60,7 @@ func (s *ModelsSuite) TestPutUser(c *check.C) {
 func (s *ModelsSuite) TestGeneratedAPIKey(c *check.C) {
 	u, err := GetUser(1)
 	c.Assert(err, check.Equals, nil)
-	c.Assert(u.ApiKey, check.Not(check.Equals), "12345678901234567890123456789012")
+	c.Assert(u.APIKey, check.Not(check.Equals), "12345678901234567890123456789012")
 }
 
 func (s *ModelsSuite) verifyRoleCount(c *check.C, roleID, expected int64) {
@@ -77,7 +77,7 @@ func (s *ModelsSuite) TestDeleteLastAdmin(c *check.C) {
 	newAdmin := User{
 		Username: "new-admin",
 		Hash:     "123456",
-		ApiKey:   "123456",
+		APIKey:   "123456",
 		Role:     role,
 		RoleID:   role.ID,
 	}
