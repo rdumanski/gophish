@@ -6,7 +6,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/gophish/gomail"
+	"github.com/rdumanski/gophish/internal/gomail"
 )
 
 // errHostUnreachable is a mock error to represent a host

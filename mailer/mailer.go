@@ -6,7 +6,7 @@ import (
 	"io"
 	"net/textproto"
 
-	"github.com/gophish/gomail"
+	"github.com/rdumanski/gophish/internal/gomail"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/sirupsen/logrus"
 )

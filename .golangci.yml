@@ -41,6 +41,15 @@ linters:
       - path: db/db_(sqlite3|mysql)/migrations/
         linters:
           - revive
+      # Vendored copy of github.com/gophish/gomail (see internal/gomail/VENDORED.md).
+      # Linting these files would defeat the point of vendoring; if findings
+      # become unacceptable the path forward is replacement, not patching.
+      - path: internal/gomail/
+        linters:
+          - errcheck
+          - staticcheck
+          - revive
+          - gosec
 
 issues:
   max-issues-per-linter: 0
