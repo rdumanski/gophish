@@ -6,6 +6,7 @@ require (
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.5.0
 	github.com/alecthomas/kingpin/v2 v2.4.0
+	github.com/anthropics/anthropic-sdk-go v1.41.0
 	github.com/emersion/go-imap v1.2.1
 	github.com/emersion/go-message v0.15.0
 	github.com/go-sql-driver/mysql v1.8.1
@@ -32,7 +33,6 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
 	github.com/andybalholm/cascadia v1.0.0 // indirect
-	github.com/anthropics/anthropic-sdk-go v1.41.0 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
