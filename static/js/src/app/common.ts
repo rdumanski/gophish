@@ -94,6 +94,7 @@ export const api = {
     templates: {
         get: () => query('/templates/', 'GET', {}, false),
         post: (template) => query('/templates/', 'POST', template, false),
+        generate: (brief) => query('/templates/generate', 'POST', brief, false),
     },
     templateId: {
         get: (id) => query('/templates/' + id, 'GET', {}, false),
