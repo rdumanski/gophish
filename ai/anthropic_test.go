@@ -37,13 +37,13 @@ func happyResponse(t *testing.T, draft modelDraft, model string) string {
 		t.Fatalf("encoding modelDraft: %s", err)
 	}
 	resp := map[string]interface{}{
-		"id":      "msg_test",
-		"type":    "message",
-		"role":    "assistant",
-		"model":   model,
-		"content": []map[string]interface{}{{"type": "text", "text": string(inner)}},
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       model,
+		"content":     []map[string]interface{}{{"type": "text", "text": string(inner)}},
 		"stop_reason": "end_turn",
-		"usage": map[string]int{"input_tokens": 100, "output_tokens": 200},
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 200},
 	}
 	out, err := json.Marshal(resp)
 	if err != nil {
@@ -139,13 +139,13 @@ func TestGenerateAppendsMissingVariablesWarning(t *testing.T) {
 
 func TestGenerateRefusal(t *testing.T) {
 	resp := map[string]interface{}{
-		"id":      "msg_test",
-		"type":    "message",
-		"role":    "assistant",
-		"model":   "claude-sonnet-4-6",
-		"content": []map[string]interface{}{{"type": "text", "text": "I can't help with this request."}},
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     []map[string]interface{}{{"type": "text", "text": "I can't help with this request."}},
 		"stop_reason": "refusal",
-		"usage": map[string]int{"input_tokens": 100, "output_tokens": 10},
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 10},
 	}
 	body, _ := json.Marshal(resp)
 	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
@@ -215,13 +215,13 @@ func TestGenerateRejectsEmptyBrief(t *testing.T) {
 
 func TestGenerateNonJSONResponseFailsClean(t *testing.T) {
 	resp := map[string]interface{}{
-		"id":      "msg_test",
-		"type":    "message",
-		"role":    "assistant",
-		"model":   "claude-sonnet-4-6",
-		"content": []map[string]interface{}{{"type": "text", "text": "I'd love to help, here's a draft: ..."}},
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     []map[string]interface{}{{"type": "text", "text": "I'd love to help, here's a draft: ..."}},
 		"stop_reason": "end_turn",
-		"usage": map[string]int{"input_tokens": 100, "output_tokens": 50},
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 50},
 	}
 	body, _ := json.Marshal(resp)
 	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
@@ -244,13 +244,13 @@ func TestGenerateStripsMarkdownFences(t *testing.T) {
 	}
 	inner, _ := json.Marshal(draft)
 	resp := map[string]interface{}{
-		"id":      "msg_test",
-		"type":    "message",
-		"role":    "assistant",
-		"model":   "claude-sonnet-4-6",
-		"content": []map[string]interface{}{{"type": "text", "text": "```json\n" + string(inner) + "\n```"}},
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     []map[string]interface{}{{"type": "text", "text": "```json\n" + string(inner) + "\n```"}},
 		"stop_reason": "end_turn",
-		"usage": map[string]int{"input_tokens": 100, "output_tokens": 200},
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 200},
 	}
 	body, _ := json.Marshal(resp)
 	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
