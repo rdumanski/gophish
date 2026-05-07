@@ -340,8 +340,8 @@ func TestScoreTemplateRejectsEmptySubject(t *testing.T) {
 	g := newTestGenerator(t, server)
 
 	cases := []Subject{
-		{Subject: "", Text: "x", HTML: "<p>x</p>"},                // missing subject line
-		{Subject: "Hello", Text: "", HTML: ""},                    // missing both bodies
+		{Subject: "", Text: "x", HTML: "<p>x</p>"}, // missing subject line
+		{Subject: "Hello", Text: "", HTML: ""},     // missing both bodies
 	}
 	for _, sub := range cases {
 		_, err := g.ScoreTemplate(context.Background(), sub)
