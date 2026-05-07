@@ -103,6 +103,59 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 7a.1 AI-assisted template generation backend (2026-05-07)
+
+First feature beyond pure modernization. Adds an `ai/` package with a
+provider-agnostic `Generator` interface and an Anthropic-backed
+implementation, plus a new `POST /api/templates/generate` endpoint that
+admins can hit to draft phishing-simulation email templates.
+
+- **`ai/`** — new package. `Generator` interface + `Brief` / `Draft`
+  types in `generator.go`; Anthropic implementation in `anthropic.go`
+  using the official `github.com/anthropics/anthropic-sdk-go`. Sane
+  defaults: `claude-sonnet-4-6` model, 4096 max tokens. The system
+  prompt is package-level constant + `cache_control: ephemeral` so
+  every draft pays the cached input rate, not full price. Output is
+  parsed from a JSON object the model is instructed to emit; defense
+  in depth strips ```json ``` fences, validates `{{.URL}}` / `{{.Tracker}}`
+  presence, and surfaces missing variables as a soft warning in
+  `Draft.Notes` rather than failing.
+- **`controllers/api/template.go`** — adds `GenerateTemplate` handler.
+  Status mapping: 200 (Draft JSON), 400 (invalid brief), 422
+  (`ai.ErrRefused`), 502 (upstream provider error or auth-config bug),
+  503 (AI disabled in config — `ai.enabled=false` or no `ai` block).
+- **`controllers/api/server.go`** — `Server.aiGenerator` + the
+  `WithAIGenerator` option following the existing
+  `WithWorker`/`WithLimiter` pattern. Route registered with
+  `mid.RequirePermission(models.PermissionModifyObjects)` so view-only
+  users can't burn tokens.
+- **`controllers/route.go`** — new `WithAIGenerator` `AdminServerOption`
+  plumbed through to `api.WithAIGenerator`. The actual generator is
+  built in `gophish.go` so `controllers/` doesn't depend on
+  `config.Config` (only on `config.AdminServer`, as today).
+- **`gophish.go`** — `buildAIGenerator(config.AIConfig)` constructs
+  the appropriate provider (currently only Anthropic). Failures here
+  are logged but don't block startup; `/generate` simply returns 503
+  until the config is fixed.
+- **`config/config.go`** — `AIConfig` + `AnthropicAIConfig` added.
+  Disabled by default. `config.json` example documented in
+  `docs/dev/`.
+- **Migration** —
+  `db/db_{sqlite3,mysql}/migrations/20260506000000_0.13.0_template_generated_by.{up,down}.sql`
+  adds a `generated_by varchar(255)` column on `templates`. Default
+  NULL; `models.Template.GeneratedBy` is the corresponding Go field
+  with a `gorm:"column:generated_by"` tag and `json:"generated_by,omitempty"`.
+  The `/generate` endpoint does **not** persist; the admin saves via
+  the existing `POST /api/templates/`. The `GeneratedBy` field is set
+  by the upcoming Phase 7a.2 UI when the admin saves a generated
+  template; for 7a.1 the column ships unused so the migration
+  is in the deployment pipeline ahead of the UI work.
+- **Lint impact** — repo-wide finding count holds at **115** (no
+  change from Phase 6a). The new `ai` package starts lint-clean. The
+  Anthropic SDK pulls in a handful of indirect deps (gjson, sjson,
+  go-ordered-map); all are MIT/BSD-licensed and lint-clean for our
+  purposes.
+
 ### Phase 6a naming cleanup + dead code (2026-05-06)
 
 Burns down `revive`'s `var-naming` rule (suppressed since Phase 2) and
