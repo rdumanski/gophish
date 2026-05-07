@@ -26,6 +26,22 @@ type PhishServer struct {
 	KeyPath   string `json:"key_path"`
 }
 
+// AnthropicAIConfig holds Anthropic-specific AI provider settings.
+type AnthropicAIConfig struct {
+	APIKey    string `json:"api_key"`
+	Model     string `json:"model"`      // empty → ai.DefaultAnthropicModel
+	MaxTokens int    `json:"max_tokens"` // 0 → ai.DefaultAnthropicMaxTokens
+}
+
+// AIConfig holds settings for AI-assisted features (currently template
+// generation). Disabled by default — admins opt in by adding an "ai"
+// block to config.json with a provider API key.
+type AIConfig struct {
+	Enabled   bool              `json:"enabled"`
+	Provider  string            `json:"provider"` // "anthropic"
+	Anthropic AnthropicAIConfig `json:"anthropic"`
+}
+
 // Config represents the configuration information.
 type Config struct {
 	AdminConf      AdminServer `json:"admin_server"`
@@ -37,6 +53,7 @@ type Config struct {
 	TestFlag       bool        `json:"test_flag"`
 	ContactAddress string      `json:"contact_address"`
 	Logging        *log.Config `json:"logging"`
+	AI             AIConfig    `json:"ai"`
 }
 
 // Version contains the current gophish version

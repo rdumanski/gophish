@@ -16,6 +16,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/jordan-wright/unindexed"
+	"github.com/rdumanski/gophish/ai"
 	"github.com/rdumanski/gophish/auth"
 	"github.com/rdumanski/gophish/config"
 	ctx "github.com/rdumanski/gophish/context"
@@ -35,10 +36,11 @@ type AdminServerOption func(*AdminServer)
 // AdminServer is an HTTP server that implements the administrative Gophish
 // handlers, including the dashboard and REST API.
 type AdminServer struct {
-	server  *http.Server
-	worker  worker.Worker
-	config  config.AdminServer
-	limiter *ratelimit.PostLimiter
+	server      *http.Server
+	worker      worker.Worker
+	config      config.AdminServer
+	limiter     *ratelimit.PostLimiter
+	aiGenerator ai.Generator
 }
 
 var defaultTLSConfig = &tls.Config{
@@ -66,6 +68,14 @@ var defaultTLSConfig = &tls.Config{
 func WithWorker(w worker.Worker) AdminServerOption {
 	return func(as *AdminServer) {
 		as.worker = w
+	}
+}
+
+// WithAIGenerator wires an ai.Generator into the admin server. When
+// nil, POST /api/templates/generate returns 503.
+func WithAIGenerator(g ai.Generator) AdminServerOption {
+	return func(as *AdminServer) {
+		as.aiGenerator = g
 	}
 }
 
@@ -138,11 +148,15 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/webhooks", mid.Use(as.Webhooks, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	router.HandleFunc("/impersonate", mid.Use(as.Impersonate, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	// Create the API routes
-	api := api.NewServer(
+	apiOpts := []api.ServerOption{
 		api.WithWorker(as.worker),
 		api.WithLimiter(as.limiter),
-	)
-	router.PathPrefix("/api/").Handler(api)
+	}
+	if as.aiGenerator != nil {
+		apiOpts = append(apiOpts, api.WithAIGenerator(as.aiGenerator))
+	}
+	apiSrv := api.NewServer(apiOpts...)
+	router.PathPrefix("/api/").Handler(apiSrv)
 
 	// Setup static file serving
 	router.PathPrefix("/").Handler(http.FileServer(unindexed.Dir("./static/")))

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/rdumanski/gophish/ai"
 	mid "github.com/rdumanski/gophish/middleware"
 	"github.com/rdumanski/gophish/middleware/ratelimit"
 	"github.com/rdumanski/gophish/models"
@@ -18,9 +19,10 @@ type ServerOption func(*Server)
 // stopped. Rather, it's meant to be used as an http.Handler in the
 // AdminServer.
 type Server struct {
-	handler http.Handler
-	worker  worker.Worker
-	limiter *ratelimit.PostLimiter
+	handler     http.Handler
+	worker      worker.Worker
+	limiter     *ratelimit.PostLimiter
+	aiGenerator ai.Generator
 }
 
 // NewServer returns a new instance of the API handler with the provided
@@ -52,6 +54,15 @@ func WithLimiter(limiter *ratelimit.PostLimiter) ServerOption {
 	}
 }
 
+// WithAIGenerator wires an AI generator into the API server. When nil
+// (or this option is not used), POST /api/templates/generate returns
+// 503 — admins haven't opted into AI features.
+func WithAIGenerator(g ai.Generator) ServerOption {
+	return func(as *Server) {
+		as.aiGenerator = g
+	}
+}
+
 func (as *Server) registerRoutes() {
 	root := mux.NewRouter()
 	root = root.StrictSlash(true)
@@ -72,6 +83,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/groups/{id:[0-9]+}", as.Group)
 	router.HandleFunc("/groups/{id:[0-9]+}/summary", as.GroupSummary)
 	router.HandleFunc("/templates/", as.Templates)
+	router.HandleFunc("/templates/generate", mid.Use(as.GenerateTemplate, mid.RequirePermission(models.PermissionModifyObjects)))
 	router.HandleFunc("/templates/{id:[0-9]+}", as.Template)
 	router.HandleFunc("/pages/", as.Pages)
 	router.HandleFunc("/pages/{id:[0-9]+}", as.Page)

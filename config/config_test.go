@@ -75,3 +75,47 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("expected error when loading invalid config, but got %v", err)
 	}
 }
+
+func TestLoadConfigWithAIBlock(t *testing.T) {
+	withAI := []byte(`{
+		"admin_server": {"listen_url": "127.0.0.1:3333", "use_tls": false, "cert_path": "x", "key_path": "y"},
+		"phish_server": {"listen_url": "0.0.0.0:8080", "use_tls": false, "cert_path": "x", "key_path": "y"},
+		"db_name": "sqlite3",
+		"db_path": "gophish.db",
+		"migrations_prefix": "db/db_",
+		"contact_address": "",
+		"ai": {
+			"enabled": true,
+			"provider": "anthropic",
+			"anthropic": {
+				"api_key": "sk-ant-test",
+				"model": "claude-sonnet-4-6",
+				"max_tokens": 8192
+			}
+		}
+	}`)
+	f := createTemporaryConfig(t)
+	defer removeTemporaryConfig(t, f)
+	if _, err := f.Write(withAI); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	conf, err := LoadConfig(f.Name())
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if !conf.AI.Enabled {
+		t.Errorf("AI.Enabled: got false, want true")
+	}
+	if conf.AI.Provider != "anthropic" {
+		t.Errorf("AI.Provider: got %q, want anthropic", conf.AI.Provider)
+	}
+	if conf.AI.Anthropic.APIKey != "sk-ant-test" {
+		t.Errorf("AI.Anthropic.APIKey: got %q, want sk-ant-test", conf.AI.Anthropic.APIKey)
+	}
+	if conf.AI.Anthropic.Model != "claude-sonnet-4-6" {
+		t.Errorf("AI.Anthropic.Model: got %q, want claude-sonnet-4-6", conf.AI.Anthropic.Model)
+	}
+	if conf.AI.Anthropic.MaxTokens != 8192 {
+		t.Errorf("AI.Anthropic.MaxTokens: got %d, want 8192", conf.AI.Anthropic.MaxTokens)
+	}
+}

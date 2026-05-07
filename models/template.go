@@ -19,6 +19,9 @@ type Template struct {
 	HTML           string       `json:"html" gorm:"column:html"`
 	ModifiedDate   time.Time    `json:"modified_date"`
 	Attachments    []Attachment `json:"attachments"`
+	// GeneratedBy records the AI provider+model that drafted this template,
+	// e.g. "anthropic:claude-sonnet-4-6". Empty for hand-written templates.
+	GeneratedBy string `json:"generated_by,omitempty" gorm:"column:generated_by"`
 }
 
 // ErrTemplateNameNotSpecified is thrown when a template name is not specified

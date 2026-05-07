@@ -33,6 +33,7 @@ import (
 
 	"github.com/alecthomas/kingpin/v2"
 
+	"github.com/rdumanski/gophish/ai"
 	"github.com/rdumanski/gophish/config"
 	"github.com/rdumanski/gophish/controllers"
 	"github.com/rdumanski/gophish/dialer"
@@ -42,6 +43,23 @@ import (
 	"github.com/rdumanski/gophish/models"
 	"github.com/rdumanski/gophish/webhook"
 )
+
+// buildAIGenerator constructs the configured AI generator. Returns
+// (nil, nil) when the configured provider is unrecognised — callers
+// treat that as "AI off" without aborting startup.
+func buildAIGenerator(cfg config.AIConfig) (ai.Generator, error) {
+	switch cfg.Provider {
+	case "anthropic", "":
+		return ai.NewAnthropic(ai.AnthropicConfig{
+			APIKey:    cfg.Anthropic.APIKey,
+			Model:     cfg.Anthropic.Model,
+			MaxTokens: cfg.Anthropic.MaxTokens,
+		})
+	default:
+		log.Errorf("ai: unknown provider %q in config", cfg.Provider)
+		return nil, nil
+	}
+}
 
 const (
 	modeAll   string = "all"
@@ -111,6 +129,14 @@ func main() {
 	adminOptions := []controllers.AdminServerOption{}
 	if *disableMailer {
 		adminOptions = append(adminOptions, controllers.WithWorker(nil))
+	}
+	if conf.AI.Enabled {
+		gen, err := buildAIGenerator(conf.AI)
+		if err != nil {
+			log.Errorf("ai: features disabled — failed to construct generator: %s", err)
+		} else if gen != nil {
+			adminOptions = append(adminOptions, controllers.WithAIGenerator(gen))
+		}
 	}
 	adminConfig := conf.AdminConf
 	adminServer := controllers.NewAdminServer(adminConfig, adminOptions...)

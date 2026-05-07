@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/rdumanski/gophish/ai"
 	ctx "github.com/rdumanski/gophish/context"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
@@ -95,4 +96,84 @@ func (as *Server) Template(w http.ResponseWriter, r *http.Request) {
 		}
 		JSONResponse(w, t, http.StatusOK)
 	}
+}
+
+// generateTemplateRequest is the JSON body shape accepted by
+// POST /api/templates/generate.
+type generateTemplateRequest struct {
+	Audience string `json:"audience"`
+	Theme    string `json:"theme"`
+	Urgency  string `json:"urgency"`
+	Length   string `json:"length"`
+	Language string `json:"language"`
+	Brand    string `json:"brand"`
+}
+
+// generateTemplateResponse is the JSON body shape returned by
+// POST /api/templates/generate.
+type generateTemplateResponse struct {
+	Subject string `json:"subject"`
+	Text    string `json:"text"`
+	HTML    string `json:"html"`
+	Notes   string `json:"notes"`
+	Model   string `json:"model"`
+}
+
+// GenerateTemplate drafts a phishing-simulation email template via the
+// configured AI provider and returns it as JSON. It is purely
+// generative — the result is NOT persisted; the admin reviews + saves
+// it via the existing POST /api/templates/ flow.
+//
+// Status codes:
+//
+//	200 — JSON Draft
+//	400 — invalid brief (missing audience/theme)
+//	422 — model declined the request
+//	502 — upstream provider error or auth/config bug
+//	503 — AI is disabled in config (no ai block, or ai.enabled=false)
+func (as *Server) GenerateTemplate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		JSONResponse(w, models.Response{Success: false, Message: "method not allowed"}, http.StatusMethodNotAllowed)
+		return
+	}
+	if as.aiGenerator == nil {
+		JSONResponse(w, models.Response{Success: false, Message: "AI features are disabled — see docs/dev for the ai config block"}, http.StatusServiceUnavailable)
+		return
+	}
+
+	var req generateTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "invalid request body: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	brief := ai.Brief{
+		Audience: req.Audience,
+		Theme:    req.Theme,
+		Urgency:  ai.Urgency(req.Urgency),
+		Length:   ai.Length(req.Length),
+		Language: req.Language,
+		Brand:    req.Brand,
+	}
+
+	draft, err := as.aiGenerator.Generate(r.Context(), brief)
+	if err != nil {
+		switch {
+		case errors.Is(err, ai.ErrInvalidBrief):
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+		case errors.Is(err, ai.ErrRefused):
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusUnprocessableEntity)
+		default:
+			log.Errorf("ai: template generation failed: %s", err)
+			JSONResponse(w, models.Response{Success: false, Message: "AI provider error — see server logs"}, http.StatusBadGateway)
+		}
+		return
+	}
+
+	JSONResponse(w, generateTemplateResponse{
+		Subject: draft.Subject,
+		Text:    draft.Text,
+		HTML:    draft.HTML,
+		Notes:   draft.Notes,
+		Model:   draft.Model,
+	}, http.StatusOK)
 }
