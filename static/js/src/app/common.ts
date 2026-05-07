@@ -94,8 +94,12 @@ export const api = {
     templates: {
         get: () => query('/templates/', 'GET', {}, false),
         post: (template) => query('/templates/', 'POST', template, false),
-        generate: (brief) => query('/templates/generate', 'POST', brief, false),
-        score: (subject) => query('/templates/score', 'POST', subject, false),
+        // The AI calls are slow (5-15s for Sonnet 4.6) — keep them async
+        // so the browser stays responsive and Chrome doesn't pop the
+        // "page unresponsive" dialog. Other endpoints are quick DB
+        // round-trips and stay sync to preserve the existing UI shape.
+        generate: (brief) => query('/templates/generate', 'POST', brief, true),
+        score: (subject) => query('/templates/score', 'POST', subject, true),
     },
     templateId: {
         get: (id) => query('/templates/' + id, 'GET', {}, false),
