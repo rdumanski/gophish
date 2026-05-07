@@ -313,6 +313,74 @@ function importEmail() {
     }
 }
 
+// renderScoreList replaces the children of a UL with one <li> per item.
+// Used by scoreTemplate to fill the strengths / weaknesses / harder lists.
+function renderScoreList(selector: string, items: string[]) {
+    const $list = $(selector).empty()
+    if (!items || items.length === 0) {
+        $list.append('<li class="text-muted">(none reported)</li>')
+        return
+    }
+    items.forEach(s => {
+        $list.append($('<li/>').text(s))
+    })
+}
+
+// scoreColor maps the 1..5 difficulty to a Bootstrap text-color class
+// so a low score reads as "danger" (the lure is too obvious) and a
+// high score as "success" (more sophisticated).
+function scoreColor(score: number): string {
+    if (score >= 4) return '#5cb85c' // green
+    if (score === 3) return '#f0ad4e' // amber
+    return '#d9534f' // red — 1 or 2
+}
+
+// scoreTemplate posts the current draft Subject/HTML/Text to
+// /api/templates/score and renders the model's verdict in #aiScoreModal.
+// The modal opens via data-toggle on the button click; this function
+// runs in parallel with the modal animation and swaps its content
+// once the API call returns.
+function scoreTemplate() {
+    const subject = ($("#subject").val() as string || '').trim()
+    const text = ($("#text_editor").val() as string || '').trim()
+    const html = CKEDITOR.instances["html_editor"]
+        ? (CKEDITOR.instances["html_editor"].getData() as string).trim()
+        : ($("#html_editor").val() as string || '').trim()
+
+    // Reset modal sections
+    $("#ai_score_error").hide().text('')
+    $("#ai_score_result").hide()
+    $("#ai_score_spinner").show()
+
+    if (!subject || (!text && !html)) {
+        $("#ai_score_spinner").hide()
+        $("#ai_score_error").text("Please fill in a Subject and at least one of the Text or HTML body before scoring.").show()
+        return
+    }
+
+    api.templates.score({
+        subject: subject,
+        text: text,
+        html: html,
+        from: ($("#envelope-sender").val() as string || '').trim(),
+    })
+        .success(function (data) {
+            $("#ai_score_spinner").hide()
+            $("#ai_score_value").text(String(data.score)).css('color', scoreColor(data.score))
+            $("#ai_score_rationale").text(data.rationale || '')
+            renderScoreList("#ai_score_strengths", data.strengths || [])
+            renderScoreList("#ai_score_weaknesses", data.weaknesses || [])
+            renderScoreList("#ai_score_harder", data.would_make_harder || [])
+            $("#ai_score_model").text(data.model || 'unknown model')
+            $("#ai_score_result").show()
+        })
+        .error(function (data) {
+            $("#ai_score_spinner").hide()
+            const msg = (data.responseJSON && data.responseJSON.message) || ("AI scoring failed (HTTP " + data.status + ")")
+            $("#ai_score_error").text(msg).show()
+        })
+}
+
 // generateTemplate posts the structured Brief to /api/templates/generate
 // and writes the model's draft into the parent template-editor modal's
 // Subject / HTML / text fields. The body of the parent modal stays open
@@ -478,4 +546,4 @@ $(document).ready(function () {
 
 // Inline-onclick references from templates/templates.html plus
 // JS-string-built buttons in this file's load handler.
-Object.assign(window, { attach, copy, deleteTemplate, dismiss, edit, generateTemplate, importEmail })
+Object.assign(window, { attach, copy, deleteTemplate, dismiss, edit, generateTemplate, importEmail, scoreTemplate })

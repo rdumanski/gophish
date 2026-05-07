@@ -98,6 +98,90 @@ func (as *Server) Template(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// scoreTemplateRequest is the JSON body shape accepted by
+// POST /api/templates/score.
+type scoreTemplateRequest struct {
+	Subject string `json:"subject"`
+	Text    string `json:"text"`
+	HTML    string `json:"html"`
+	From    string `json:"from"`
+	Hint    string `json:"hint"`
+}
+
+// scoreTemplateResponse is the JSON body shape returned by
+// POST /api/templates/score.
+type scoreTemplateResponse struct {
+	Score           int      `json:"score"`
+	Rationale       string   `json:"rationale"`
+	Strengths       []string `json:"strengths"`
+	Weaknesses      []string `json:"weaknesses"`
+	WouldMakeHarder []string `json:"would_make_harder"`
+	Model           string   `json:"model"`
+}
+
+// ScoreTemplate evaluates the difficulty of a candidate phishing-
+// simulation template via the configured AI provider. Purely
+// informational — the result is NOT persisted.
+//
+// Status codes:
+//
+//	200 — JSON Score
+//	400 — invalid subject (missing subject + body)
+//	422 — model declined the request
+//	502 — upstream provider error or auth/config bug
+//	503 — AI is disabled, OR the configured provider doesn't implement scoring
+func (as *Server) ScoreTemplate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		JSONResponse(w, models.Response{Success: false, Message: "method not allowed"}, http.StatusMethodNotAllowed)
+		return
+	}
+	if as.aiGenerator == nil {
+		JSONResponse(w, models.Response{Success: false, Message: "AI features are disabled — see docs/dev for the ai config block"}, http.StatusServiceUnavailable)
+		return
+	}
+	scorer, ok := as.aiGenerator.(ai.Scorer)
+	if !ok {
+		JSONResponse(w, models.Response{Success: false, Message: "the configured AI provider does not implement template scoring"}, http.StatusServiceUnavailable)
+		return
+	}
+
+	var req scoreTemplateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "invalid request body: " + err.Error()}, http.StatusBadRequest)
+		return
+	}
+	sub := ai.Subject{
+		Subject: req.Subject,
+		Text:    req.Text,
+		HTML:    req.HTML,
+		From:    req.From,
+		Hint:    req.Hint,
+	}
+
+	score, err := scorer.ScoreTemplate(r.Context(), sub)
+	if err != nil {
+		switch {
+		case errors.Is(err, ai.ErrInvalidSubject):
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+		case errors.Is(err, ai.ErrRefused):
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusUnprocessableEntity)
+		default:
+			log.Errorf("ai: template scoring failed: %s", err)
+			JSONResponse(w, models.Response{Success: false, Message: "AI provider error — see server logs"}, http.StatusBadGateway)
+		}
+		return
+	}
+
+	JSONResponse(w, scoreTemplateResponse{
+		Score:           score.Score,
+		Rationale:       score.Rationale,
+		Strengths:       score.Strengths,
+		Weaknesses:      score.Weaknesses,
+		WouldMakeHarder: score.WouldMakeHarder,
+		Model:           score.Model,
+	}, http.StatusOK)
+}
+
 // generateTemplateRequest is the JSON body shape accepted by
 // POST /api/templates/generate.
 type generateTemplateRequest struct {

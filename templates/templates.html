@@ -68,6 +68,13 @@
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="Email Subject" id="subject" />
                 </div>
+                {{if .AIEnabled}}
+                <div class="form-group">
+                    <button class="btn btn-default btn-sm" id="ai_score_button" data-toggle="modal" data-backdrop="static" data-target="#aiScoreModal" onclick="scoreTemplate()"><i class="fa fa-balance-scale"></i>
+                        Score with AI</button>
+                    <span class="text-muted" style="margin-left:8px;">Rate this draft 1–5 for how convincing it is.</span>
+                </div>
+                {{end}}
                 <!-- Nav tabs -->
                 <ul class="nav nav-tabs" role="tablist">
                     <li class="active" role="text"><a href="#text" aria-controls="text" role="tab" data-toggle="tab">Text</a></li>
@@ -197,6 +204,42 @@
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
                 <button type="button" class="btn btn-primary" id="aiGenerateSubmit" onclick="generateTemplate()">Generate</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="aiScoreModal" tabindex="-1" role="dialog" aria-labelledby="aiScoreModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="aiScoreModalLabel">Template difficulty</h4>
+            </div>
+            <div class="modal-body">
+                <div id="ai_score_spinner" style="display:none; text-align:center; padding:30px 0;">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i>
+                    <p class="text-muted">Scoring&hellip;</p>
+                </div>
+                <div id="ai_score_error" class="alert alert-danger" style="display:none;"></div>
+                <div id="ai_score_result" style="display:none;">
+                    <div class="text-center" style="padding:10px 0 20px 0;">
+                        <span id="ai_score_value" style="font-size:64px; font-weight:bold;">?</span>
+                        <span style="font-size:24px; color:#777;">&nbsp;/&nbsp;5</span>
+                        <p class="text-muted" style="margin-top:8px;">1 = obvious phishing &nbsp;&middot;&nbsp; 5 = expert-tier (catches even security-aware users)</p>
+                    </div>
+                    <p id="ai_score_rationale" style="font-style:italic;"></p>
+                    <h5><i class="fa fa-thumbs-up"></i> Strengths</h5>
+                    <ul id="ai_score_strengths"></ul>
+                    <h5><i class="fa fa-thumbs-down"></i> Weaknesses</h5>
+                    <ul id="ai_score_weaknesses"></ul>
+                    <h5><i class="fa fa-arrow-up"></i> How to make it harder to detect</h5>
+                    <ul id="ai_score_harder"></ul>
+                    <p class="text-muted" style="font-size:11px; margin-top:10px;">Scored by <span id="ai_score_model"></span>. Re-score is cheap; this rating is informational and is not saved.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Close</button>
             </div>
         </div>
     </div>
