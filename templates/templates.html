@@ -54,6 +54,11 @@
                     <button class="btn btn-danger" data-toggle="modal" data-backdrop="static" data-target="#importEmailModal"><i
                             class="fa fa-envelope"></i>
                         Import Email</button>
+                    {{if .AIEnabled}}
+                    <button class="btn btn-primary" data-toggle="modal" data-backdrop="static" data-target="#aiGenerateModal"><i
+                            class="fa fa-magic"></i>
+                        Draft with AI</button>
+                    {{end}}
                 </div>
                 <label class="control-label" for="envelope-sender">Envelope Sender: <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="This sender is shown to the user by most email clients. Defaults to the SMTP From as defined in the Sending Profile."></i></label>
                 <div class="form-group">
@@ -131,6 +136,67 @@
             <div class="modal-footer">
                 <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
                 <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importEmail()">Import</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="aiGenerateModal" tabindex="-1" role="dialog" aria-labelledby="aiGenerateModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="aiGenerateModalLabel">Draft with AI</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Describe the simulation you want and the model will draft Subject, HTML, and plaintext bodies. You can edit the result afterward.</p>
+                <label class="control-label" for="ai_audience">Audience: <span class="text-danger">*</span></label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="e.g. IT staff at a mid-size finance company" id="ai_audience" />
+                </div>
+                <label class="control-label" for="ai_theme">Theme: <span class="text-danger">*</span></label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="e.g. password expiration notice" id="ai_theme" />
+                </div>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <label class="control-label" for="ai_urgency">Urgency:</label>
+                        <select class="form-control" id="ai_urgency">
+                            <option value="">(model decides)</option>
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="control-label" for="ai_length">Length:</label>
+                        <select class="form-control" id="ai_length">
+                            <option value="">(model decides)</option>
+                            <option value="short" selected>Short</option>
+                            <option value="medium">Medium</option>
+                            <option value="long">Long</option>
+                        </select>
+                    </div>
+                </div>
+                <br />
+                <div class="row">
+                    <div class="col-sm-6">
+                        <label class="control-label" for="ai_language">Language:</label>
+                        <input type="text" class="form-control" placeholder="en (default)" id="ai_language" />
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="control-label" for="ai_brand">Brand to imitate:</label>
+                        <input type="text" class="form-control" placeholder="optional, e.g. Microsoft 365" id="ai_brand" />
+                    </div>
+                </div>
+                <div id="ai_generate_spinner" style="display:none; text-align:center; margin-top:20px;">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i>
+                    <p class="text-muted">Drafting&hellip; this usually takes a few seconds.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" class="btn btn-primary" id="aiGenerateSubmit" onclick="generateTemplate()">Generate</button>
             </div>
         </div>
     </div>

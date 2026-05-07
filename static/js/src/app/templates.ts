@@ -1,6 +1,13 @@
 import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
 
 var templates = []
+
+// lastGeneratedBy carries the AI provider+model identifier across the
+// generate -> save flow. Set when generateTemplate() succeeds, cleared
+// when the modal is dismissed or a different template is opened. When
+// non-empty, save() includes it on the persisted Template so the audit
+// trail can distinguish AI-drafted from hand-written content.
+let lastGeneratedBy: string = ''
 var icons = {
     "application/vnd.ms-excel": "fa-file-excel-o",
     "text/plain": "fa-file-text-o",
@@ -37,6 +44,9 @@ function save(idx) {
         template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
     }
     template.text = $("#text_editor").val()
+    if (lastGeneratedBy) {
+        template.generated_by = lastGeneratedBy
+    }
     // Add the attachments
     $.each($("#attachmentsTable").DataTable().rows().data(), function (i, target) {
         template.attachments.push({
@@ -78,6 +88,7 @@ function dismiss() {
     $("#subject").val("")
     $("#text_editor").val("")
     $("#html_editor").val("")
+    lastGeneratedBy = ''
     $("#modal").modal('hide')
 }
 
@@ -156,6 +167,7 @@ function attach(files) {
 }
 
 function edit(idx) {
+    lastGeneratedBy = ''
     $("#modalSubmit").unbind('click').click(function () {
         save(idx)
     })
@@ -301,6 +313,55 @@ function importEmail() {
     }
 }
 
+// generateTemplate posts the structured Brief to /api/templates/generate
+// and writes the model's draft into the parent template-editor modal's
+// Subject / HTML / text fields. The body of the parent modal stays open
+// so the admin can edit and then Save.
+function generateTemplate() {
+    const audience = ($("#ai_audience").val() as string || '').trim()
+    const theme = ($("#ai_theme").val() as string || '').trim()
+    if (!audience || !theme) {
+        modalError("Audience and Theme are required.")
+        return
+    }
+    const brief = {
+        audience: audience,
+        theme: theme,
+        urgency: $("#ai_urgency").val(),
+        length: $("#ai_length").val(),
+        language: ($("#ai_language").val() as string || '').trim(),
+        brand: ($("#ai_brand").val() as string || '').trim(),
+    }
+    $("#ai_generate_spinner").show()
+    $("#aiGenerateSubmit").prop("disabled", true)
+    api.templates.generate(brief)
+        .success(function (data) {
+            $("#subject").val(data.subject)
+            $("#text_editor").val(data.text)
+            // CKEDITOR.setData is the right call for a populated editor —
+            // .val() on the underlying textarea won't refresh the WYSIWYG view.
+            if (CKEDITOR.instances["html_editor"]) {
+                CKEDITOR.instances["html_editor"].setData(data.html)
+            } else {
+                $("#html_editor").val(data.html)
+            }
+            if (data.html) {
+                $('.nav-tabs a[href="#html"]').click()
+            }
+            lastGeneratedBy = data.model ? "anthropic:" + data.model : "anthropic"
+            $("#aiGenerateModal").modal("hide")
+            successFlash("Draft generated. Review the content and Save when ready.")
+        })
+        .error(function (data) {
+            const msg = (data.responseJSON && data.responseJSON.message) || ("AI request failed (HTTP " + data.status + ")")
+            modalError(msg)
+        })
+        .always(function () {
+            $("#ai_generate_spinner").hide()
+            $("#aiGenerateSubmit").prop("disabled", false)
+        })
+}
+
 function load() {
     $("#templateTable").hide()
     $("#emptyMessage").hide()
@@ -417,4 +478,4 @@ $(document).ready(function () {
 
 // Inline-onclick references from templates/templates.html plus
 // JS-string-built buttons in this file's load handler.
-Object.assign(window, { attach, copy, deleteTemplate, dismiss, edit, importEmail })
+Object.assign(window, { attach, copy, deleteTemplate, dismiss, edit, generateTemplate, importEmail })

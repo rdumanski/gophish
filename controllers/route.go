@@ -207,11 +207,16 @@ type templateParams struct {
 	Token        string
 	Version      string
 	ModifySystem bool
+	// AIEnabled is true when the admin server was constructed with an
+	// AI generator (i.e. config.AI.Enabled == true and a provider key was
+	// supplied). Page templates use it to hide the "Draft with AI"
+	// affordance when the feature is off.
+	AIEnabled bool
 }
 
 // newTemplateParams returns the default template parameters for a user and
 // the CSRF token.
-func newTemplateParams(r *http.Request) templateParams {
+func (as *AdminServer) newTemplateParams(r *http.Request) templateParams {
 	user := ctx.Get(r, "user").(models.User)
 	session := ctx.Get(r, "session").(*sessions.Session)
 	modifySystem, _ := user.HasPermission(models.PermissionModifySystem)
@@ -221,54 +226,55 @@ func newTemplateParams(r *http.Request) templateParams {
 		ModifySystem: modifySystem,
 		Version:      config.Version,
 		Flashes:      session.Flashes(),
+		AIEnabled:    as.aiGenerator != nil,
 	}
 }
 
 // Base handles the default path and template execution
 func (as *AdminServer) Base(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Dashboard"
 	getTemplate(w, "dashboard").ExecuteTemplate(w, "base", params)
 }
 
 // Campaigns handles the default path and template execution
 func (as *AdminServer) Campaigns(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Campaigns"
 	getTemplate(w, "campaigns").ExecuteTemplate(w, "base", params)
 }
 
 // CampaignID handles the default path and template execution
 func (as *AdminServer) CampaignID(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Campaign Results"
 	getTemplate(w, "campaign_results").ExecuteTemplate(w, "base", params)
 }
 
 // Templates handles the default path and template execution
 func (as *AdminServer) Templates(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Email Templates"
 	getTemplate(w, "templates").ExecuteTemplate(w, "base", params)
 }
 
 // Groups handles the default path and template execution
 func (as *AdminServer) Groups(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Users & Groups"
 	getTemplate(w, "groups").ExecuteTemplate(w, "base", params)
 }
 
 // LandingPages handles the default path and template execution
 func (as *AdminServer) LandingPages(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Landing Pages"
 	getTemplate(w, "landing_pages").ExecuteTemplate(w, "base", params)
 }
 
 // SendingProfiles handles the default path and template execution
 func (as *AdminServer) SendingProfiles(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Sending Profiles"
 	getTemplate(w, "sending_profiles").ExecuteTemplate(w, "base", params)
 }
@@ -277,7 +283,7 @@ func (as *AdminServer) SendingProfiles(w http.ResponseWriter, r *http.Request) {
 func (as *AdminServer) Settings(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "GET":
-		params := newTemplateParams(r)
+		params := as.newTemplateParams(r)
 		params.Title = "Settings"
 		session := ctx.Get(r, "session").(*sessions.Session)
 		session.Save(r, w)
@@ -317,7 +323,7 @@ func (as *AdminServer) Settings(w http.ResponseWriter, r *http.Request) {
 // UserManagement is an admin-only handler that allows for the registration
 // and management of user accounts within Gophish.
 func (as *AdminServer) UserManagement(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "User Management"
 	getTemplate(w, "users").ExecuteTemplate(w, "base", params)
 }
@@ -357,7 +363,7 @@ func (as *AdminServer) handleInvalidLogin(w http.ResponseWriter, r *http.Request
 
 // Webhooks is an admin-only handler that handles webhooks
 func (as *AdminServer) Webhooks(w http.ResponseWriter, r *http.Request) {
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Webhooks"
 	getTemplate(w, "webhooks").ExecuteTemplate(w, "base", params)
 }
@@ -462,7 +468,7 @@ func (as *AdminServer) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/settings", http.StatusTemporaryRedirect)
 		return
 	}
-	params := newTemplateParams(r)
+	params := as.newTemplateParams(r)
 	params.Title = "Reset Password"
 	switch {
 	case r.Method == http.MethodGet:
