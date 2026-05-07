@@ -103,6 +103,50 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 7b AI-scored template difficulty (2026-05-07)
+
+Adds a complementary AI call to Phase 7a: admins can ask the model to
+rate a candidate template 1..5 for how convincing it is. Same provider
+abstraction; same auth/permission gates; no DB schema change (scoring
+is informational only, not persisted).
+
+- **`ai/scorer.go`** — new `Scorer` interface + `Subject`/`Score`
+  types and a sentinel `ErrInvalidSubject` matching the existing
+  `ErrInvalidBrief`/`ErrRefused` pattern. Compile-time assertion
+  `var _ Scorer = (*AnthropicGenerator)(nil)` documents the contract.
+- **`ai/anthropic.go`** — adds `ScoreTemplate(ctx, sub) (Score, error)`
+  on the existing `*AnthropicGenerator`. Reuses `client`, `model`,
+  `maxTokens`, `mapAnthropicError`, `firstText`, `stripJSONFence`. New
+  `scoreSystemPrompt` constant defines the 1..5 rubric (1=obvious,
+  5=AitM-tier) and is cached via `cache_control: ephemeral` like the
+  drafting prompt. Out-of-range model output is rejected with a clear
+  error rather than passed through.
+- **`POST /api/templates/score`** (`controllers/api/template.go`).
+  Auth + `PermissionModifyObjects` permission gate, same as
+  `/generate`. Status mapping: 200 (Score), 400 (invalid body), 422
+  (refusal), 502 (provider error), 503 (AI off OR provider doesn't
+  implement `Scorer`). The handler uses a type assertion
+  `as.aiGenerator.(ai.Scorer)` so future providers that ship Generator
+  but not Scorer degrade gracefully.
+- **Frontend**: "Score with AI" button next to Subject (gated on
+  `{{if .AIEnabled}}`). New `#aiScoreModal` shows a big colored
+  number, rationale, strengths/weaknesses, and "make it harder"
+  bullets. Result is informational; the modal has no save button.
+- **Tests** — 6 new ai/ unit tests (happy path, refusal, 401, empty
+  subject, out-of-range score, non-JSON output) + 8 new
+  controllers/api/ handler tests (happy, 503-AI-off,
+  503-no-scorer-impl, 400-bad-json, 400-invalid-subject, 422, 502, 405).
+- **Lint** — repo-wide finding count holds at 115 (no change).
+  `npm run typecheck` clean; `npm run build` produces a 12.7 KB
+  `templates.min.js` (was 12.1 KB).
+
+Out of scope (deferred):
+- Persisting scores on the `templates` table; revisit when there's a
+  list-view surface that benefits.
+- Auto-scoring on every generate (cost concern; admin opts in).
+- Batch scoring multiple drafts in one request.
+- Score history / trend chart.
+
 ### Phase 7a.1 AI-assisted template generation backend (2026-05-07)
 
 First feature beyond pure modernization. Adds an `ai/` package with a

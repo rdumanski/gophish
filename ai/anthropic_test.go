@@ -267,6 +267,160 @@ func TestGenerateStripsMarkdownFences(t *testing.T) {
 	}
 }
 
+// happyScoreResponse encodes a successful Anthropic Messages response
+// whose content text is a JSON document matching modelScore.
+func happyScoreResponse(t *testing.T, score modelScore, model string) string {
+	t.Helper()
+	inner, err := json.Marshal(score)
+	if err != nil {
+		t.Fatalf("encoding modelScore: %s", err)
+	}
+	resp := map[string]interface{}{
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       model,
+		"content":     []map[string]interface{}{{"type": "text", "text": string(inner)}},
+		"stop_reason": "end_turn",
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 200},
+	}
+	out, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("encoding response: %s", err)
+	}
+	return string(out)
+}
+
+func validSubject() Subject {
+	return Subject{
+		Subject: "Your password expires in 24 hours",
+		Text:    "Hi {{.FirstName}}, click {{.URL}} to renew.",
+		HTML:    `<p>Hi {{.FirstName}}, <a href="{{.URL}}">renew</a>.</p>{{.Tracker}}`,
+		From:    "IT Helpdesk",
+		Hint:    "IT staff at a finance company",
+	}
+}
+
+// Compile-time assertion: AnthropicGenerator satisfies Scorer.
+var _ Scorer = (*AnthropicGenerator)(nil)
+
+func TestScoreTemplateHappyPath(t *testing.T) {
+	want := modelScore{
+		Score:           4,
+		Rationale:       "Plausible IT-helpdesk pretext, time-bound urgency typical of internal password notices.",
+		Strengths:       []string{"Subject line matches typical internal notice", "Urgency framing"},
+		Weaknesses:      []string{"Generic greeting could be tighter"},
+		WouldMakeHarder: []string{"Personalize from a specific IT staff member", "Reference a real intranet URL pattern"},
+	}
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		return http.StatusOK, happyScoreResponse(t, want, "claude-sonnet-4-6")
+	})
+	g := newTestGenerator(t, server)
+
+	got, err := g.ScoreTemplate(context.Background(), validSubject())
+	if err != nil {
+		t.Fatalf("ScoreTemplate returned error: %s", err)
+	}
+	if got.Score != want.Score || got.Rationale != want.Rationale {
+		t.Errorf("score mismatch: got %+v want %+v", got, want)
+	}
+	if len(got.Strengths) != 2 || len(got.Weaknesses) != 1 || len(got.WouldMakeHarder) != 2 {
+		t.Errorf("list length mismatch: got %+v", got)
+	}
+	if got.Model != "claude-sonnet-4-6" {
+		t.Errorf("Model: got %q want %q", got.Model, "claude-sonnet-4-6")
+	}
+}
+
+func TestScoreTemplateRejectsEmptySubject(t *testing.T) {
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		t.Error("server hit despite empty subject")
+		return http.StatusOK, ""
+	})
+	g := newTestGenerator(t, server)
+
+	cases := []Subject{
+		{Subject: "", Text: "x", HTML: "<p>x</p>"},                // missing subject line
+		{Subject: "Hello", Text: "", HTML: ""},                    // missing both bodies
+	}
+	for _, sub := range cases {
+		_, err := g.ScoreTemplate(context.Background(), sub)
+		if !errors.Is(err, ErrInvalidSubject) {
+			t.Errorf("expected ErrInvalidSubject for %+v, got: %v", sub, err)
+		}
+	}
+}
+
+func TestScoreTemplateRefusal(t *testing.T) {
+	resp := map[string]interface{}{
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     []map[string]interface{}{{"type": "text", "text": "I can't help with this request."}},
+		"stop_reason": "refusal",
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 10},
+	}
+	body, _ := json.Marshal(resp)
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		return http.StatusOK, string(body)
+	})
+	g := newTestGenerator(t, server)
+
+	_, err := g.ScoreTemplate(context.Background(), validSubject())
+	if !errors.Is(err, ErrRefused) {
+		t.Fatalf("expected ErrRefused, got: %v", err)
+	}
+}
+
+func TestScoreTemplateUpstream401(t *testing.T) {
+	body := `{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}`
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		return http.StatusUnauthorized, body
+	})
+	g := newTestGenerator(t, server)
+
+	_, err := g.ScoreTemplate(context.Background(), validSubject())
+	if !errors.Is(err, errProviderAuth) {
+		t.Fatalf("expected errProviderAuth, got: %v", err)
+	}
+}
+
+func TestScoreTemplateRejectsOutOfRangeScore(t *testing.T) {
+	bad := modelScore{Score: 7, Rationale: "x"}
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		return http.StatusOK, happyScoreResponse(t, bad, "claude-sonnet-4-6")
+	})
+	g := newTestGenerator(t, server)
+
+	_, err := g.ScoreTemplate(context.Background(), validSubject())
+	if err == nil || !strings.Contains(err.Error(), "out-of-range") {
+		t.Fatalf("expected out-of-range error, got: %v", err)
+	}
+}
+
+func TestScoreTemplateNonJSON(t *testing.T) {
+	resp := map[string]interface{}{
+		"id":          "msg_test",
+		"type":        "message",
+		"role":        "assistant",
+		"model":       "claude-sonnet-4-6",
+		"content":     []map[string]interface{}{{"type": "text", "text": "Sure, here's my analysis: ..."}},
+		"stop_reason": "end_turn",
+		"usage":       map[string]int{"input_tokens": 100, "output_tokens": 50},
+	}
+	body, _ := json.Marshal(resp)
+	server := fakeAnthropicServer(t, func(*http.Request) (int, string) {
+		return http.StatusOK, string(body)
+	})
+	g := newTestGenerator(t, server)
+
+	_, err := g.ScoreTemplate(context.Background(), validSubject())
+	if err == nil || !strings.Contains(err.Error(), "non-JSON") {
+		t.Fatalf("expected non-JSON error, got: %v", err)
+	}
+}
+
 func TestStripJSONFence(t *testing.T) {
 	cases := []struct{ in, want string }{
 		{"plain", "plain"},
