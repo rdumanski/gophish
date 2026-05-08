@@ -69,13 +69,13 @@ const (
 	// so campaign summary aggregations exclude these.
 	EventOpenedSandboxFiltered  string = "Email Opened (sandbox filtered)"
 	EventClickedSandboxFiltered string = "Clicked Link (sandbox filtered)"
-	StatusSuccess      string = "Success"
-	StatusQueued       string = "Queued"
-	StatusSending      string = "Sending"
-	StatusUnknown      string = "Unknown"
-	StatusScheduled    string = "Scheduled"
-	StatusRetry        string = "Retrying"
-	Error              string = "Error"
+	StatusSuccess               string = "Success"
+	StatusQueued                string = "Queued"
+	StatusSending               string = "Sending"
+	StatusUnknown               string = "Unknown"
+	StatusScheduled             string = "Scheduled"
+	StatusRetry                 string = "Retrying"
+	Error                       string = "Error"
 )
 
 // Flash is used to hold flash information for use in templates.
