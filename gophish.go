@@ -118,6 +118,21 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Phase 7c.2: seed the phish_filter table from config.json on
+	// first run so existing deployments don't lose their values.
+	// After this point DB is the authoritative source; subsequent
+	// edits via the Settings UI overwrite the seeded values.
+	if err := models.SeedPhishFilterFromConfig(conf.PhishConf.SandboxFilter); err != nil {
+		log.Errorf("phish_filter: seed-from-config failed: %s", err)
+	}
+	// Populate the in-process matcher cache so the first campaign
+	// summary render after startup applies the policy. Errors here
+	// (e.g. transient DB issue) just leave the cache nil — filter
+	// effectively off until the next read succeeds.
+	if _, err := models.GetPhishFilter(); err != nil {
+		log.Errorf("phish_filter: initial load failed: %s", err)
+	}
+
 	// Unlock any maillogs that may have been locked for processing
 	// when Gophish was last shutdown.
 	err = models.UnlockAllMailLogs()

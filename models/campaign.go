@@ -264,6 +264,13 @@ func (c *Campaign) generateSendDate(idx int, totalRecipients int) time.Time {
 
 // getCampaignStats returns a CampaignStats object for the campaign with the given campaign ID.
 // It also backfills numbers as appropriate with a running total, so that the values are aggregated.
+//
+// ClickedLink and OpenedEmail are computed at query time: events
+// matching the org-wide phish_filter policy (sandbox pre-scans) are
+// excluded so a policy change retroactively reclassifies historical
+// data. SubmittedData, EmailReported, EmailsSent, and Error stay on
+// the Result.Status column (sandboxes don't submit credentials, get
+// reported, or trigger send/error transitions).
 func getCampaignStats(cid int64) (CampaignStats, error) {
 	s := CampaignStats{}
 	query := db.Table("results").Where("campaign_id = ?", cid)
@@ -275,30 +282,78 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	if err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventClicked).Count(&s.ClickedLink)
-	if err != nil {
-		return s, err
-	}
 	query.Where("reported=?", true).Count(&s.EmailReported)
 	if err != nil {
 		return s, err
 	}
-	// Every submitted data event implies they clicked the link
-	s.ClickedLink += s.SubmittedData
-	err = query.Where("status=?", EventOpened).Count(&s.OpenedEmail).Error
+	clicked, opened, err := countFilteredClicksAndOpens(cid)
 	if err != nil {
 		return s, err
 	}
-	// Every clicked link event implies they opened the email
+	s.ClickedLink = clicked
+	s.OpenedEmail = opened
+	// Every submitted data event implies they clicked the link.
+	s.ClickedLink += s.SubmittedData
+	// Every clicked link event implies they opened the email.
 	s.OpenedEmail += s.ClickedLink
 	err = query.Where("status=?", EventSent).Count(&s.EmailsSent).Error
 	if err != nil {
 		return s, err
 	}
-	// Every opened email event implies the email was sent
+	// Every opened email event implies the email was sent.
 	s.EmailsSent += s.OpenedEmail
 	err = query.Where("status=?", Error).Count(&s.Error).Error
 	return s, err
+}
+
+// countFilteredClicksAndOpens walks the events table for a campaign
+// and counts unique recipients whose at least one EventClicked /
+// EventOpened survives the current phish_filter policy. Returns
+// counts of clicked / opened recipients (each counted at most once,
+// matching the existing aggregation semantics).
+//
+// SubmittedData recipients are NOT counted here — they were already
+// counted on the Result.Status column in the caller and added on top.
+func countFilteredClicksAndOpens(cid int64) (clicked, opened int64, err error) {
+	// Load all results for the campaign so each event can be tied to
+	// its recipient's SendDate (the Filtered helper needs the original
+	// send time to compute the time-delta).
+	var results []Result
+	if err = db.Table("results").Where("campaign_id = ?", cid).Find(&results).Error; err != nil {
+		return 0, 0, err
+	}
+	sendDateByEmail := make(map[string]time.Time, len(results))
+	for _, r := range results {
+		sendDateByEmail[r.Email] = r.SendDate
+	}
+
+	// Pull only the event types that contribute to clicked/opened.
+	// Filter at SQL by message; the per-event sandbox check happens
+	// in Go (CIDR membership doesn't translate cleanly across sqlite
+	// + mysql).
+	var events []Event
+	err = db.Table("events").
+		Where("campaign_id = ?", cid).
+		Where("message IN ?", []string{EventClicked, EventOpened}).
+		Find(&events).Error
+	if err != nil {
+		return 0, 0, err
+	}
+
+	clickedEmails := make(map[string]struct{})
+	openedEmails := make(map[string]struct{})
+	for _, e := range events {
+		if filtered, _ := Filtered(e, sendDateByEmail[e.Email]); filtered {
+			continue
+		}
+		switch e.Message {
+		case EventClicked:
+			clickedEmails[e.Email] = struct{}{}
+		case EventOpened:
+			openedEmails[e.Email] = struct{}{}
+		}
+	}
+	return int64(len(clickedEmails)), int64(len(openedEmails)), nil
 }
 
 // GetCampaigns returns the campaigns owned by the given user.

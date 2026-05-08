@@ -236,5 +236,49 @@ $(document).ready(function () {
         localStorage.setItem('gophish.use_map', JSON.stringify((this as HTMLInputElement).checked))
     })
 
+    // --- Phase 7c.2: phish_filter Settings tab ----------------------------
+    // Loaded once on page ready; reloaded when the admin clicks the tab,
+    // so concurrent edits from another window (or the seed-from-config
+    // path) are reflected without a full page refresh.
+    function loadPhishFilter() {
+        api.phish_filter.get()
+            .success(function (pf) {
+                $("#min_click_seconds").val(pf.min_click_seconds || 0)
+                $("#sandbox_ips").val(pf.sandbox_ips || "")
+            })
+            .error(function (data) {
+                // Endpoint is admin-only; non-admin users can't see the
+                // tab anyway, but if they somehow hit it surface the
+                // error in the global flash region.
+                const msg = (data.responseJSON && data.responseJSON.message) || "Error fetching sandbox filter settings"
+                errorFlash(msg)
+            })
+    }
+    function savePhishFilter() {
+        const seconds = parseInt(($("#min_click_seconds").val() as string) || "0", 10)
+        const body = {
+            min_click_seconds: isNaN(seconds) ? 0 : seconds,
+            sandbox_ips: ($("#sandbox_ips").val() as string) || "",
+        }
+        api.phish_filter.put(body)
+            .success(function (pf) {
+                $("#min_click_seconds").val(pf.min_click_seconds || 0)
+                $("#sandbox_ips").val(pf.sandbox_ips || "")
+                successFlashFade("Sandbox filter saved", 3)
+            })
+            .error(function (data) {
+                const msg = (data.responseJSON && data.responseJSON.message) || ("Save failed (HTTP " + data.status + ")")
+                errorFlash(msg)
+            })
+    }
+    $("#savePhishFilter").click(savePhishFilter)
+    $('a[href="#sandboxFilterSettings"]').on('shown.bs.tab', loadPhishFilter)
+
     loadIMAPSettings()
+    // The Sandbox Filter tab is server-rendered only for admins
+    // (`{{if .ModifySystem}}`). Skip the initial fetch for non-admin
+    // users to avoid a 403 on every Settings page load.
+    if ($("#sandbox_ips").length) {
+        loadPhishFilter()
+    }
 })

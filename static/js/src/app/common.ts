@@ -101,6 +101,10 @@ export const api = {
         generate: (brief) => query('/templates/generate', 'POST', brief, true),
         score: (subject) => query('/templates/score', 'POST', subject, true),
     },
+    phish_filter: {
+        get: () => query('/phish_filter/', 'GET', {}, false),
+        put: (pf) => query('/phish_filter/', 'PUT', pf, false),
+    },
     templateId: {
         get: (id) => query('/templates/' + id, 'GET', {}, false),
         put: (template) => query('/templates/' + template.id, 'PUT', template, false),

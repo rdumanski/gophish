@@ -57,6 +57,10 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	gdb.Delete(&EmailRequest{})
 	gdb.Delete(&Webhook{})
 	gdb.Delete(&IMAP{})
+	gdb.Delete(&PhishFilter{})
+	// Drop the cached matcher between tests so an earlier test's
+	// policy doesn't bleed into the next one.
+	matcherCache.Store(nil)
 
 	// Reset users table to default state.
 	db.Not("id", 1).Delete(&User{})
