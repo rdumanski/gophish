@@ -75,6 +75,56 @@ func (s *ModelsSuite) TestResultVariableStatus(ch *check.C) {
 	}
 }
 
+func (s *ModelsSuite) TestHandleEmailOpenedFilteredKeepsStatus(ch *check.C) {
+	c := s.createCampaignDependencies(ch)
+	ch.Assert(PostCampaign(&c, c.UserID), check.Equals, nil)
+	r := c.Results[0]
+	originalStatus := r.Status
+
+	details := EventDetails{Browser: map[string]string{"sandbox_reason": "min_click_seconds"}}
+	ch.Assert(r.HandleEmailOpenedFiltered(details), check.Equals, nil)
+
+	// Reload to verify nothing was persisted to Result.Status.
+	reloaded, err := GetResult(r.RID)
+	ch.Assert(err, check.Equals, nil)
+	ch.Assert(reloaded.Status, check.Equals, originalStatus)
+
+	// Audit event should exist with the filtered status text.
+	loaded, err := GetCampaign(c.Id, c.UserID)
+	ch.Assert(err, check.Equals, nil)
+	var hits int
+	for _, e := range loaded.Events {
+		if e.Message == EventOpenedSandboxFiltered {
+			hits++
+		}
+	}
+	ch.Assert(hits, check.Equals, 1)
+}
+
+func (s *ModelsSuite) TestHandleClickedLinkFilteredKeepsStatus(ch *check.C) {
+	c := s.createCampaignDependencies(ch)
+	ch.Assert(PostCampaign(&c, c.UserID), check.Equals, nil)
+	r := c.Results[0]
+	originalStatus := r.Status
+
+	details := EventDetails{Browser: map[string]string{"sandbox_reason": "sandbox_ip:192.0.2.0/24"}}
+	ch.Assert(r.HandleClickedLinkFiltered(details), check.Equals, nil)
+
+	reloaded, err := GetResult(r.RID)
+	ch.Assert(err, check.Equals, nil)
+	ch.Assert(reloaded.Status, check.Equals, originalStatus)
+
+	loaded, err := GetCampaign(c.Id, c.UserID)
+	ch.Assert(err, check.Equals, nil)
+	var hits int
+	for _, e := range loaded.Events {
+		if e.Message == EventClickedSandboxFiltered {
+			hits++
+		}
+	}
+	ch.Assert(hits, check.Equals, 1)
+}
+
 func (s *ModelsSuite) TestDuplicateResults(ch *check.C) {
 	group := Group{Name: "Test Group"}
 	group.Targets = []Target{

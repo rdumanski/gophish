@@ -61,6 +61,14 @@ const (
 	EventDataSubmit    string = "Submitted Data"
 	EventReported      string = "Email Reported"
 	EventProxyRequest  string = "Proxied request"
+	// EventOpenedSandboxFiltered and EventClickedSandboxFiltered are
+	// audit-only events recorded when an open or click is suppressed
+	// by the phish_server.sandbox_filter rules (vendor pre-scan,
+	// configured min_click_seconds, or sandbox_ips CIDR match). The
+	// timeline entry preserves visibility; Result.Status is NOT bumped
+	// so campaign summary aggregations exclude these.
+	EventOpenedSandboxFiltered  string = "Email Opened (sandbox filtered)"
+	EventClickedSandboxFiltered string = "Clicked Link (sandbox filtered)"
 	StatusSuccess      string = "Success"
 	StatusQueued       string = "Queued"
 	StatusSending      string = "Sending"

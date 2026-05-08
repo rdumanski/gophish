@@ -103,6 +103,54 @@ Recurring patterns to address as we touch each file:
 - `new Promise()` without an executor argument inside SweetAlert2
   `preConfirm` blocks
 
+### Phase 7c sandbox click filtering (2026-05-08)
+
+Adds suppression of sandbox-driven opens/clicks (Microsoft Defender
+Safe Links, Proofpoint URL Defense, etc.) so campaign metrics aren't
+polluted by vendor pre-scans. Two filters, both off by default:
+
+- **Time threshold** — events firing within
+  `phish_server.sandbox_filter.min_click_seconds` of `Result.SendDate`
+  are recorded as audit-only events without bumping `Result.Status`.
+- **Source-IP allowlist (negative)** — `phish_server.sandbox_filter.sandbox_ips`
+  takes a list of CIDR ranges or bare IPs; matches are filtered the
+  same way.
+
+Audit events use new `EventOpenedSandboxFiltered` /
+`EventClickedSandboxFiltered` constants and write a `sandbox_reason`
+field into `EventDetails.Browser` so admins can see WHY each filtered
+event was suppressed in the per-result timeline. Campaign summary
+aggregations (`models/campaign.go:278-288`) already filter by
+`Result.Status` so filtered events naturally don't count toward the
+"Opened" / "Clicked" totals.
+
+- **`config/config.go`** — new `PhishFilterConfig` struct on
+  `config.PhishServer` with `min_click_seconds int` + `sandbox_ips
+  []string`. Zero values disable filtering (backward-compatible).
+- **`controllers/phish.go`** — `sandboxMatcher` parses the operator's
+  CIDRs at startup (bare IPs promoted to /32 or /128); invalid entries
+  fail the process via `log.Fatal` so misconfigured allowlists surface
+  immediately. `TrackHandler` and the GET branch of `PhishHandler`
+  call `matcher.classify(rs.SendDate, ip)` and route to the filtered
+  variant when matched. The response body is identical to the
+  non-filtered path so sandboxes don't see different behavior.
+- **`models/result.go`** — two new `Handle*Filtered` methods that
+  reuse `createEvent` to write the audit row but skip the Status
+  update.
+- **Tests** — 6 new sandboxMatcher unit tests (empty config, invalid
+  IP, time threshold, IP CIDR including IPv6, nil-receiver safety,
+  time-vs-IP precedence) + 2 new model tests (filtered handlers
+  preserve Status, write audit event) + 1 new config_test fixture
+  loading a `sandbox_filter` block.
+- **Lint** — repo-wide finding count holds at 115. New code in
+  `phish.go` is lint-clean.
+
+Out of scope (deferred):
+- UI surface in `/settings` (operator-edited config.json fits the
+  rarely-changing security-policy nature of the setting).
+- Per-campaign overrides; filtered-vs-counted dashboard summary;
+  auto-curated sandbox IP feed; POST/form-submit filtering.
+
 ### Phase 7b AI-scored template difficulty (2026-05-07)
 
 Adds a complementary AI call to Phase 7a: admins can ask the model to

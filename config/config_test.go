@@ -76,6 +76,44 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
+func TestLoadConfigWithSandboxFilter(t *testing.T) {
+	withFilter := []byte(`{
+		"admin_server": {"listen_url": "127.0.0.1:3333", "use_tls": false, "cert_path": "x", "key_path": "y"},
+		"phish_server": {
+			"listen_url": "0.0.0.0:8080",
+			"use_tls": false,
+			"cert_path": "x",
+			"key_path": "y",
+			"sandbox_filter": {
+				"min_click_seconds": 5,
+				"sandbox_ips": ["192.0.2.0/24", "203.0.113.10"]
+			}
+		},
+		"db_name": "sqlite3",
+		"db_path": "gophish.db",
+		"migrations_prefix": "db/db_",
+		"contact_address": ""
+	}`)
+	f := createTemporaryConfig(t)
+	defer removeTemporaryConfig(t, f)
+	if _, err := f.Write(withFilter); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	conf, err := LoadConfig(f.Name())
+	if err != nil {
+		t.Fatalf("LoadConfig: %v", err)
+	}
+	if conf.PhishConf.SandboxFilter.MinClickSeconds != 5 {
+		t.Errorf("MinClickSeconds: got %d, want 5", conf.PhishConf.SandboxFilter.MinClickSeconds)
+	}
+	if len(conf.PhishConf.SandboxFilter.SandboxIPs) != 2 {
+		t.Errorf("SandboxIPs len: got %d, want 2", len(conf.PhishConf.SandboxFilter.SandboxIPs))
+	}
+	if conf.PhishConf.SandboxFilter.SandboxIPs[0] != "192.0.2.0/24" {
+		t.Errorf("SandboxIPs[0]: got %q, want 192.0.2.0/24", conf.PhishConf.SandboxFilter.SandboxIPs[0])
+	}
+}
+
 func TestLoadConfigWithAIBlock(t *testing.T) {
 	withAI := []byte(`{
 		"admin_server": {"listen_url": "127.0.0.1:3333", "use_tls": false, "cert_path": "x", "key_path": "y"},

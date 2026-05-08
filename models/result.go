@@ -126,6 +126,26 @@ func (r *Result) HandleClickedLink(details EventDetails) error {
 	return db.Save(r).Error
 }
 
+// HandleEmailOpenedFiltered records an audit-only event for a sandbox-
+// suppressed pixel fetch. It writes to the events table so admins can
+// see the filtered request in the per-result timeline, but does NOT
+// bump Result.Status — campaign summary counts ignore these.
+//
+// The caller is expected to populate details.Browser["sandbox_reason"]
+// (e.g. "min_click_seconds" or "sandbox_ip:10.0.0.0/8") so the audit
+// row records WHY the request was filtered.
+func (r *Result) HandleEmailOpenedFiltered(details EventDetails) error {
+	_, err := r.createEvent(EventOpenedSandboxFiltered, details)
+	return err
+}
+
+// HandleClickedLinkFiltered records an audit-only event for a sandbox-
+// suppressed link click. See HandleEmailOpenedFiltered for semantics.
+func (r *Result) HandleClickedLinkFiltered(details EventDetails) error {
+	_, err := r.createEvent(EventClickedSandboxFiltered, details)
+	return err
+}
+
 // HandleFormSubmit updates a Result in the case where the recipient submitted
 // credentials to the form on a Landing Page.
 func (r *Result) HandleFormSubmit(details EventDetails) error {
