@@ -20,10 +20,27 @@ type AdminServer struct {
 
 // PhishServer represents the Phish server configuration details
 type PhishServer struct {
-	ListenURL string `json:"listen_url"`
-	UseTLS    bool   `json:"use_tls"`
-	CertPath  string `json:"cert_path"`
-	KeyPath   string `json:"key_path"`
+	ListenURL     string            `json:"listen_url"`
+	UseTLS        bool              `json:"use_tls"`
+	CertPath      string            `json:"cert_path"`
+	KeyPath       string            `json:"key_path"`
+	SandboxFilter PhishFilterConfig `json:"sandbox_filter"`
+}
+
+// PhishFilterConfig controls suppression of sandbox-driven opens/clicks
+// (Microsoft Defender Safe Links, Proofpoint URL Defense, etc.).
+//
+// MinClickSeconds: any open or click that fires within this many seconds
+// of the email's SendDate is recorded as an audit event but does NOT
+// bump Result.Status — the email vendor pre-fetched the URL, the user
+// did not interact. 0 disables the filter.
+//
+// SandboxIPs: list of IPs or CIDR ranges. Requests originating from any
+// of these are similarly recorded as audit events without status bump.
+// Admins curate this from their sandbox vendor's published ranges.
+type PhishFilterConfig struct {
+	MinClickSeconds int      `json:"min_click_seconds"`
+	SandboxIPs      []string `json:"sandbox_ips"`
 }
 
 // AnthropicAIConfig holds Anthropic-specific AI provider settings.
