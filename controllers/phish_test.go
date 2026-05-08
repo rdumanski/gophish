@@ -415,4 +415,3 @@ func TestRedirectTemplating(t *testing.T) {
 		t.Fatalf("invalid redirect received. expected %s got %s", expectedURL, gotURL)
 	}
 }
-
