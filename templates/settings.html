@@ -13,6 +13,10 @@
                 Settings</a></li>
         <li role="reportingSettings"><a href="#reportingSettings" aria-controls="reportingSettings" role="tab" id="reporttab"
             data-toggle="tab">Reporting Settings</a></li>
+        {{if .ModifySystem}}
+        <li role="sandboxFilterSettings"><a href="#sandboxFilterSettings" aria-controls="sandboxFilterSettings" role="tab" id="sandboxfiltertab"
+            data-toggle="tab">Sandbox Filter</a></li>
+        {{end}}
     </ul>
     <!-- Tab Panes -->
     <div class="tab-content">
@@ -241,6 +245,46 @@
         </form>
         </div>
         <!-- Reporting Settings End -->
+
+        {{if .ModifySystem}}
+        <!-- Sandbox Filter Settings Begin -->
+        <div role="tabpanel" class="tab-pane" id="sandboxFilterSettings">
+            <br />
+            <p class="text-muted">
+                Suppress opens and clicks fired by mailbox-vendor pre-scanners
+                (Microsoft Defender Safe Links, Proofpoint URL Defense, Mimecast, etc.) so
+                they don't pollute campaign metrics. Filter is applied <strong>at query
+                time</strong> &mdash; changes recalculate historical campaign reports
+                automatically.
+            </p>
+
+            <div class="row">
+                <label for="min_click_seconds" class="col-sm-3 control-label form-label" data-toggle="tooltip" title="Clicks within this many seconds of the email's send time are treated as sandbox pre-scans. 0 disables the time filter.">
+                    Minimum click delay (seconds):
+                </label>
+                <div class="col-md-6">
+                    <input type="number" id="min_click_seconds" min="0" placeholder="0 disables the time filter" class="form-control" />
+                </div>
+            </div>
+            <br />
+
+            <div class="row">
+                <label for="sandbox_ips" class="col-sm-3 control-label form-label" data-toggle="tooltip" title="CIDR ranges or bare IPs. Clicks from these source IPs are treated as sandboxes regardless of timing.">
+                    Sandbox IP ranges (one per line):
+                </label>
+                <div class="col-md-6">
+                    <textarea id="sandbox_ips" class="form-control" rows="8"
+                              placeholder="40.94.0.0/16&#10;104.47.0.0/17&#10;192.0.2.10"></textarea>
+                </div>
+            </div>
+            <br />
+
+            <button class="btn btn-primary" id="savePhishFilter" type="button"><i class="fa fa-save"></i> Save</button>
+            <span class="text-muted" style="margin-left:8px;">Saving updates take effect on the next campaign-report render.</span>
+            <br />
+        </div>
+        <!-- Sandbox Filter Settings End -->
+        {{end}}
     </div>
 </div>
 {{end}} {{define "scripts"}}

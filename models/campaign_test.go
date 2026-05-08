@@ -153,6 +153,51 @@ func (s *ModelsSuite) TestCampaignGetResults(c *check.C) {
 	c.Assert(len(campaign.Results), check.Equals, len(got.Results))
 }
 
+// TestCampaignStatsAppliesPhishFilterRetroactively pins down the
+// defining property of Phase 7c.2: the campaign summary reads the
+// CURRENT phish_filter policy at query time, so a click recorded
+// under one policy is reclassified the next time the summary runs
+// under a tighter policy. Without this retroactive behaviour the UI
+// can't show "did changing min_click_seconds reclassify my
+// historical campaigns?", which was the whole point of the rewrite.
+func (s *ModelsSuite) TestCampaignStatsAppliesPhishFilterRetroactively(c *check.C) {
+	campaign := s.createCampaign(c)
+	c.Assert(len(campaign.Results) > 0, check.Equals, true)
+
+	// Pick the first recipient and record a click 3 seconds after their
+	// scheduled send. Insert directly into the events table so the
+	// recorded Event.Time is deterministic — the stock HandleClickedLink
+	// path uses time.Now(), which races with the assertions below.
+	r := campaign.Results[0]
+	clickTime := r.SendDate.Add(3 * time.Second)
+	clickEvent := Event{
+		CampaignID: campaign.Id,
+		Email:      r.Email,
+		Time:       clickTime,
+		Message:    EventClicked,
+		Details:    "",
+	}
+	c.Assert(db.Create(&clickEvent).Error, check.Equals, nil)
+	// Roll the Result.Status forward too so the event-table walk
+	// agrees with the column-based aggregations on EmailsSent.
+	r.Status = EventClicked
+	r.ModifiedDate = clickTime
+	c.Assert(db.Save(&r).Error, check.Equals, nil)
+
+	// Filter off — the click counts.
+	c.Assert(PutPhishFilter(&PhishFilter{MinClickSeconds: 0}), check.Equals, nil)
+	stats, err := getCampaignStats(campaign.Id)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(stats.ClickedLink, check.Equals, int64(1))
+
+	// Tighten the policy to 10s — the same recorded click is now
+	// reclassified as a sandbox pre-scan and falls out of the count.
+	c.Assert(PutPhishFilter(&PhishFilter{MinClickSeconds: 10}), check.Equals, nil)
+	stats, err = getCampaignStats(campaign.Id)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(stats.ClickedLink, check.Equals, int64(0))
+}
+
 func setupCampaignDependencies(b *testing.B, size int) {
 	group := Group{Name: "Test Group"}
 	// Create a large group of 5000 members

@@ -151,6 +151,84 @@ Out of scope (deferred):
 - Per-campaign overrides; filtered-vs-counted dashboard summary;
   auto-curated sandbox IP feed; POST/form-submit filtering.
 
+### Phase 7c.2 sandbox filter Settings UI + query-time evaluation (2026-05-08)
+
+Reframes 7c around two pieces of feedback:
+
+1. *"I expected to change these from the panel."* — config.json + restart
+   is the wrong UX for an org-wide security policy.
+2. *"The report should always consider the current parameters. If I
+   change the time, the report should recalculate."* — record-time
+   filtering can't reclassify history; the filter has to be a **view**
+   over raw data.
+
+7c was the first step toward this; 7c.2 lands the right shape:
+
+- **`phish_filter` table** — single-row policy storage (`id=1`),
+  migrations in `db/db_{sqlite3,mysql}/migrations/20260508000000_*`.
+- **`models/phish_filter.go`** — new `PhishFilter` model,
+  `Get/PutPhishFilter`, `SeedPhishFilterFromConfig`, plus the
+  `sandboxMatcher` relocated from `controllers/phish.go`. An
+  `atomic.Pointer[sandboxMatcher]` cache is refreshed on every
+  Get/Put so query-time evaluation reads the live policy without a
+  per-event DB round-trip.
+- **`Filtered(event, sendDate) (bool, reason)`** helper applied
+  by `models/campaign.go::countFilteredClicksAndOpens` — campaign
+  stats now walk the events table and apply the current policy in
+  Go (CIDR membership doesn't translate cleanly to portable SQL
+  across SQLite + MySQL; the summary is not a hot loop). The
+  `Result.Status` column continues to track "highest event ever
+  recorded" but aggregations bypass it for clicks/opens, so policy
+  changes propagate retroactively.
+- **`controllers/api/phish_filter.go`** — `GET`/`PUT /api/phish_filter/`,
+  gated by `mid.RequirePermission(PermissionModifySystem)`. Validates
+  CIDRs and returns 400 with the offending entry on bad input.
+- **Settings UI** — new "Sandbox Filter" tab in `templates/settings.html`
+  (gated on `{{if .ModifySystem}}`); `static/js/src/app/settings.ts`
+  wires `loadPhishFilter` / `savePhishFilter` against
+  `api.phish_filter.get/put`.
+- **Seed-from-config bridge** — `gophish.go` calls
+  `models.SeedPhishFilterFromConfig(conf.PhishConf.SandboxFilter)`
+  after `models.Setup`. Idempotent: a populated DB row blocks the
+  seed so existing edits aren't overwritten by stale config.json.
+
+7c rollback (kept as a clean delta in this PR):
+
+- Removed `EventOpenedSandboxFiltered` / `EventClickedSandboxFiltered`
+  constants and the `Handle*Filtered` `Result` methods — record-time
+  filtering is the wrong shape and shouldn't be carried as legacy.
+- `controllers/phish.go::TrackHandler`/`PhishHandler` revert to
+  unconditional `HandleEmailOpened` / `HandleClickedLink`.
+- 6 `TestSandboxMatcher*` tests moved out of `controllers/phish_test.go`
+  into `models/phish_filter_test.go` to follow the type to its new home.
+
+Tests:
+
+- `models/phish_filter_test.go` — Get/Put round-trip, seed
+  idempotency, matcher unit tests (relocated), `Filtered` helper
+  edge cases, retroactive-reclassification spot check.
+- `controllers/api/phish_filter_test.go` — handler tests covering
+  200/400/405 paths.
+- `models/campaign_test.go::TestCampaignStatsAppliesPhishFilterRetroactively` —
+  end-to-end proof that flipping `min_click_seconds` mid-campaign
+  reclassifies historical clicks in the summary. Pins the defining
+  property of 7c.2.
+
+Out of scope (deferred):
+
+- Per-campaign overrides (org-wide single policy per user
+  clarification: "the IPs are same for the entire company").
+- Audit history of who edited what when.
+- `Result.Status` column rewrite to reflect the **filtered** view
+  on the dashboard (the column drives several other surfaces;
+  rewriting needs a broader pass and is a separate UX call).
+- Filtered-events count on the dashboard summary (separate UX
+  call from "exclude from totals").
+
+Known pre-existing flake: `internal/gomail::TestAttachments`
+fails locally on Windows due to multipart MIME boundary
+randomization; not introduced here. CI on Linux unaffected.
+
 ### Phase 7b AI-scored template difficulty (2026-05-07)
 
 Adds a complementary AI call to Phase 7a: admins can ask the model to

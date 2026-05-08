@@ -52,101 +52,25 @@ type PhishingServer struct {
 	server         *http.Server
 	config         config.PhishServer
 	contactAddress string
-	matcher        *sandboxMatcher
 }
 
 // NewPhishingServer returns a new instance of the phishing server with
 // provided options applied.
-//
-// Fails the process via log.Fatal if config.SandboxFilter contains an
-// invalid IP/CIDR — operator misconfiguration of a security-critical
-// allowlist should surface immediately, not be silently dropped.
 func NewPhishingServer(config config.PhishServer, options ...PhishingServerOption) *PhishingServer {
 	defaultServer := &http.Server{
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		Addr:         config.ListenURL,
 	}
-	matcher, err := newSandboxMatcher(config.SandboxFilter)
-	if err != nil {
-		log.Fatalf("phish_server: sandbox_filter config invalid: %s", err)
-	}
 	ps := &PhishingServer{
-		server:  defaultServer,
-		config:  config,
-		matcher: matcher,
+		server: defaultServer,
+		config: config,
 	}
 	for _, opt := range options {
 		opt(ps)
 	}
 	ps.registerRoutes()
 	return ps
-}
-
-// sandboxMatcher classifies an incoming open/click as sandbox-driven
-// based on (a) elapsed time since SendDate vs. a configured floor and
-// (b) whether the client IP falls into any of a configured set of CIDR
-// ranges. A nil matcher treats all requests as non-sandbox.
-type sandboxMatcher struct {
-	minClickDuration time.Duration
-	networks         []*net.IPNet
-}
-
-// newSandboxMatcher builds a matcher from the operator's PhishFilterConfig.
-// Returns an error describing the offending entry if any sandbox_ip
-// fails to parse — caller is expected to surface that to the operator
-// rather than silently skipping bad entries.
-func newSandboxMatcher(cfg config.PhishFilterConfig) (*sandboxMatcher, error) {
-	nets := make([]*net.IPNet, 0, len(cfg.SandboxIPs))
-	for _, raw := range cfg.SandboxIPs {
-		s := strings.TrimSpace(raw)
-		if s == "" {
-			continue
-		}
-		// Promote a bare IP to a /32 (IPv4) or /128 (IPv6) so the rest
-		// of the parser is uniform.
-		if !strings.Contains(s, "/") {
-			ip := net.ParseIP(s)
-			if ip == nil {
-				return nil, fmt.Errorf("invalid sandbox_ip %q", raw)
-			}
-			if ip.To4() != nil {
-				s = s + "/32"
-			} else {
-				s = s + "/128"
-			}
-		}
-		_, n, err := net.ParseCIDR(s)
-		if err != nil {
-			return nil, fmt.Errorf("invalid sandbox_ip %q: %w", raw, err)
-		}
-		nets = append(nets, n)
-	}
-	return &sandboxMatcher{
-		minClickDuration: time.Duration(cfg.MinClickSeconds) * time.Second,
-		networks:         nets,
-	}, nil
-}
-
-// classify returns (true, reason) if the request looks like a sandbox
-// pre-scan — either it fired too soon after SendDate or it originated
-// from a configured CIDR. The empty reason on a non-filtered call means
-// the caller should treat this as a real user action.
-func (m *sandboxMatcher) classify(sendDate time.Time, ip string) (bool, string) {
-	if m == nil {
-		return false, ""
-	}
-	if m.minClickDuration > 0 && !sendDate.IsZero() && time.Since(sendDate) < m.minClickDuration {
-		return true, "min_click_seconds"
-	}
-	if parsed := net.ParseIP(ip); parsed != nil {
-		for _, n := range m.networks {
-			if n.Contains(parsed) {
-				return true, "sandbox_ip:" + n.String()
-			}
-		}
-	}
-	return false, ""
 }
 
 // WithContactAddress sets the contact address used by the transparency
@@ -229,15 +153,6 @@ func (ps *PhishingServer) TrackHandler(w http.ResponseWriter, r *http.Request) {
 	// Check for a transparency request
 	if strings.HasSuffix(rid, TransparencySuffix) {
 		ps.TransparencyHandler(w, r)
-		return
-	}
-
-	if filtered, reason := ps.matcher.classify(rs.SendDate, d.Browser["address"]); filtered {
-		d.Browser["sandbox_reason"] = reason
-		if err := rs.HandleEmailOpenedFiltered(d); err != nil {
-			log.Error(err)
-		}
-		http.ServeFile(w, r, "static/images/pixel.png")
 		return
 	}
 
@@ -332,18 +247,11 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	switch {
 	case r.Method == "GET":
-		if filtered, reason := ps.matcher.classify(rs.SendDate, d.Browser["address"]); filtered {
-			d.Browser["sandbox_reason"] = reason
-			err = rs.HandleClickedLinkFiltered(d)
-		} else {
-			err = rs.HandleClickedLink(d)
-		}
+		err = rs.HandleClickedLink(d)
 		if err != nil {
 			log.Error(err)
 		}
 	case r.Method == "POST":
-		// Sandboxes don't submit credentials; let the existing handler
-		// run unconditionally.
 		err = rs.HandleFormSubmit(d)
 		if err != nil {
 			log.Error(err)
