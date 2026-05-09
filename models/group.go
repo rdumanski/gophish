@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"regexp"
 	"time"
 
 	log "github.com/rdumanski/gophish/logger"
@@ -52,11 +53,15 @@ type Target struct {
 
 // BaseRecipient contains the fields for a single recipient. This is the base
 // struct used in members of groups and campaign results.
+//
+// Phone is optional and used by SMS phishing campaigns (Phase 8). Format is
+// E.164 (e.g. "+15555551234"). Email-only recipients work exactly as before.
 type BaseRecipient struct {
 	Email     string `json:"email"`
 	FirstName string `json:"first_name"`
 	LastName  string `json:"last_name"`
 	Position  string `json:"position"`
+	Phone     string `json:"phone"`
 }
 
 // FormatAddress returns the email address to use in the "To" header of the email
@@ -87,6 +92,27 @@ func (t *Target) FormatAddress() string {
 
 // ErrEmailNotSpecified is thrown when no email is specified for the Target
 var ErrEmailNotSpecified = errors.New("no email address specified")
+
+// ErrNoContactSpecified is thrown when a Target has neither a usable email
+// nor a usable phone number — at least one is required to reach the target.
+var ErrNoContactSpecified = errors.New("target needs at least an email address or a phone number")
+
+// ErrInvalidPhone is thrown when a phone number doesn't match E.164.
+var ErrInvalidPhone = errors.New("phone must be in E.164 format (e.g. +15555551234)")
+
+// e164Regex matches E.164: a leading '+', a 1-9 country-code digit, then up
+// to 14 more digits. The ITU spec caps the total length at 15 digits.
+var e164Regex = regexp.MustCompile(`^\+[1-9]\d{1,14}$`)
+
+// ValidatePhone returns nil iff s is a valid E.164 phone number. Empty
+// strings are rejected; callers that allow optional phones must check for
+// "" before calling.
+func ValidatePhone(s string) error {
+	if !e164Regex.MatchString(s) {
+		return ErrInvalidPhone
+	}
+	return nil
+}
 
 // ErrGroupNameNotSpecified is thrown when a group name is not specified
 var ErrGroupNameNotSpecified = errors.New("group name not specified")
@@ -313,11 +339,32 @@ func DeleteGroup(g *Group) error {
 }
 
 func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
-	if _, err := mail.ParseAddress(t.Email); err != nil {
-		log.WithFields(logrus.Fields{
-			"email": t.Email,
-		}).Error("Invalid email")
-		return err
+	// Phase 8a: a target needs at least one usable contact field —
+	// either an email (validated as RFC-5322) or a phone (validated
+	// as E.164). Email-only recipients keep working exactly as
+	// before; phone-only and email+phone recipients are now allowed
+	// for the upcoming SMS channel.
+	hasEmail := t.Email != ""
+	hasPhone := t.Phone != ""
+	if !hasEmail && !hasPhone {
+		log.Error("target has neither email nor phone")
+		return ErrNoContactSpecified
+	}
+	if hasEmail {
+		if _, err := mail.ParseAddress(t.Email); err != nil {
+			log.WithFields(logrus.Fields{
+				"email": t.Email,
+			}).Error("Invalid email")
+			return err
+		}
+	}
+	if hasPhone {
+		if err := ValidatePhone(t.Phone); err != nil {
+			log.WithFields(logrus.Fields{
+				"phone": t.Phone,
+			}).Error("Invalid phone")
+			return err
+		}
 	}
 	err := tx.Where(t).FirstOrCreate(&t).Error
 	if err != nil {
@@ -347,6 +394,7 @@ func UpdateTarget(tx *gorm.DB, target Target) error {
 		"first_name": target.FirstName,
 		"last_name":  target.LastName,
 		"position":   target.Position,
+		"phone":      target.Phone,
 	}
 	err := tx.Model(&target).Where("id = ?", target.Id).Updates(targetInfo).Error
 	if err != nil {
@@ -360,6 +408,6 @@ func UpdateTarget(tx *gorm.DB, target Target) error {
 // GetTargets performs a many-to-many select to get all the Targets for a Group
 func GetTargets(gid int64) ([]Target, error) {
 	ts := []Target{}
-	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
+	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position, targets.phone").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
 	return ts, err
 }

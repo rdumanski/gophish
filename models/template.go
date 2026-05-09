@@ -8,7 +8,10 @@ import (
 	log "github.com/rdumanski/gophish/logger"
 )
 
-// Template models hold the attributes for an email template to be sent to targets
+// Template models hold the attributes for an email or SMS template to be
+// sent to targets. The Channel field discriminates: "email" (default) uses
+// Subject/HTML/Text/Attachments/EnvelopeSender as before; "sms" uses only
+// Text and rejects the email-only fields at validation time.
 type Template struct {
 	Id             int64        `json:"id" gorm:"primaryKey;column:id"`
 	UserID         int64        `json:"-" gorm:"column:user_id"`
@@ -22,6 +25,9 @@ type Template struct {
 	// GeneratedBy records the AI provider+model that drafted this template,
 	// e.g. "anthropic:claude-sonnet-4-6". Empty for hand-written templates.
 	GeneratedBy string `json:"generated_by,omitempty" gorm:"column:generated_by"`
+	// Channel is "email" (default) or "sms". Phase 8a stores it; Phase 8b
+	// wires it through to dispatcher selection and the editor UI.
+	Channel string `json:"channel,omitempty" gorm:"column:channel;default:email"`
 }
 
 // ErrTemplateNameNotSpecified is thrown when a template name is not specified
@@ -30,18 +36,44 @@ var ErrTemplateNameNotSpecified = errors.New("template name not specified")
 // ErrTemplateMissingParameter is thrown when a needed parameter is not provided
 var ErrTemplateMissingParameter = errors.New("need to specify at least plaintext or HTML content")
 
+// ErrSMSTemplateMissingText is thrown when an SMS template has no body.
+var ErrSMSTemplateMissingText = errors.New("SMS template requires a text body")
+
+// ErrSMSTemplateHasEmailFields is thrown when an SMS template carries fields
+// that only make sense for email (Subject, HTML, Attachments, EnvelopeSender).
+var ErrSMSTemplateHasEmailFields = errors.New("SMS template must not set subject, html, attachments, or envelope_sender")
+
+// ErrUnknownTemplateChannel is thrown when Channel is set to anything other
+// than "" / "email" / "sms".
+var ErrUnknownTemplateChannel = errors.New("template channel must be \"email\" or \"sms\"")
+
 // Validate checks the given template to make sure values are appropriate and complete
 func (t *Template) Validate() error {
-	switch {
-	case t.Name == "":
+	if t.Name == "" {
 		return ErrTemplateNameNotSpecified
-	case t.Text == "" && t.HTML == "":
-		return ErrTemplateMissingParameter
-	case t.EnvelopeSender != "":
-		_, err := mail.ParseAddress(t.EnvelopeSender)
-		if err != nil {
-			return err
+	}
+	switch t.Channel {
+	case "", "email":
+		// Email channel — keep the original validation contract.
+		switch {
+		case t.Text == "" && t.HTML == "":
+			return ErrTemplateMissingParameter
+		case t.EnvelopeSender != "":
+			if _, err := mail.ParseAddress(t.EnvelopeSender); err != nil {
+				return err
+			}
 		}
+	case "sms":
+		// SMS channel — only Text is meaningful. Email-only fields are
+		// rejected so the editor UI doesn't accidentally store them.
+		if t.Text == "" {
+			return ErrSMSTemplateMissingText
+		}
+		if t.Subject != "" || t.HTML != "" || t.EnvelopeSender != "" || len(t.Attachments) > 0 {
+			return ErrSMSTemplateHasEmailFields
+		}
+	default:
+		return ErrUnknownTemplateChannel
 	}
 	if err := ValidateTemplate(t.HTML); err != nil {
 		return err

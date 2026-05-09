@@ -11,26 +11,32 @@ import (
 	"gorm.io/gorm"
 )
 
-// Campaign is a struct representing a created campaign
+// Campaign is a struct representing a created campaign.
+//
+// Channel is "email" (default, existing behavior) or "sms" (Phase 8).
+// SMS campaigns use SMSProfileID/SMSProfile instead of SMTPId/SMTP.
 type Campaign struct {
-	Id            int64     `json:"id"`
-	UserID        int64     `json:"-"`
-	Name          string    `json:"name" sql:"not null"`
-	CreatedDate   time.Time `json:"created_date"`
-	LaunchDate    time.Time `json:"launch_date"`
-	SendByDate    time.Time `json:"send_by_date"`
-	CompletedDate time.Time `json:"completed_date"`
-	TemplateID    int64     `json:"-"`
-	Template      Template  `json:"template"`
-	PageID        int64     `json:"-"`
-	Page          Page      `json:"page"`
-	Status        string    `json:"status"`
-	Results       []Result  `json:"results,omitempty"`
-	Groups        []Group   `json:"groups,omitempty" gorm:"-"`
-	Events        []Event   `json:"timeline,omitempty"`
-	SMTPId        int64     `json:"-"`
-	SMTP          SMTP      `json:"smtp"`
-	URL           string    `json:"url"`
+	Id            int64      `json:"id"`
+	UserID        int64      `json:"-"`
+	Name          string     `json:"name" sql:"not null"`
+	CreatedDate   time.Time  `json:"created_date"`
+	LaunchDate    time.Time  `json:"launch_date"`
+	SendByDate    time.Time  `json:"send_by_date"`
+	CompletedDate time.Time  `json:"completed_date"`
+	TemplateID    int64      `json:"-"`
+	Template      Template   `json:"template"`
+	PageID        int64      `json:"-"`
+	Page          Page       `json:"page"`
+	Status        string     `json:"status"`
+	Results       []Result   `json:"results,omitempty"`
+	Groups        []Group    `json:"groups,omitempty" gorm:"-"`
+	Events        []Event    `json:"timeline,omitempty"`
+	SMTPId        int64      `json:"-"`
+	SMTP          SMTP       `json:"smtp"`
+	URL           string     `json:"url"`
+	Channel       string     `json:"channel,omitempty" gorm:"column:channel;default:email"`
+	SMSProfileID  int64      `json:"-" gorm:"column:sms_profile_id"`
+	SMSProfile    SMSProfile `json:"sms_profile,omitempty" gorm:"-"`
 }
 
 // CampaignResults is a struct representing the results from a campaign
@@ -110,6 +116,18 @@ var ErrPageNotSpecified = errors.New("no landing page specified")
 // ErrSMTPNotSpecified indicates a sending profile was not provided for the campaign
 var ErrSMTPNotSpecified = errors.New("no sending profile specified")
 
+// ErrSMSProfileNotSpecified indicates an SMS sending profile was not provided
+// for an SMS-channel campaign.
+var ErrSMSProfileNotSpecified = errors.New("no SMS sending profile specified")
+
+// ErrChannelMismatch is thrown when the campaign and template don't agree on
+// channel (e.g. an "sms" campaign was given an "email" template).
+var ErrChannelMismatch = errors.New("campaign and template channel must match")
+
+// ErrUnknownCampaignChannel is thrown when Channel is set to anything other
+// than "" / "email" / "sms".
+var ErrUnknownCampaignChannel = errors.New("campaign channel must be \"email\" or \"sms\"")
+
 // ErrTemplateNotFound indicates the template specified does not exist in the database
 var ErrTemplateNotFound = errors.New("template not found")
 
@@ -131,18 +149,40 @@ const RecipientParameter = "rid"
 
 // Validate checks to make sure there are no invalid fields in a submitted campaign
 func (c *Campaign) Validate() error {
-	switch {
-	case c.Name == "":
+	if c.Name == "" {
 		return ErrCampaignNameNotSpecified
-	case len(c.Groups) == 0:
+	}
+	if len(c.Groups) == 0 {
 		return ErrGroupNotSpecified
-	case c.Template.Name == "":
+	}
+	if c.Template.Name == "" {
 		return ErrTemplateNotSpecified
-	case c.Page.Name == "":
+	}
+	if c.Page.Name == "" {
 		return ErrPageNotSpecified
-	case c.SMTP.Name == "":
-		return ErrSMTPNotSpecified
-	case !c.SendByDate.IsZero() && !c.LaunchDate.IsZero() && c.SendByDate.Before(c.LaunchDate):
+	}
+	// Channel-specific sending-profile + template-shape checks. Email is
+	// the default for backward compatibility — empty Channel string is
+	// treated as "email".
+	switch c.Channel {
+	case "", "email":
+		if c.SMTP.Name == "" {
+			return ErrSMTPNotSpecified
+		}
+		if c.Template.Channel != "" && c.Template.Channel != "email" {
+			return ErrChannelMismatch
+		}
+	case "sms":
+		if c.SMSProfile.Name == "" {
+			return ErrSMSProfileNotSpecified
+		}
+		if c.Template.Channel != "sms" {
+			return ErrChannelMismatch
+		}
+	default:
+		return ErrUnknownCampaignChannel
+	}
+	if !c.SendByDate.IsZero() && !c.LaunchDate.IsZero() && c.SendByDate.Before(c.LaunchDate) {
 		return ErrInvalidSendByDate
 	}
 	return nil
