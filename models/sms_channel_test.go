@@ -105,9 +105,9 @@ func TestTemplateValidateEmailDefaultUnchanged(t_ *testing.T) {
 
 func TestCampaignValidateSMSRequiresSMSProfile(t_ *testing.T) {
 	c := Campaign{
-		Name:    "c",
-		Channel: "sms",
-		Groups:  []Group{{Name: "g"}},
+		Name:     "c",
+		Channel:  "sms",
+		Groups:   []Group{{Name: "g"}},
 		Template: Template{Name: "t", Channel: "sms", Text: "hi"},
 		Page:     Page{Name: "p"},
 	}
