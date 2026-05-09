@@ -58,6 +58,8 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	gdb.Delete(&Webhook{})
 	gdb.Delete(&IMAP{})
 	gdb.Delete(&PhishFilter{})
+	gdb.Delete(&SMSProfile{})
+	gdb.Delete(&SMSLog{})
 	// Drop the cached matcher between tests so an earlier test's
 	// policy doesn't bleed into the next one.
 	matcherCache.Store(nil)

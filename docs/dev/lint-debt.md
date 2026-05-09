@@ -151,6 +151,84 @@ Out of scope (deferred):
 - Per-campaign overrides; filtered-vs-counted dashboard summary;
   auto-curated sandbox IP feed; POST/form-submit filtering.
 
+### Phase 8a SMS data model groundwork (2026-05-09)
+
+First step in landing smishing (SMS phishing) campaigns. Pure data-model
+change — no dispatcher, no UI, no observable behavior change for existing
+email campaigns. Phase 8b wires the new fields into the worker and adds
+the Twilio sender; Phase 8c hardens with delivery callbacks, char counter,
+and opt-out.
+
+Migration `20260509000000_0.13.0_sms_data_model`:
+
+- `targets`, `results`, `email_requests` gain a `phone varchar(255) NOT
+  NULL DEFAULT ''` column. (`email_requests` also embeds `BaseRecipient`
+  via GORM, so the column is required there too even though SMS doesn't
+  use the test-email path.)
+- `campaigns` gains `channel varchar(16) NOT NULL DEFAULT 'email'` and
+  `sms_profile_id integer` (nullable, no FK constraint to keep the down
+  migration simple — same convention as `smtp_id`).
+- `templates` gains `channel varchar(16) NOT NULL DEFAULT 'email'`.
+- New tables `sms_profiles` (provider, account_sid, auth_token,
+  from_number, messaging_service_sid, ...) and `sms_logs` (mirror of
+  `mail_logs`).
+
+Model changes:
+
+- **`models/group.go::BaseRecipient`** — adds `Phone string`. New
+  `ValidatePhone` exported helper using a strict E.164 regex.
+  `insertTargetIntoGroup` now accepts targets with email-only OR
+  phone-only OR both; rejects targets with neither
+  (`ErrNoContactSpecified`). `UpdateTarget` includes phone in the
+  update set; `GetTargets` SELECT includes the phone column.
+- **`models/template.go::Template`** — adds `Channel string`
+  (default "email"). `Validate()` switches on Channel: "email"/"" keeps
+  the original contract; "sms" requires `Text`, rejects
+  Subject/HTML/EnvelopeSender/Attachments
+  (`ErrSMSTemplateMissingText`, `ErrSMSTemplateHasEmailFields`); other
+  values return `ErrUnknownTemplateChannel`.
+- **`models/campaign.go::Campaign`** — adds `Channel string`,
+  `SMSProfileID int64`, and a non-DB `SMSProfile SMSProfile` for the
+  same eager-load convention SMTP uses. `Validate()` is restructured
+  so Channel determines whether `SMTP.Name` or `SMSProfile.Name` is
+  required (`ErrSMSProfileNotSpecified`,
+  `ErrUnknownCampaignChannel`); also enforces that the campaign and
+  template agree on Channel (`ErrChannelMismatch`).
+- **`models/sms_profile.go`** (NEW) — `SMSProfile` type with
+  `Validate()` (provider whitelist via `SupportedSMSProviders`,
+  E.164 check on `FromNumber`, exclusivity rule between
+  `FromNumber` and `MessagingServiceSID`) and standard CRUD
+  helpers (`Get*`, `Post`, `Put`, `Delete`). Provider whitelist
+  starts with just `"twilio"` — adding a provider in 8b/8c is a
+  single-map-entry change.
+- **`models/sms_log.go`** (NEW) — `SMSLog` row + `GenerateSMSLog`.
+  Backoff/Lock/Unlock/Error/Success/Generate methods deferred to
+  Phase 8b alongside the worker integration.
+
+Tests:
+
+- `models/sms_profile_test.go` — `ValidatePhone` accept/reject
+  matrix, `SMSProfile.Validate` matrix, DB round-trip via the
+  gocheck suite.
+- `models/sms_log_test.go` — `GenerateSMSLog` round-trip.
+- `models/sms_channel_test.go` — phone-only / email+phone / no-contact
+  group acceptance, Template.Validate cases for each channel,
+  Campaign.Validate cases including the channel-mismatch check.
+- `models/models_test.go::TearDownTest` — adds `SMSProfile{}` and
+  `SMSLog{}` to the per-test cleanup list so cross-test pollution
+  doesn't bleed.
+
+Deferred to 8b: `mailer.Mail`-style methods on `SMSLog`
+(Backoff/Lock/Unlock/Error/Success/Generate); `sms.Sender` interface
++ Twilio implementation; worker dispatcher branch on row type;
+`models/result.go::HandleSMSDelivered` + `HandleSMSFailed`; Settings
+UI for SMS profiles; Template editor channel selector + char counter;
+Campaign creation modal channel selector.
+
+Known pre-existing flake: `internal/gomail::TestAttachments` continues
+to fail on Windows (multipart MIME boundary randomization); not
+introduced here, CI on Linux unaffected.
+
 ### Phase 7c.2 sandbox filter Settings UI + query-time evaluation (2026-05-08)
 
 Reframes 7c around two pieces of feedback:
