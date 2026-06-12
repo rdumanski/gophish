@@ -1,0 +1,91 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        {{.Title}}
+    </h1>
+    <div id="flashes" class="row"></div>
+    <div class="row">
+        <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
+            data-module-id="-1" data-target="#modal">
+            <i class="fa fa-plus"></i> New Training Module</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">
+            No training modules yet. Create one to build your awareness content library.
+        </div>
+    </div>
+    <div class="row">
+        <table id="moduleTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th class="col-md-3 no-sort">Name</th>
+                    <th class="col-md-2 no-sort">Type</th>
+                    <th class="col-md-4 no-sort">Description</th>
+                    <th class="col-md-2 no-sort">Last Modified</th>
+                    <th class="col-md-1 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="moduleModalLabel">Add or Edit Training Module</h4>
+            </div>
+            <div class="modal-body" id="modal_body">
+                <div class="row" id="modal.flashes"></div>
+
+                <label class="control-label" for="name">Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Name" id="name" required autofocus />
+                </div>
+
+                <label class="control-label" for="description">Description:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Short description (optional)" id="description" />
+                </div>
+
+                <label class="control-label" for="content_type">Content type:</label>
+                <div class="form-group">
+                    <select class="form-control" id="content_type">
+                        <option value="html">Inline HTML</option>
+                        <option value="video">Hosted video (URL)</option>
+                        <option value="external">External link (URL)</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="html_group">
+                    <label class="control-label" for="html">HTML content:</label>
+                    <textarea class="form-control" id="html" rows="10"
+                        placeholder="<h1>Spotting phishing</h1><p>...</p>"></textarea>
+                </div>
+
+                <div class="form-group" id="url_group" style="display:none;">
+                    <label class="control-label" for="url">URL:</label>
+                    <input type="text" class="form-control" placeholder="https://..." id="url" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/training_modules.min.js"></script>
+{{end}}
