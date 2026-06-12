@@ -115,6 +115,10 @@ func (ps *PhishingServer) registerRoutes() {
 	router.HandleFunc("/{path:.*}/track", ps.TrackHandler)
 	router.HandleFunc("/{path:.*}/report", ps.ReportHandler)
 	router.HandleFunc("/report", ps.ReportHandler)
+	// Phase 10c: public learner portal. Registered before the catch-all so
+	// /learn/{token} isn't swallowed by the phishing landing-page handler.
+	router.HandleFunc("/learn/{token}/complete", ps.LearnCompleteHandler)
+	router.HandleFunc("/learn/{token}", ps.LearnHandler)
 	router.HandleFunc("/{path:.*}", ps.PhishHandler)
 
 	// Setup GZIP compression
