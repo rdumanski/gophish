@@ -22,6 +22,7 @@ const appFiles = [
     'sending_profiles.ts',
     'settings.ts',
     'templates.ts',
+    'training_modules.ts',
     'gophish.ts',
     'users.ts',
     'webhooks.ts',

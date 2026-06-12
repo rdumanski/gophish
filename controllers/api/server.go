@@ -86,6 +86,8 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/templates/generate", mid.Use(as.GenerateTemplate, mid.RequirePermission(models.PermissionModifyObjects)))
 	router.HandleFunc("/templates/score", mid.Use(as.ScoreTemplate, mid.RequirePermission(models.PermissionModifyObjects)))
 	router.HandleFunc("/templates/{id:[0-9]+}", as.Template)
+	router.HandleFunc("/training_modules/", as.TrainingModules)
+	router.HandleFunc("/training_modules/{id:[0-9]+}", as.TrainingModule)
 	router.HandleFunc("/pages/", as.Pages)
 	router.HandleFunc("/pages/{id:[0-9]+}", as.Page)
 	router.HandleFunc("/smtp/", as.SendingProfiles)

@@ -140,6 +140,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/campaigns", mid.Use(as.Campaigns, mid.RequireLogin))
 	router.HandleFunc("/campaigns/{id:[0-9]+}", mid.Use(as.CampaignID, mid.RequireLogin))
 	router.HandleFunc("/templates", mid.Use(as.Templates, mid.RequireLogin))
+	router.HandleFunc("/training_modules", mid.Use(as.TrainingModules, mid.RequireLogin))
 	router.HandleFunc("/groups", mid.Use(as.Groups, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", mid.Use(as.LandingPages, mid.RequireLogin))
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
@@ -256,6 +257,13 @@ func (as *AdminServer) Templates(w http.ResponseWriter, r *http.Request) {
 	params := as.newTemplateParams(r)
 	params.Title = "Email Templates"
 	getTemplate(w, "templates").ExecuteTemplate(w, "base", params)
+}
+
+// TrainingModules handles the training-modules library page.
+func (as *AdminServer) TrainingModules(w http.ResponseWriter, r *http.Request) {
+	params := as.newTemplateParams(r)
+	params.Title = "Training Modules"
+	getTemplate(w, "training_modules").ExecuteTemplate(w, "base", params)
 }
 
 // Groups handles the default path and template execution

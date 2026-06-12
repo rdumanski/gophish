@@ -110,6 +110,15 @@ export const api = {
         put: (template) => query('/templates/' + template.id, 'PUT', template, false),
         delete: (id) => query('/templates/' + id, 'DELETE', {}, false),
     },
+    training_modules: {
+        get: () => query('/training_modules/', 'GET', {}, false),
+        post: (m) => query('/training_modules/', 'POST', m, false),
+    },
+    trainingModuleId: {
+        get: (id) => query('/training_modules/' + id, 'GET', {}, false),
+        put: (m) => query('/training_modules/' + m.id, 'PUT', m, false),
+        delete: (id) => query('/training_modules/' + id, 'DELETE', {}, false),
+    },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),
         post: (page) => query('/pages/', 'POST', page, false),
