@@ -54,6 +54,7 @@ function launch() {
                     launch_date: moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(),
                     send_by_date: send_by_date || null,
                     groups: groups,
+                    teachable_moment: $("#teachable_moment").is(":checked"),
                 }
                 // Submit the campaign
                 api.campaigns.post(campaign)
@@ -124,6 +125,7 @@ function dismiss() {
     $("#url").val("");
     $("#profile").val("").change();
     $("#users").val("").change();
+    $("#teachable_moment").prop("checked", false);
     $("#modal").modal('hide');
 }
 
@@ -286,6 +288,7 @@ function copy(idx) {
                 $("#profile").trigger("change.select2")
             }
             $("#url").val(campaign.url)
+            $("#teachable_moment").prop("checked", campaign.teachable_moment === true)
         })
         .error(function (data) {
             $("#modal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-danger\">\
