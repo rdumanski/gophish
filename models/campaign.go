@@ -34,10 +34,11 @@ type Campaign struct {
 	SMTPId        int64     `json:"-"`
 	SMTP          SMTP      `json:"smtp"`
 	URL           string    `json:"url"`
-	// TeachableMoment, when true, redirects a recipient who clicks the link
-	// or submits the form to a first-party security-awareness page instead
-	// of rendering the landing page (Phase 9). Defaults to false so existing
-	// campaigns behave exactly as before.
+	// TeachableMoment, when true, shows a recipient who submits the landing
+	// page form a first-party security-awareness page instead of following
+	// the page's configured redirect (Phase 9). The click still renders the
+	// landing page normally. Defaults to false so existing campaigns behave
+	// exactly as before.
 	TeachableMoment bool       `json:"teachable_moment" gorm:"column:teachable_moment;default:false"`
 	Channel         string     `json:"channel,omitempty" gorm:"column:channel;default:email"`
 	SMSProfileID    int64      `json:"-" gorm:"column:sms_profile_id"`

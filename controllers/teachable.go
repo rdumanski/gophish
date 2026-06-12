@@ -105,8 +105,9 @@ const teachableMomentHTML = `<!DOCTYPE html>
         </ul>
       </div>
       <div class="footer">
-        You're seeing this page because the link in the test email was opened.
-        Thanks for taking a moment to learn &mdash; awareness is the best defence.
+        You're seeing this page because information was entered into a simulated
+        phishing page. Thanks for taking a moment to learn &mdash; awareness is
+        the best defence.
       </div>
     </div>
   </div>
