@@ -671,6 +671,15 @@ func PostCampaign(c *Campaign, uid int64) error {
 				tx.Rollback()
 				return err
 			}
+			// Phase 10a: link this result to the canonical Recipient for the
+			// campaign owner, creating the person record on first sight.
+			recipientID, err := UpsertRecipient(tx, c.UserID, r.BaseRecipient)
+			if err != nil {
+				log.Error(err)
+				tx.Rollback()
+				return err
+			}
+			r.RecipientID = recipientID
 			processing := false
 			if r.SendDate.Before(c.CreatedDate) || r.SendDate.Equal(c.CreatedDate) {
 				r.Status = StatusSending

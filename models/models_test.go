@@ -60,6 +60,7 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	gdb.Delete(&PhishFilter{})
 	gdb.Delete(&SMSProfile{})
 	gdb.Delete(&SMSLog{})
+	gdb.Delete(&Recipient{})
 	// Drop the cached matcher between tests so an earlier test's
 	// policy doesn't bleed into the next one.
 	matcherCache.Store(nil)
