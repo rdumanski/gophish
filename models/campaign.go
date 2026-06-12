@@ -39,13 +39,17 @@ type Campaign struct {
 	SMSProfile    SMSProfile `json:"sms_profile,omitempty" gorm:"-"`
 }
 
-// CampaignResults is a struct representing the results from a campaign
+// CampaignResults is a struct representing the results from a campaign.
+// Results and Events are populated programmatically (not via GORM
+// relations); the gorm:"-" tags keep the schema parser from treating
+// them as foreign-key relations and blowing up the Scan() call. See
+// the matching note on CampaignSummary.Stats below.
 type CampaignResults struct {
 	Id      int64    `json:"id"`
 	Name    string   `json:"name"`
 	Status  string   `json:"status"`
-	Results []Result `json:"results,omitempty"`
-	Events  []Event  `json:"timeline,omitempty"`
+	Results []Result `json:"results,omitempty" gorm:"-"`
+	Events  []Event  `json:"timeline,omitempty" gorm:"-"`
 }
 
 // CampaignSummaries is a struct representing the overview of campaigns
@@ -63,7 +67,14 @@ type CampaignSummary struct {
 	CompletedDate time.Time     `json:"completed_date"`
 	Status        string        `json:"status"`
 	Name          string        `json:"name"`
-	Stats         CampaignStats `json:"stats"`
+	// Stats is computed on the fly from results+events and is not a DB
+	// column. GORM v2 used to silently ignore the untagged struct field
+	// in Scan() calls; once Phase 8b introduced new model types (SMSLog,
+	// SMSProfile) the schema parser became eager enough to trip on
+	// CampaignStats and complain "define a valid foreign key for
+	// relations". The explicit gorm:"-" makes the intent clear and
+	// unsticks the Scan().
+	Stats CampaignStats `json:"stats" gorm:"-"`
 }
 
 // CampaignStats is a struct representing the statistics for a single campaign
@@ -161,23 +172,20 @@ func (c *Campaign) Validate() error {
 	if c.Page.Name == "" {
 		return ErrPageNotSpecified
 	}
-	// Channel-specific sending-profile + template-shape checks. Email is
-	// the default for backward compatibility — empty Channel string is
-	// treated as "email".
+	// Channel-specific sending-profile presence check. Email is the
+	// default for backward compatibility — empty Channel is treated as
+	// "email". The campaign-vs-template channel match is enforced after
+	// PostCampaign loads the template by name, since at this point
+	// c.Template only carries the user-supplied Name and the actual
+	// Channel column hasn't been read from the DB yet.
 	switch c.Channel {
 	case "", "email":
 		if c.SMTP.Name == "" {
 			return ErrSMTPNotSpecified
 		}
-		if c.Template.Channel != "" && c.Template.Channel != "email" {
-			return ErrChannelMismatch
-		}
 	case "sms":
 		if c.SMSProfile.Name == "" {
 			return ErrSMSProfileNotSpecified
-		}
-		if c.Template.Channel != "sms" {
-			return ErrChannelMismatch
 		}
 	default:
 		return ErrUnknownCampaignChannel
@@ -489,6 +497,27 @@ func GetCampaignMailContext(id int64, uid int64) (Campaign, error) {
 	return c, nil
 }
 
+// GetCampaignSMSContext is the SMS-channel parallel of
+// GetCampaignMailContext: loads campaign + sms_profile + template,
+// no SMTP / Headers / Attachments (none of which apply to SMS).
+// Used by the SMS worker to avoid one query per recipient.
+func GetCampaignSMSContext(id int64, uid int64) (Campaign, error) {
+	c := Campaign{}
+	err := db.Where("id = ?", id).Where("user_id = ?", uid).First(&c).Error
+	if err != nil {
+		return c, err
+	}
+	err = db.Table("sms_profiles").Where("id=?", c.SMSProfileID).First(&c.SMSProfile).Error
+	if err != nil {
+		return c, err
+	}
+	err = db.Table("templates").Where("id=?", c.TemplateID).First(&c.Template).Error
+	if err != nil {
+		return c, err
+	}
+	return c, nil
+}
+
 // GetCampaign returns the campaign, if it exists, specified by the given id and user_id.
 func GetCampaign(id int64, uid int64) (Campaign, error) {
 	c := Campaign{}
@@ -595,6 +624,26 @@ func PostCampaign(c *Campaign, uid int64) error {
 	}
 	c.Template = t
 	c.TemplateID = t.Id
+	// Now that the actual template is loaded, enforce campaign-vs-template
+	// channel match. The check can't live in Validate because at that
+	// point only the template's Name has been supplied — Channel is read
+	// from the DB here.
+	expectedChannel := c.Channel
+	if expectedChannel == "" {
+		expectedChannel = "email"
+	}
+	templateChannel := c.Template.Channel
+	if templateChannel == "" {
+		templateChannel = "email"
+	}
+	if expectedChannel != templateChannel {
+		log.WithFields(logrus.Fields{
+			"campaign_channel": expectedChannel,
+			"template":         c.Template.Name,
+			"template_channel": templateChannel,
+		}).Error("campaign and template channel must match")
+		return ErrChannelMismatch
+	}
 	// Check to make sure the page exists
 	p, err := GetPageByName(c.Page.Name, uid)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -608,19 +657,37 @@ func PostCampaign(c *Campaign, uid int64) error {
 	}
 	c.Page = p
 	c.PageID = p.Id
-	// Check to make sure the sending profile exists
-	s, err := GetSMTPByName(c.SMTP.Name, uid)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		log.WithFields(logrus.Fields{
-			"smtp": c.SMTP.Name,
-		}).Error("Sending profile does not exist")
-		return ErrSMTPNotFound
-	} else if err != nil {
-		log.Error(err)
-		return err
+	// Resolve the sending profile based on Channel. Email campaigns use
+	// SMTP (existing behavior); SMS campaigns use SMSProfile and skip
+	// the SMTP lookup entirely.
+	switch c.Channel {
+	case "", "email":
+		s, err := GetSMTPByName(c.SMTP.Name, uid)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.WithFields(logrus.Fields{
+				"smtp": c.SMTP.Name,
+			}).Error("Sending profile does not exist")
+			return ErrSMTPNotFound
+		} else if err != nil {
+			log.Error(err)
+			return err
+		}
+		c.SMTP = s
+		c.SMTPId = s.Id
+	case "sms":
+		sp, err := GetSMSProfileByName(c.SMSProfile.Name, uid)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.WithFields(logrus.Fields{
+				"sms_profile": c.SMSProfile.Name,
+			}).Error("SMS sending profile does not exist")
+			return ErrSMSProfileNotSpecified
+		} else if err != nil {
+			log.Error(err)
+			return err
+		}
+		c.SMSProfile = sp
+		c.SMSProfileID = sp.Id
 	}
-	c.SMTP = s
-	c.SMTPId = s.Id
 	// Insert into the DB
 	err = db.Save(c).Error
 	if err != nil {
@@ -638,12 +705,30 @@ func PostCampaign(c *Campaign, uid int64) error {
 	for _, g := range c.Groups {
 		// Insert a result for each target in the group
 		for _, t := range g.Targets {
-			// Remove duplicate results - we should only
-			// send emails to unique email addresses.
-			if _, ok := resultMap[t.Email]; ok {
+			// For SMS campaigns, skip targets that have no phone
+			// (mixed-channel groups: a target with email-only is fine
+			// for the email channel but unreachable for SMS). Logged
+			// at warn level so the operator notices and can curate.
+			if c.Channel == "sms" && t.Phone == "" {
+				log.WithFields(logrus.Fields{
+					"campaign": c.Name,
+					"email":    t.Email,
+					"group":    g.Name,
+				}).Warn("skipping target without phone for SMS campaign")
 				continue
 			}
-			resultMap[t.Email] = true
+			// Dedup by the contact field that matters for this channel
+			// — email for email campaigns, phone for SMS campaigns.
+			// Avoids the surprising "two results, same SMS to the same
+			// number" outcome when a phone shows up in two groups.
+			dedupKey := t.Email
+			if c.Channel == "sms" {
+				dedupKey = t.Phone
+			}
+			if _, ok := resultMap[dedupKey]; ok {
+				continue
+			}
+			resultMap[dedupKey] = true
 			sendDate := c.generateSendDate(recipientIndex, totalRecipients)
 			r := &Result{
 				BaseRecipient: BaseRecipient{
@@ -651,6 +736,7 @@ func PostCampaign(c *Campaign, uid int64) error {
 					Position:  t.Position,
 					FirstName: t.FirstName,
 					LastName:  t.LastName,
+					Phone:     t.Phone,
 				},
 				Status:       StatusScheduled,
 				CampaignID:   c.Id,
@@ -679,24 +765,47 @@ func PostCampaign(c *Campaign, uid int64) error {
 				return err
 			}
 			c.Results = append(c.Results, *r)
-			log.WithFields(logrus.Fields{
-				"email":     r.Email,
-				"send_date": sendDate,
-			}).Debug("creating maillog")
-			m := &MailLog{
-				UserID:     c.UserID,
-				CampaignID: c.Id,
-				RID:        r.RID,
-				SendDate:   sendDate,
-				Processing: processing,
-			}
-			err = tx.Save(m).Error
-			if err != nil {
+			// Branch on channel to write the right queue row.
+			if c.Channel == "sms" {
 				log.WithFields(logrus.Fields{
-					"email": t.Email,
-				}).Errorf("error creating maillog entry: %v", err)
-				tx.Rollback()
-				return err
+					"phone":     r.Phone,
+					"send_date": sendDate,
+				}).Debug("creating sms_log")
+				m := &SMSLog{
+					UserID:     c.UserID,
+					CampaignID: c.Id,
+					RID:        r.RID,
+					SendDate:   sendDate,
+					Processing: processing,
+				}
+				err = tx.Save(m).Error
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"phone": t.Phone,
+					}).Errorf("error creating sms_log entry: %v", err)
+					tx.Rollback()
+					return err
+				}
+			} else {
+				log.WithFields(logrus.Fields{
+					"email":     r.Email,
+					"send_date": sendDate,
+				}).Debug("creating maillog")
+				m := &MailLog{
+					UserID:     c.UserID,
+					CampaignID: c.Id,
+					RID:        r.RID,
+					SendDate:   sendDate,
+					Processing: processing,
+				}
+				err = tx.Save(m).Error
+				if err != nil {
+					log.WithFields(logrus.Fields{
+						"email": t.Email,
+					}).Errorf("error creating maillog entry: %v", err)
+					tx.Rollback()
+					return err
+				}
 			}
 			recipientIndex++
 		}
@@ -725,6 +834,13 @@ func DeleteCampaign(id int64) error {
 		log.Error(err)
 		return err
 	}
+	// Phase 8b — also clear any SMS-side queue rows. Email-only
+	// campaigns won't have any; the WHERE is a cheap no-op.
+	err = db.Where("campaign_id=?", id).Delete(&SMSLog{}).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
 	// Delete the campaign
 	err = db.Delete(&Campaign{Id: id}).Error
 	if err != nil {
@@ -745,6 +861,12 @@ func CompleteCampaign(id int64, uid int64) error {
 	}
 	// Delete any maillogs still set to be sent out, preventing future emails
 	err = db.Where("campaign_id=?", id).Delete(&MailLog{}).Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	// Phase 8b — same cleanup for SMS-side queue rows.
+	err = db.Where("campaign_id=?", id).Delete(&SMSLog{}).Error
 	if err != nil {
 		log.Error(err)
 		return err

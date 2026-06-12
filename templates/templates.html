@@ -2,7 +2,7 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <div class="row">
         <h1 class="page-header">
-            Email Templates
+            Templates
         </h1>
     </div>
     <div id="flashes" class="row"></div>
@@ -50,67 +50,81 @@
                     <input type="text" class="form-control" ng-model="template.name" placeholder="Template name" id="name"
                         autofocus />
                 </div>
+                <label class="control-label" for="channel">Channel:</label>
                 <div class="form-group">
-                    <button class="btn btn-danger" data-toggle="modal" data-backdrop="static" data-target="#importEmailModal"><i
-                            class="fa fa-envelope"></i>
-                        Import Email</button>
+                    <select class="form-control" id="channel">
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                    </select>
+                    <span class="text-muted" style="font-size:12px;">SMS templates use only the Text body — Subject, HTML, and attachments don't apply.</span>
+                </div>
+                <!-- Email-only controls — hidden when Channel = SMS -->
+                <div class="email-only">
+                    <div class="form-group">
+                        <button class="btn btn-danger" data-toggle="modal" data-backdrop="static" data-target="#importEmailModal"><i
+                                class="fa fa-envelope"></i>
+                            Import Email</button>
+                        {{if .AIEnabled}}
+                        <button class="btn btn-primary" data-toggle="modal" data-backdrop="static" data-target="#aiGenerateModal"><i
+                                class="fa fa-magic"></i>
+                            Draft with AI</button>
+                        {{end}}
+                    </div>
+                    <label class="control-label" for="envelope-sender">Envelope Sender: <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="This sender is shown to the user by most email clients. Defaults to the SMTP From as defined in the Sending Profile."></i></label>
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="First Last <test@example.com>" id="envelope-sender" />
+                    </div>
+                    <label class="control-label" for="subject">Subject:</label>
+                    <div class="form-group">
+                        <input type="text" class="form-control" placeholder="Email Subject" id="subject" />
+                    </div>
                     {{if .AIEnabled}}
-                    <button class="btn btn-primary" data-toggle="modal" data-backdrop="static" data-target="#aiGenerateModal"><i
-                            class="fa fa-magic"></i>
-                        Draft with AI</button>
+                    <div class="form-group">
+                        <button class="btn btn-info btn-sm" id="ai_score_button" data-toggle="modal" data-backdrop="static" data-target="#aiScoreModal" onclick="scoreTemplate()"><i class="fa fa-balance-scale"></i>
+                            Score with AI</button>
+                        <span class="text-muted" style="margin-left:8px;">Rate this draft 1–5 for how convincing it is.</span>
+                    </div>
                     {{end}}
                 </div>
-                <label class="control-label" for="envelope-sender">Envelope Sender: <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="This sender is shown to the user by most email clients. Defaults to the SMTP From as defined in the Sending Profile."></i></label>
-                <div class="form-group">
-                    <input type="text" class="form-control" placeholder="First Last <test@example.com>" id="envelope-sender" />
-                </div>
-                <label class="control-label" for="subject">Subject:</label>
-                <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Email Subject" id="subject" />
-                </div>
-                {{if .AIEnabled}}
-                <div class="form-group">
-                    <button class="btn btn-info btn-sm" id="ai_score_button" data-toggle="modal" data-backdrop="static" data-target="#aiScoreModal" onclick="scoreTemplate()"><i class="fa fa-balance-scale"></i>
-                        Score with AI</button>
-                    <span class="text-muted" style="margin-left:8px;">Rate this draft 1–5 for how convincing it is.</span>
-                </div>
-                {{end}}
-                <!-- Nav tabs -->
+                <!-- Nav tabs (HTML tab is hidden for SMS) -->
                 <ul class="nav nav-tabs" role="tablist">
                     <li class="active" role="text"><a href="#text" aria-controls="text" role="tab" data-toggle="tab">Text</a></li>
-                    <li role="html"><a href="#html" aria-controls="html" role="tab" data-toggle="tab">HTML</a></li>
+                    <li class="email-only" role="html"><a href="#html" aria-controls="html" role="tab" data-toggle="tab">HTML</a></li>
                 </ul>
                 <!-- Tab panes -->
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active" id="text">
                         <textarea rows="10" id="text_editor" class="gophish-editor form-control" placeholder="Plaintext"></textarea>
+                        <span id="sms_char_counter" class="text-muted sms-only" style="display:none; font-size:12px;">0 / 160 characters</span>
                     </div>
-                    <div role="tabpanel" class="tab-pane" id="html">
+                    <div role="tabpanel" class="tab-pane email-only" id="html">
                         <textarea id="html_editor"></textarea>
                     </div>
                 </div>
-                <div class="checkbox checkbox-primary">
-                    <input id="use_tracker_checkbox" type="checkbox" checked>
-                    <label for="use_tracker_checkbox">Add Tracking Image</label>
+                <div class="email-only">
+                    <div class="checkbox checkbox-primary">
+                        <input id="use_tracker_checkbox" type="checkbox" checked>
+                        <label for="use_tracker_checkbox">Add Tracking Image</label>
+                    </div>
+                    <span class="btn btn-danger btn-file"><i class="fa fa-plus"></i> Add Files
+                        <input id="attachmentUpload" type="file" onchange="attach(this.files)" multiple>
+                    </span>
+                    <br />
+                    <br />
+                    <table id="attachmentsTable" class="table">
+                        <thead>
+                            <tr>
+                                <th class="col-md-1 no-sort"></th>
+                                <th class="col-md-10">Name</th>
+                                <th class="col-md-1 no-sort"></th>
+                                <th class="datatable_hidden no-sort">Content</th>
+                                <th class="datatable_hidden no-sort">Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
-                <span class="btn btn-danger btn-file"><i class="fa fa-plus"></i> Add Files
-                    <input id="attachmentUpload" type="file" onchange="attach(this.files)" multiple>
-                </span>
-                <br />
-                <br />
-                <table id="attachmentsTable" class="table">
-                    <thead>
-                        <tr>
-                            <th class="col-md-1 no-sort"></th>
-                            <th class="col-md-10">Name</th>
-                            <th class="col-md-1 no-sort"></th>
-                            <th class="datatable_hidden no-sort">Content</th>
-                            <th class="datatable_hidden no-sort">Type</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
                 <hr>
             </div>
             <div class="modal-footer">

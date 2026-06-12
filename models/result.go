@@ -92,6 +92,52 @@ func (r *Result) HandleEmailBackoff(err error, sendDate time.Time) error {
 	return db.Save(r).Error
 }
 
+// HandleSMSSent updates a Result to indicate that the SMS has been
+// successfully accepted by the provider. Mirrors HandleEmailSent —
+// EventSent / EventSMSSent are status-equivalent for the purposes of
+// the funnel ("the dispatcher did its part"). Carrier-confirmed
+// delivery comes later via Phase 8c's Twilio status callback (which
+// adds EventSMSDelivered without changing Status).
+//
+// Details optionally carries provider receipt info ({"provider_id":
+// "SMxxx", "status": "queued"}) so the per-result timeline can show
+// what the upstream said.
+func (r *Result) HandleSMSSent(details EventDetails) error {
+	event, err := r.createEvent(EventSMSSent, details)
+	if err != nil {
+		return err
+	}
+	r.SendDate = event.Time
+	r.Status = EventSMSSent
+	r.ModifiedDate = event.Time
+	return db.Save(r).Error
+}
+
+// HandleSMSError mirrors HandleEmailError: terminal failure path after
+// retries are exhausted (or a permanent provider-side rejection).
+func (r *Result) HandleSMSError(err error) error {
+	event, err := r.createEvent(EventSMSError, EventError{Error: err.Error()})
+	if err != nil {
+		return err
+	}
+	r.Status = Error
+	r.ModifiedDate = event.Time
+	return db.Save(r).Error
+}
+
+// HandleSMSBackoff mirrors HandleEmailBackoff: transient failure, will
+// be retried by the dispatcher loop.
+func (r *Result) HandleSMSBackoff(err error, sendDate time.Time) error {
+	event, err := r.createEvent(EventSMSError, EventError{Error: err.Error()})
+	if err != nil {
+		return err
+	}
+	r.Status = StatusRetry
+	r.SendDate = sendDate
+	r.ModifiedDate = event.Time
+	return db.Save(r).Error
+}
+
 // HandleEmailOpened updates a Result in the case where the recipient opened the
 // email.
 func (r *Result) HandleEmailOpened(details EventDetails) error {

@@ -1,0 +1,82 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        SMS Sending Profiles
+    </h1>
+    <div id="flashes" class="row"></div>
+    <div class="row">
+        <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
+            data-target="#modal"><i class="fa fa-plus"></i> New SMS Profile</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">
+            No SMS profiles created yet. Add a Twilio (or other provider) profile to launch SMS phishing campaigns.
+        </div>
+    </div>
+    <div class="row">
+        <table id="profileTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th class="col-md-4">Name</th>
+                    <th>Provider</th>
+                    <th>From</th>
+                    <th>Last Modified Date</th>
+                    <th class="col-md-2 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()"><span
+                        aria-hidden="true">&times;</span></button>
+                <h4 class="modal-title" id="profileModalLabel">New SMS Profile</h4>
+            </div>
+            <div class="modal-body">
+                <div class="row" id="modal.flashes"></div>
+                <p class="text-muted">
+                    SMS phishing requires written authorization from your engagement scope.
+                    Twilio recommends 10DLC registration for US targets &mdash; unregistered numbers are aggressively filtered by US carriers.
+                </p>
+                <form>
+                    <div class="form-group">
+                        <label class="control-label" for="name">Name:</label>
+                        <input type="text" class="form-control" placeholder="Profile name" id="name" autofocus />
+                        <label class="control-label" for="provider">Provider:</label>
+                        <select class="form-control" id="provider">
+                            <option value="twilio">Twilio</option>
+                        </select>
+                        <label class="control-label" for="account_sid">Account SID: <i class="fa fa-question-circle"
+                                data-toggle="tooltip" data-placement="right" title="Twilio Account SID — starts with 'AC'."></i></label>
+                        <input type="text" class="form-control" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" id="account_sid" required />
+                        <label class="control-label" for="auth_token">Auth Token:</label>
+                        <input type="password" class="form-control" placeholder="Twilio Auth Token" id="auth_token" autocomplete="off" required />
+                        <label class="control-label" for="from_number">From Number: <i class="fa fa-question-circle"
+                                data-toggle="tooltip" data-placement="right" title="E.164 format (e.g. +15555551234). Required unless Messaging Service SID is set."></i></label>
+                        <input type="text" class="form-control" placeholder="+15555551234" id="from_number" />
+                        <label class="control-label" for="messaging_service_sid">Messaging Service SID (optional): <i class="fa fa-question-circle"
+                                data-toggle="tooltip" data-placement="right" title="Twilio Messaging Service SID (MGxxx...) — when set, Twilio picks a number out of the pool. Recommended for batches >1 recipient."></i></label>
+                        <input type="text" class="form-control" placeholder="MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" id="messaging_service_sid" />
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Save Profile</button>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/sms_profiles.min.js"></script>
+{{end}}

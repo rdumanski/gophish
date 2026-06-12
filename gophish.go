@@ -139,6 +139,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Same idempotent unlock for the SMS-side queue. Phase 8b.
+	if err := models.UnlockAllSMSLogs(); err != nil {
+		log.Fatal(err)
+	}
 
 	// Create our servers
 	adminOptions := []controllers.AdminServerOption{}

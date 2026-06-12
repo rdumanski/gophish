@@ -151,6 +151,144 @@ Out of scope (deferred):
 - Per-campaign overrides; filtered-vs-counted dashboard summary;
   auto-curated sandbox IP feed; POST/form-submit filtering.
 
+### Phase 8b SMS sending end-to-end (2026-05-09)
+
+Wires up the data model from 8a: SMS campaigns now actually send via
+Twilio, lifecycle the underlying SMSLog rows through the same
+exponential-backoff machinery as MailLog, and surface in the existing
+campaign-results UI. Phase 8c hardens with delivery callbacks, char
+counter polish, and opt-out (STOP/HELP) handling.
+
+New backend package — `sms/`:
+
+- **`sms/sender.go`** — `Sender` interface (`Send(ctx, Message) (Receipt, error)`),
+  `Message`/`Receipt` types, sentinel errors (`ErrUnregisteredFromNumber`,
+  `ErrInvalidRecipient`, `ErrCarrierBlocked`, `ErrRefused`,
+  `ErrUnsupportedProvider`). Mirrors the `ai.Generator` shape from
+  Phase 7a.
+- **`sms/twilio.go`** — `TwilioSender` against Twilio's REST API
+  using stdlib `net/http`. Deliberately no `twilio-go` SDK dep —
+  one endpoint, ~80 LOC, easier to audit, smaller binary. Maps Twilio
+  numeric error codes to the package sentinels (21211, 21217, 21610,
+  21614 → `ErrInvalidRecipient`; 21606, 21659, 21660, 21663 →
+  `ErrUnregisteredFromNumber`; 30007, 30032, 30034, 30036 →
+  `ErrCarrierBlocked`; 30030, 30450 → `ErrRefused`). Unknown codes
+  fall through as generic errors and the worker treats them as
+  retryable.
+- **`sms/twilio_test.go`** — `httptest.Server` stubs cover the happy
+  path, every sentinel mapping, the request shape (Basic auth, form
+  encoding, MessagingServiceSID-vs-From precedence), and the
+  fallthrough-as-retryable rule.
+- **`sms/worker.go`** — `Worker` interface + `SMSWorker` channel-based
+  dispatcher (mirror of `mailer.MailWorker`). Per-batch lifecycle:
+  load Sender once (`Job.GetSender`), then for each `Job`:
+  `Render` → `Sender.Send` → `Success(receipt)` /
+  `Backoff(retryable)` / `Error(permanent)`. `isPermanent`
+  classifies errors against the package sentinels.
+- **`sms/worker_test.go`** — in-package fakes (no models dep) cover
+  every routing arm: success, permanent-error, retryable-error,
+  sender-build failure (entire batch flunks), render failure.
+
+Model integration:
+
+- **`models/models.go`** — adds `EventSMSSent`, `EventSMSError`
+  constants. Phase 8c will add `EventSMSDelivered` for callback
+  arrivals.
+- **`models/result.go`** — adds `HandleSMSSent` /
+  `HandleSMSError` / `HandleSMSBackoff`. Same shape as the
+  email-side handlers; Status transitions to `EventSMSSent` /
+  `Error` / `StatusRetry`.
+- **`models/sms_log.go`** — extends the 8a stub:
+  - Queue lifecycle: `Backoff`, `Lock`, `Unlock`, `Error`, `Success(sms.Receipt)`.
+  - Worker plumbing: `Render() (sms.Message, error)` (executes
+    `Template.Text` against the recipient context, returns
+    `{To: r.Phone, From: campaign.SMSProfile.FromNumber, Body: rendered}`),
+    `GetSender() (sms.Sender, error)`, `CacheCampaign`.
+  - Compile-time assertion `var _ sms.Job = (*SMSLog)(nil)`.
+  - Helpers: `GetSMSLog`, `GetSMSLogsByCampaign`,
+    `GetQueuedSMSLogs`, `LockSMSLogs`, `UnlockAllSMSLogs`,
+    `MaxSMSSendAttempts`, `ErrMaxSMSSendAttempts`.
+- **`models/sms_profile.go`** — adds `Sender()` factory: switch on
+  `Provider` returns the right concrete `sms.Sender`. Today only
+  `"twilio"` is recognised; new providers slot in as additional case
+  arms.
+- **`models/campaign.go`** — `PostCampaign` branches on
+  `c.Channel`: SMS path loads `SMSProfile` (instead of SMTP), dedups
+  by phone (instead of email), skips targets without phone (logged at
+  warn), and writes `SMSLog` rows (instead of MailLog).
+  `DeleteCampaign` and `CompleteCampaign` also drop SMSLog rows for
+  the campaign. New `GetCampaignSMSContext(id, uid)` is the SMS
+  parallel of `GetCampaignMailContext`.
+
+Worker / startup integration:
+
+- **`worker/worker.go`** — `processCampaigns` now polls both
+  queues; SMS-side handling factored into `processSMSCampaigns`.
+  `LaunchCampaign` branches on `c.Channel` to call the right
+  channel-specific helper. `Start` runs both `mailer.Mailer.Start`
+  and `sms.Worker.Start` in their own goroutines off a shared
+  context. New `WithSMSWorker` option mirrors `WithMailer` for tests.
+- **`gophish.go`** — calls `models.UnlockAllSMSLogs()` at startup
+  (parallel of `UnlockAllMailLogs`).
+
+API + UI:
+
+- **`controllers/api/sms_profile.go`** + route registration in
+  `controllers/api/server.go` — `GET`/`POST /api/sms_profiles/`
+  and `GET`/`PUT`/`DELETE /api/sms_profiles/{id}`. Validation errors
+  surface as 400 with the offending rule named (mirrors how SMTP
+  CRUD handles the same).
+- **`templates/sms_profiles.html`** + **`static/js/src/app/sms_profiles.ts`**
+  — full SMS profile management page: list, create, edit, delete,
+  copy. Modal collects Provider (Twilio dropdown today), Account SID,
+  Auth Token, From Number, optional Messaging Service SID. New nav
+  link in `templates/nav.html`. Server-side template handler
+  `AdminServer.SMSProfiles` registered in `controllers/route.go`.
+- **`templates/templates.html`** + **`static/js/src/app/templates.ts`**
+  — Channel select on the Template editor modal. SMS templates hide
+  the email-only sections (envelope sender, subject, AI buttons,
+  HTML tab, attachments, tracker checkbox) via
+  `applyChannelView()`. Live char counter under the Text body shows
+  `N / 160 characters` and warns past the single-segment limit.
+  Title changed from "Email Templates" to "Templates" since the page
+  now hosts both kinds.
+- **`templates/campaigns.html`** + **`static/js/src/app/campaigns.ts`**
+  — Channel select on the campaign creation modal. SMS campaigns
+  swap the SMTP dropdown for an SMS Profile dropdown and hide the
+  Send Test Email button. SMS Profile list loaded silently (no
+  modalError on empty — operators without SMS configured shouldn't
+  get warned about it on every campaign create).
+- **`templates/groups.html`** + **`static/js/src/app/groups.ts`**
+  — Phone field on the manual target-add row, new Phone column in
+  the targets table. `addTarget` accepts a phone arg; dedups by
+  email when present, falls back to phone when not. Email's
+  `required` attribute removed since phone-only targets are valid.
+  CSV import: **`util/util.go`** parses an additional `phone` column
+  via `phoneRegex` and writes `BaseRecipient.Phone` — column-header
+  detection is case-insensitive.
+- **`build.mjs`** — adds `sms_profiles.ts` to the appFiles list so
+  the bundle ships.
+- **`static/js/src/app/common.ts`** — adds `api.SMSProfile` and
+  `api.SMSProfileId` entries.
+
+Deferred to 8c:
+
+- Twilio status callbacks (`/api/sms/callback/twilio`) for delivery
+  state reconciliation
+- Encoding-aware char counter (GSM-7 vs UCS-2 detection)
+- Opt-out (STOP/HELP) inbound message ingestion
+- URL shortening for the phish URL when the operator's domain is long
+- Compliance acknowledgement checkbox on SMS Profile creation
+- Hide "Opened" KPI / rename "Email Sent" labels for SMS campaigns in
+  dashboard + campaign_results pages (pure UI polish — campaigns
+  still work, opened just shows 0 since no pixel ever loads)
+- Per-result timeline "filtered as sandbox" badge for SMS click events
+- Test-send button in the SMS profile editor (needs a "validate
+  credentials" path against Twilio that doesn't burn an actual SMS)
+
+Known pre-existing flake: `internal/gomail::TestAttachments` continues
+to fail on Windows; not introduced here, CI on Linux unaffected.
+
 ### Phase 8a SMS data model groundwork (2026-05-09)
 
 First step in landing smishing (SMS phishing) campaigns. Pure data-model

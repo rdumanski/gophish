@@ -39,8 +39,10 @@ function launch() {
                 if (send_by_date != "") {
                     send_by_date = moment(send_by_date, "MMMM Do YYYY, h:mm a").utc().format()
                 }
+                const channel = ($("#campaign_channel").val() as string) || "email"
                 campaign = {
                     name: $("#name").val(),
+                    channel: channel,
                     template: {
                         name: $("#template").select2("data")[0].text
                     },
@@ -48,12 +50,14 @@ function launch() {
                     page: {
                         name: $("#page").select2("data")[0].text
                     },
-                    smtp: {
-                        name: $("#profile").select2("data")[0].text
-                    },
                     launch_date: moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(),
                     send_by_date: send_by_date || null,
                     groups: groups,
+                }
+                if (channel === "sms") {
+                    campaign.sms_profile = { name: $("#sms_profile").select2("data")[0].text }
+                } else {
+                    campaign.smtp = { name: $("#profile").select2("data")[0].text }
                 }
                 // Submit the campaign
                 api.campaigns.post(campaign)
@@ -123,8 +127,24 @@ function dismiss() {
     $("#page").val("").change();
     $("#url").val("");
     $("#profile").val("").change();
+    $("#sms_profile").val("").change();
+    $("#campaign_channel").val("email");
+    applyCampaignChannelView("email");
     $("#users").val("").change();
     $("#modal").modal('hide');
+}
+
+// applyCampaignChannelView toggles which sending-profile dropdown is
+// visible in the campaign creation modal. Mirrors the per-channel
+// toggling on the template editor.
+function applyCampaignChannelView(channel) {
+    if (channel === "sms") {
+        $(".campaign-email-only").hide();
+        $(".campaign-sms-only").show();
+    } else {
+        $(".campaign-email-only").show();
+        $(".campaign-sms-only").hide();
+    }
 }
 
 function deleteCampaign(idx) {
@@ -246,6 +266,30 @@ function setupOptions() {
                 }
             }
         });
+    // Phase 8b: also load SMS profiles. No modalError on empty — SMS
+    // is opt-in and most operators won't have one configured.
+    api.SMSProfile.get()
+        .success(function (profiles) {
+            if (profiles.length == 0) {
+                return
+            }
+            var sms_s2 = $.map(profiles, function (obj) {
+                obj.text = obj.name
+                return obj
+            });
+            var sms_select = $("#sms_profile.form-control")
+            sms_select.select2({
+                placeholder: "Select an SMS Profile",
+                data: sms_s2,
+            })
+            if (profiles.length === 1) {
+                sms_select.val(sms_s2[0].id)
+                sms_select.trigger('change.select2')
+            }
+        });
+    $("#campaign_channel").off('change').on('change', function () {
+        applyCampaignChannelView(($(this).val() as string) || "email")
+    })
 }
 
 function edit(campaign) {

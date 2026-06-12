@@ -20,6 +20,7 @@ const appFiles = [
     'groups.ts',
     'landing_pages.ts',
     'sending_profiles.ts',
+    'sms_profiles.ts',
     'settings.ts',
     'templates.ts',
     'gophish.ts',

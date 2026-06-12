@@ -28,33 +28,43 @@ function save(idx) {
         attachments: []
     }
     template.name = $("#name").val()
-    template.subject = $("#subject").val()
-    template.envelope_sender = $("#envelope-sender").val()
-    template.html = CKEDITOR.instances["html_editor"].getData();
-    // Fix the URL Scheme added by CKEditor (until we can remove it from the plugin)
-    template.html = template.html.replace(/https?:\/\/{{\.URL}}/gi, "{{.URL}}")
-    // If the "Add Tracker Image" checkbox is checked, add the tracker
-    if ($("#use_tracker_checkbox").prop("checked")) {
-        if (template.html.indexOf("{{.Tracker}}") == -1 &&
-            template.html.indexOf("{{.TrackingUrl}}") == -1) {
-            template.html = template.html.replace("</body>", "{{.Tracker}}</body>")
-        }
-    } else {
-        // Otherwise, remove the tracker
-        template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
-    }
+    template.channel = ($("#channel").val() as string) || "email"
     template.text = $("#text_editor").val()
     if (lastGeneratedBy) {
         template.generated_by = lastGeneratedBy
     }
-    // Add the attachments
-    $.each($("#attachmentsTable").DataTable().rows().data(), function (i, target) {
-        template.attachments.push({
-            name: unescapeHtml(target[1]),
-            content: target[3],
-            type: target[4],
+    if (template.channel === "sms") {
+        // SMS templates use only Text. The model rejects email-side
+        // fields explicitly, so don't even send them — keeps the JSON
+        // body small and the rejection messages predictable.
+        template.subject = ""
+        template.envelope_sender = ""
+        template.html = ""
+    } else {
+        template.subject = $("#subject").val()
+        template.envelope_sender = $("#envelope-sender").val()
+        template.html = CKEDITOR.instances["html_editor"].getData();
+        // Fix the URL Scheme added by CKEditor (until we can remove it from the plugin)
+        template.html = template.html.replace(/https?:\/\/{{\.URL}}/gi, "{{.URL}}")
+        // If the "Add Tracker Image" checkbox is checked, add the tracker
+        if ($("#use_tracker_checkbox").prop("checked")) {
+            if (template.html.indexOf("{{.Tracker}}") == -1 &&
+                template.html.indexOf("{{.TrackingUrl}}") == -1) {
+                template.html = template.html.replace("</body>", "{{.Tracker}}</body>")
+            }
+        } else {
+            // Otherwise, remove the tracker
+            template.html = template.html.replace("{{.Tracker}}</body>", "</body>")
+        }
+        // Add the attachments (email only)
+        $.each($("#attachmentsTable").DataTable().rows().data(), function (i, target) {
+            template.attachments.push({
+                name: unescapeHtml(target[1]),
+                content: target[3],
+                type: target[4],
+            })
         })
-    })
+    }
 
     if (idx != -1) {
         template.id = templates[idx].id
@@ -85,11 +95,55 @@ function dismiss() {
     $("#modal\\.flashes").empty()
     $("#attachmentsTable").dataTable().DataTable().clear().draw()
     $("#name").val("")
+    $("#channel").val("email")
+    applyChannelView("email")
     $("#subject").val("")
     $("#text_editor").val("")
     $("#html_editor").val("")
     lastGeneratedBy = ''
     $("#modal").modal('hide')
+}
+
+// applyChannelView toggles the email-only / sms-only sections in the
+// editor modal so SMS authors don't see (and can't accidentally fill
+// in) Subject / HTML / Attachments / tracker controls. Pure
+// presentation — the values are also blanked at save() time so a
+// stale field can't sneak through.
+function applyChannelView(channel) {
+    // Leading semicolons on the $() lines disambiguate ASI — without
+    // them TS parses the next-line `$(...)` as a call against the
+    // previous line's return value (TS2349).
+    if (channel === "sms") {
+        $(".email-only").hide();
+        $(".sms-only").show();
+        // If the HTML tab was the active one, snap back to Text — its
+        // <li> is now hidden and Bootstrap's tab pane state would
+        // otherwise leave the body blank.
+        ($('a[href="#text"]') as any).tab('show')
+        updateSMSCharCount()
+    } else {
+        $(".email-only").show();
+        $(".sms-only").hide();
+    }
+}
+
+// updateSMSCharCount shows the running character count under the Text
+// editor when channel = sms. Plain GSM-7 caps at 160 chars; one
+// non-GSM character (emoji, em-dash, smart quote) drops the cap to 70.
+// Phase 8c will add encoding-aware detection; 8b shows 160 as the soft
+// target with a warning past it.
+function updateSMSCharCount() {
+    const text = ($("#text_editor").val() as string) || ""
+    const len = text.length
+    const limit = 160
+    let label = `${len} / ${limit} characters`
+    if (len > limit) {
+        label += " — exceeds single SMS, will be split into segments"
+        $("#sms_char_counter").css("color", "#a94442")
+    } else {
+        $("#sms_char_counter").css("color", "")
+    }
+    $("#sms_char_counter").text(label)
 }
 
 var deleteTemplate = function (idx) {
@@ -197,6 +251,9 @@ function edit(idx) {
         $("#templateModalLabel").text("Edit Template")
         template = templates[idx]
         $("#name").val(template.name)
+        const ch = template.channel || "email"
+        $("#channel").val(ch)
+        applyChannelView(ch)
         $("#subject").val(template.subject)
         $("#envelope-sender").val(template.envelope_sender)
         $("#html_editor").val(template.html)
@@ -214,7 +271,7 @@ function edit(idx) {
             ])
         })
         attachmentsTable.rows.add(attachmentRows).draw()
-        if (template.html.indexOf("{{.Tracker}}") != -1) {
+        if ((template.html || "").indexOf("{{.Tracker}}") != -1) {
             $("#use_tracker_checkbox").prop("checked", true)
         } else {
             $("#use_tracker_checkbox").prop("checked", false)
@@ -222,6 +279,8 @@ function edit(idx) {
 
     } else {
         $("#templateModalLabel").text("New Template")
+        $("#channel").val("email")
+        applyChannelView("email")
     }
     // Handle Deletion
     $("#attachmentsTable").unbind('click').on("click", "span>i.fa-trash-o", function () {
@@ -524,6 +583,16 @@ $(document).ready(function () {
     });
     $("#importEmailModal").on('hidden.bs.modal', function (event) {
         $("#email_content").val("")
+    })
+    // Phase 8b: channel selector wiring. Toggles email-only sections
+    // and runs the SMS char counter on text changes.
+    $("#channel").on('change', function () {
+        applyChannelView(($(this).val() as string) || "email")
+    })
+    $("#text_editor").on('input', function () {
+        if (($("#channel").val() as string) === "sms") {
+            updateSMSCharCount()
+        }
     })
     CKEDITOR.on('dialogDefinition', function (ev) {
         // Take the dialog name and its definition from the event data.

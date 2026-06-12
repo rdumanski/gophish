@@ -116,32 +116,33 @@ func TestCampaignValidateSMSRequiresSMSProfile(t_ *testing.T) {
 	}
 }
 
-func TestCampaignValidateSMSRejectsEmailTemplate(t_ *testing.T) {
-	c := Campaign{
-		Name:       "c",
-		Channel:    "sms",
-		Groups:     []Group{{Name: "g"}},
-		Template:   Template{Name: "t", Channel: "email", Text: "hi", Subject: "x"},
-		Page:       Page{Name: "p"},
-		SMSProfile: SMSProfile{Name: "s"},
-	}
-	if err := c.Validate(); !errors.Is(err, ErrChannelMismatch) {
-		t_.Errorf("expected ErrChannelMismatch, got %v", err)
-	}
-}
+// Channel-match tests previously lived as Validate() unit tests, but
+// Validate runs against the user-supplied Campaign before the Template
+// is loaded from the DB by name — at that point Template.Channel is
+// always empty. The check now lives inside PostCampaign and is
+// exercised end-to-end by TestPostCampaignChannelMismatch below, which
+// goes through the real load path.
 
-func TestCampaignValidateEmailRejectsSMSTemplate(t_ *testing.T) {
-	c := Campaign{
-		Name:     "c",
-		Channel:  "email",
-		Groups:   []Group{{Name: "g"}},
-		Template: Template{Name: "t", Channel: "sms", Text: "hi"},
-		Page:     Page{Name: "p"},
-		SMTP:     SMTP{Name: "s"},
+func (s *ModelsSuite) TestPostCampaignChannelMismatch(c *check.C) {
+	// Build the standard email-channel deps (group + email template +
+	// page + SMTP), then ask for an "sms" campaign against the email
+	// template. PostCampaign loads the template by name, sees its
+	// Channel is "email", and rejects with ErrChannelMismatch.
+	camp := s.createCampaignDependencies(c)
+	smsProfile := SMSProfile{
+		UserID:     1,
+		Name:       "T",
+		Provider:   "twilio",
+		AccountSID: "AC1",
+		AuthToken:  "tok",
+		FromNumber: "+15005550006",
 	}
-	if err := c.Validate(); !errors.Is(err, ErrChannelMismatch) {
-		t_.Errorf("expected ErrChannelMismatch, got %v", err)
-	}
+	c.Assert(PostSMSProfile(&smsProfile), check.IsNil)
+	camp.Channel = "sms"
+	camp.SMSProfile = smsProfile
+	camp.SMTP = SMTP{} // unused for SMS but Validate would reject it being unset before the load
+	err := PostCampaign(&camp, camp.UserID)
+	c.Assert(errors.Is(err, ErrChannelMismatch), check.Equals, true)
 }
 
 func TestCampaignValidateEmailDefaultUnchanged(t_ *testing.T) {

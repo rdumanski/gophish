@@ -61,6 +61,13 @@ const (
 	EventDataSubmit    string = "Submitted Data"
 	EventReported      string = "Email Reported"
 	EventProxyRequest  string = "Proxied request"
+	// Phase 8b — SMS-channel events. EventSMSSent is the parallel of
+	// EventSent for SMS campaigns (provider accepted the message);
+	// EventSMSError mirrors EventSendingError after backoff/error
+	// retries are exhausted. Phase 8c will add EventSMSDelivered when
+	// Twilio status callbacks come in to confirm carrier delivery.
+	EventSMSSent  string = "SMS Sent"
+	EventSMSError string = "Error Sending SMS"
 	StatusSuccess      string = "Success"
 	StatusQueued       string = "Queued"
 	StatusSending      string = "Sending"

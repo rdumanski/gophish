@@ -35,14 +35,22 @@ type PhishingTemplateContext struct {
 
 // NewPhishingTemplateContext returns a populated PhishingTemplateContext,
 // parsing the correct fields from the provided TemplateContext and recipient.
+//
+// SMS campaigns have no email-style From address — they use a phone
+// number set on the SMSProfile and don't expose a {{.From}} variable
+// the way email templates do. When getFromAddress returns empty, leave
+// the From field blank rather than failing the whole render.
 func NewPhishingTemplateContext(ctx TemplateContext, r BaseRecipient, rid string) (PhishingTemplateContext, error) {
-	f, err := mail.ParseAddress(ctx.getFromAddress())
-	if err != nil {
-		return PhishingTemplateContext{}, err
-	}
-	fn := f.Name
-	if fn == "" {
-		fn = f.Address
+	var fn string
+	if addr := ctx.getFromAddress(); addr != "" {
+		f, err := mail.ParseAddress(addr)
+		if err != nil {
+			return PhishingTemplateContext{}, err
+		}
+		fn = f.Name
+		if fn == "" {
+			fn = f.Address
+		}
 	}
 	templateURL, err := ExecuteTemplate(ctx.getBaseURL(), r)
 	if err != nil {

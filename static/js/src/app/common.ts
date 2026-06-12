@@ -128,6 +128,15 @@ export const api = {
         put: (smtp) => query('/smtp/' + smtp.id, 'PUT', smtp, false),
         delete: (id) => query('/smtp/' + id, 'DELETE', {}, false),
     },
+    SMSProfile: {
+        get: () => query('/sms_profiles/', 'GET', {}, false),
+        post: (p) => query('/sms_profiles/', 'POST', p, false),
+    },
+    SMSProfileId: {
+        get: (id) => query('/sms_profiles/' + id, 'GET', {}, false),
+        put: (p) => query('/sms_profiles/' + p.id, 'PUT', p, false),
+        delete: (id) => query('/sms_profiles/' + id, 'DELETE', {}, false),
+    },
     IMAP: {
         get: () => query('/imap/', 'GET', {}, false),
         post: (e) => query('/imap/', 'POST', e, false),

@@ -10,7 +10,8 @@ function save(id) {
             first_name: unescapeHtml(target[0]),
             last_name: unescapeHtml(target[1]),
             email: unescapeHtml(target[2]),
-            position: unescapeHtml(target[3])
+            phone: unescapeHtml(target[3]),
+            position: unescapeHtml(target[4])
         })
     })
     var group: any = {
@@ -83,6 +84,7 @@ function edit(id) {
                       escapeHtml(record.first_name),
                       escapeHtml(record.last_name),
                       escapeHtml(record.email),
+                      escapeHtml(record.phone || ""),
                       escapeHtml(record.position),
                       '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
                   ])
@@ -116,6 +118,7 @@ function edit(id) {
                     record.first_name,
                     record.last_name,
                     record.email,
+                    record.phone || "",
                     record.position);
             });
             targets.DataTable().draw();
@@ -192,31 +195,35 @@ var deleteGroup = function (id) {
     })
 }
 
-function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
+function addTarget(firstNameInput, lastNameInput, emailInput, phoneInput, positionInput) {
     // Create new data row.
-    var email = escapeHtml(emailInput).toLowerCase();
+    var email = (emailInput || "") ? escapeHtml(emailInput).toLowerCase() : "";
+    var phone = phoneInput ? escapeHtml(phoneInput) : "";
+    if (!email && !phone) {
+        // Skip — server would reject the row, no point queuing it.
+        return;
+    }
     var newRow = [
-        escapeHtml(firstNameInput),
-        escapeHtml(lastNameInput),
+        escapeHtml(firstNameInput || ""),
+        escapeHtml(lastNameInput || ""),
         email,
-        escapeHtml(positionInput),
+        phone,
+        escapeHtml(positionInput || ""),
         '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
     ];
 
-    // Check table to see if email already exists.
+    // Dedup key prefers email when present (existing behaviour for
+    // email-only campaigns), falls back to phone for phone-only rows.
     var targetsTable = targets.DataTable();
+    var dedupKey = email || phone;
+    var dedupColumn = email ? 2 : 3;
     var existingRowIndex = targetsTable
-        .column(2, {
-            order: "index"
-        }) // Email column has index of 2
+        .column(dedupColumn, { order: "index" })
         .data()
-        .indexOf(email);
-    // Update or add new row as necessary.
+        .indexOf(dedupKey);
     if (existingRowIndex >= 0) {
         targetsTable
-            .row(existingRowIndex, {
-                order: "index"
-            })
+            .row(existingRowIndex, { order: "index" })
             .data(newRow);
     } else {
         targetsTable.row.add(newRow);
@@ -281,6 +288,7 @@ $(document).ready(function () {
             $("#firstName").val(),
             $("#lastName").val(),
             $("#email").val(),
+            $("#phone").val(),
             $("#position").val());
         targets.DataTable().draw();
 

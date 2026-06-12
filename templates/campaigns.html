@@ -87,7 +87,13 @@
                 <div class="form-group">
                     <label for="name">Name:</label>
                     <input type="text" class="form-control" id="name" placeholder="Campaign name" autofocus>
-                    <label class="control-label" for="template">Email Template:</label>
+                    <label class="control-label" for="campaign_channel">Channel:</label>
+                    <select class="form-control" id="campaign_channel">
+                        <option value="email">Email</option>
+                        <option value="sms">SMS</option>
+                    </select>
+                    <span class="text-muted" style="font-size:12px;">SMS campaigns require an SMS profile and skip targets that have no phone number.</span>
+                    <label class="control-label" for="template">Template:</label>
                     <select class="form-control" placeholder="Template Name" id="template" />
                     <option></option>
                     </select>
@@ -105,22 +111,32 @@
                             <input type="text" class="form-control" id="launch_date" />
                         </div>
                         <div class="col-md-6">
-                            <label class="control-label" for="delay">Send Emails By (Optional)
-                                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="If specified, Gophish will send emails evenly between the campaign launch and this date."></i>
+                            <label class="control-label" for="delay">Send By (Optional)
+                                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="If specified, Gophish will spread sends evenly between the campaign launch and this date."></i>
                             </label>
                             <input type="text" class="form-control" id="send_by_date" autocomplete="random-data"/> <!--Chrome ignores autocomplete="off".-->
                         </div>
                     </div>
-                    <label class="control-label" for="profile">Sending Profile:</label>
-                    <div class="input-group">
-                        <select class="form-control" placeholder="Sending Profile" id="profile" />
+                    <!-- Email-only sending profile -->
+                    <div class="campaign-email-only">
+                        <label class="control-label" for="profile">Sending Profile:</label>
+                        <div class="input-group">
+                            <select class="form-control" placeholder="Sending Profile" id="profile" />
+                            <option></option>
+                            </select>
+                            <span class="input-group-btn">
+                                <button type="button" data-toggle="modal" data-backdrop="static" data-target="#sendTestEmailModal"
+                                    class="btn btn-primary button">
+                                    <i class="fa fa-envelope"></i> Send Test Email</button>
+                            </span>
+                        </div>
+                    </div>
+                    <!-- SMS-only sending profile -->
+                    <div class="campaign-sms-only" style="display:none;">
+                        <label class="control-label" for="sms_profile">SMS Profile:</label>
+                        <select class="form-control" placeholder="SMS Profile" id="sms_profile" />
                         <option></option>
                         </select>
-                        <span class="input-group-btn">
-                            <button type="button" data-toggle="modal" data-backdrop="static" data-target="#sendTestEmailModal"
-                                class="btn btn-primary button">
-                                <i class="fa fa-envelope"></i> Send Test Email</button>
-                        </span>
                     </div>
                     <label class="control-label" for="users">Groups:</label>
                     <select class="form-control" id="users" multiple="multiple"></select>

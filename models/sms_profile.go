@@ -7,6 +7,7 @@ import (
 	"time"
 
 	log "github.com/rdumanski/gophish/logger"
+	"github.com/rdumanski/gophish/sms"
 )
 
 // SMSProfile is the SMS analog of SMTP — a per-user, named provider
@@ -151,4 +152,21 @@ func DeleteSMSProfile(id int64, uid int64) error {
 		log.Error(err)
 	}
 	return err
+}
+
+// Sender constructs the provider client this profile describes. Switch
+// arm grows when new providers are added in 8c — each new arm matches
+// a SupportedSMSProviders key.
+func (s *SMSProfile) Sender() (sms.Sender, error) {
+	switch s.Provider {
+	case "", "twilio":
+		return sms.NewTwilio(sms.TwilioConfig{
+			AccountSID:          s.AccountSID,
+			AuthToken:           s.AuthToken,
+			From:                s.FromNumber,
+			MessagingServiceSID: s.MessagingServiceSID,
+		})
+	default:
+		return nil, fmt.Errorf("%w: %s", sms.ErrUnsupportedProvider, s.Provider)
+	}
 }

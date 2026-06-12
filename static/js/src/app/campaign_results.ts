@@ -63,6 +63,18 @@ var statuses: Record<string, any> = {
         icon: "fa-times",
         point: "ct-point-error"
     },
+    "SMS Sent": {
+        color: "#1abc9c",
+        label: "label-success",
+        icon: "fa-mobile",
+        point: "ct-point-sent"
+    },
+    "Error Sending SMS": {
+        color: "#6c7a89",
+        label: "label-default",
+        icon: "fa-times",
+        point: "ct-point-error"
+    },
     "Submitted Data": {
         color: "#f05b4f",
         label: "label-danger",
@@ -99,22 +111,60 @@ var statuses: Record<string, any> = {
     }
 }
 
-var statusMapping = {
+// statusMapping and progressListing come in two shapes — one for email
+// campaigns (the historical flow) and one for SMS (Phase 8b). The
+// channel-correct version is selected per-campaign by configureChannel()
+// once the campaign is fetched. The shared object reference is what the
+// rest of the file reads, so callers don't need a per-call switch.
+var statusMappingEmail: Record<string, string> = {
     "Email Sent": "sent",
     "Email Opened": "opened",
     "Clicked Link": "clicked",
     "Submitted Data": "submitted_data",
     "Email Reported": "reported",
 }
+var statusMappingSMS: Record<string, string> = {
+    "SMS Sent": "sent",
+    "Clicked Link": "clicked",
+    "Submitted Data": "submitted_data",
+}
 
-// This is an underwhelming attempt at an enum
-// until I have time to refactor this appropriately.
-var progressListing = [
+// progressListing drives the funnel-backfill: receiving "Clicked Link"
+// implies the recipient also passed every earlier step. SMS skips the
+// "Opened" step entirely (no HTML body, no tracking pixel).
+var progressListingEmail = [
     "Email Sent",
     "Email Opened",
     "Clicked Link",
     "Submitted Data"
 ]
+var progressListingSMS = [
+    "SMS Sent",
+    "Clicked Link",
+    "Submitted Data"
+]
+
+var statusMapping = statusMappingEmail
+var progressListing = progressListingEmail
+
+// configureChannel adjusts the per-page UI to the channel the loaded
+// campaign uses. Called once after api.campaignId.results returns.
+//   - swaps statusMapping / progressListing to the SMS variants
+//   - hides the Opened pie chart
+//   - renames the "Email" recipient-column header to "Phone"
+function configureChannel(channel) {
+    if (channel === "sms") {
+        statusMapping = statusMappingSMS
+        progressListing = progressListingSMS
+        $("#opened_chart").hide()
+        $('#resultsTable thead th:contains("Email")').text("Phone")
+    } else {
+        statusMapping = statusMappingEmail
+        progressListing = progressListingEmail
+        $("#opened_chart").show()
+        $('#resultsTable thead th:contains("Phone")').text("Email")
+    }
+}
 
 var campaign: any = {}
 var bubbles = []
@@ -733,6 +783,10 @@ function load() {
                 $("#campaignResults").show()
                 // Set the title
                 $("#page-title").text("Results for " + c.name)
+                // Phase 8b: pick the right channel-specific funnel + chart
+                // configuration. Falls back to "email" when the field is
+                // missing (legacy campaigns predating the channel column).
+                configureChannel(((c.template && c.template.channel) || "email"))
                 if (c.status == "Completed") {
                     ($('#complete_button')[0] as HTMLButtonElement).disabled = true;
                     $('#complete_button').text('Completed!');
@@ -795,13 +849,18 @@ function load() {
                 Object.keys(statusMapping).forEach(function (k) {
                     email_series_data[k] = 0
                 });
+                const isSMS = ((campaign.template && campaign.template.channel) || "email") === "sms"
                 $.each(campaign.results, function (i, result) {
+                    // SMS recipients show their phone in the same column the
+                    // email page uses for the email address — the column
+                    // header is swapped accordingly in configureChannel.
+                    const contact = isSMS ? (result.phone || "") : (result.email || "")
                     resultsTable.row.add([
                         result.id,
                         "<i id=\"caret\" class=\"fa fa-caret-right\"></i>",
                         escapeHtml(result.first_name) || "",
                         escapeHtml(result.last_name) || "",
-                        escapeHtml(result.email) || "",
+                        escapeHtml(contact),
                         escapeHtml(result.position) || "",
                         result.status,
                         result.reported,
