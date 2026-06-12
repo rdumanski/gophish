@@ -36,6 +36,10 @@ type Result struct {
 	SendDate     time.Time `json:"send_date"`
 	Reported     bool      `json:"reported" gorm:"not null"`
 	ModifiedDate time.Time `json:"modified_date"`
+	// RecipientID links this result to the canonical Recipient (person) for
+	// the campaign owner (Phase 10a). Zero/NULL when the recipient has no
+	// email to key on. Set on creation in PostCampaign.
+	RecipientID int64 `json:"-" gorm:"column:recipient_id"`
 	BaseRecipient
 }
 
