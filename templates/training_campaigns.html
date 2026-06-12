@@ -1,0 +1,81 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        {{.Title}}
+    </h1>
+    <div id="flashes" class="row"></div>
+    <div class="row">
+        <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
+            data-target="#modal">
+            <i class="fa fa-plus"></i> New Training Campaign</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">
+            No training campaigns yet. Assign a module to a group to get started.
+        </div>
+    </div>
+    <div class="row">
+        <table id="campaignTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th class="col-md-3 no-sort">Name</th>
+                    <th class="col-md-2 no-sort">Due Date</th>
+                    <th class="col-md-4 no-sort">Completion</th>
+                    <th class="col-md-2 no-sort">Created</th>
+                    <th class="col-md-1 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="campaignModalLabel">New Training Campaign</h4>
+            </div>
+            <div class="modal-body" id="modal_body">
+                <div class="row" id="modal.flashes"></div>
+
+                <label class="control-label" for="name">Name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="Campaign name" id="name" required autofocus />
+                </div>
+
+                <label class="control-label" for="module">Training Module:</label>
+                <div class="form-group">
+                    <select class="form-control" id="module"></select>
+                </div>
+
+                <label class="control-label" for="due_date">Due Date (optional):</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" id="due_date" autocomplete="off" />
+                </div>
+
+                <label class="control-label" for="groups">Groups:</label>
+                <div class="form-group">
+                    <select class="form-control" id="groups" multiple="multiple"></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Create Campaign</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/training_campaigns.min.js"></script>
+{{end}}

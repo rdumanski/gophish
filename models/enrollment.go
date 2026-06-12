@@ -32,6 +32,9 @@ type Enrollment struct {
 	AssignedDate  time.Time `json:"assigned_date"`
 	StartedDate   time.Time `json:"started_date"`
 	CompletedDate time.Time `json:"completed_date"`
+	// TrainingCampaignID links the enrollment to the campaign that created it
+	// (Phase 11a). Zero/NULL for standalone enrollments made via the 10c API.
+	TrainingCampaignID int64 `json:"training_campaign_id" gorm:"column:training_campaign_id"`
 }
 
 // ErrEnrollmentRecipientRequired is returned when no recipient could be
@@ -73,10 +76,41 @@ func generateUniqueEnrollmentToken(tx *gorm.DB) (string, error) {
 	}
 }
 
+// createEnrollment upserts the recipient (Phase 10a) and inserts an enrollment
+// on the provided transaction. campaignID is 0 for standalone enrollments.
+// Callers validate module ownership and own the transaction so a whole
+// campaign's enrollments commit atomically.
+func createEnrollment(tx *gorm.DB, uid int64, br BaseRecipient, moduleID int64, campaignID int64) (Enrollment, error) {
+	e := Enrollment{}
+	recipientID, err := UpsertRecipient(tx, uid, br)
+	if err != nil {
+		return e, err
+	}
+	if recipientID == 0 {
+		return e, ErrEnrollmentRecipientRequired
+	}
+	token, err := generateUniqueEnrollmentToken(tx)
+	if err != nil {
+		return e, err
+	}
+	e = Enrollment{
+		UserID:             uid,
+		RecipientID:        recipientID,
+		ModuleID:           moduleID,
+		TrainingCampaignID: campaignID,
+		Token:              token,
+		Status:             EnrollmentAssigned,
+		AssignedDate:       time.Now().UTC(),
+	}
+	if err := tx.Save(&e).Error; err != nil {
+		return e, err
+	}
+	return e, nil
+}
+
 // CreateEnrollmentByEmail upserts the recipient (Phase 10a) for the given
-// email and creates an enrollment in moduleID, all in one transaction. It is
-// the operator entry point used by the enrollment API. Phase 11 will add a
-// recipient-id path for assigning whole groups.
+// email and creates a standalone enrollment in moduleID, in one transaction.
+// It is the operator entry point used by the 10c enrollment API.
 func CreateEnrollmentByEmail(uid int64, br BaseRecipient, moduleID int64) (Enrollment, error) {
 	e := Enrollment{}
 	if br.Email == "" {
@@ -86,33 +120,11 @@ func CreateEnrollmentByEmail(uid int64, br BaseRecipient, moduleID int64) (Enrol
 		return e, ErrEnrollmentModuleNotFound
 	}
 	tx := db.Begin()
-	recipientID, err := UpsertRecipient(tx, uid, br)
+	e, err := createEnrollment(tx, uid, br, moduleID, 0)
 	if err != nil {
 		tx.Rollback()
 		log.Error(err)
-		return e, err
-	}
-	if recipientID == 0 {
-		tx.Rollback()
-		return e, ErrEnrollmentRecipientRequired
-	}
-	token, err := generateUniqueEnrollmentToken(tx)
-	if err != nil {
-		tx.Rollback()
-		return e, err
-	}
-	e = Enrollment{
-		UserID:       uid,
-		RecipientID:  recipientID,
-		ModuleID:     moduleID,
-		Token:        token,
-		Status:       EnrollmentAssigned,
-		AssignedDate: time.Now().UTC(),
-	}
-	if err := tx.Save(&e).Error; err != nil {
-		tx.Rollback()
-		log.Error(err)
-		return e, err
+		return Enrollment{}, err
 	}
 	return e, tx.Commit().Error
 }

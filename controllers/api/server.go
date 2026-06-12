@@ -90,6 +90,8 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/training_modules/{id:[0-9]+}", as.TrainingModule)
 	router.HandleFunc("/enrollments/", as.Enrollments)
 	router.HandleFunc("/enrollments/{id:[0-9]+}", as.Enrollment)
+	router.HandleFunc("/training_campaigns/", as.TrainingCampaigns)
+	router.HandleFunc("/training_campaigns/{id:[0-9]+}", as.TrainingCampaign)
 	router.HandleFunc("/pages/", as.Pages)
 	router.HandleFunc("/pages/{id:[0-9]+}", as.Page)
 	router.HandleFunc("/smtp/", as.SendingProfiles)
