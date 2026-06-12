@@ -261,6 +261,16 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 		http.NotFound(w, r)
+		return
+	}
+	// Phase 9: if this campaign uses teachable moments, a recipient who has
+	// just submitted the form is shown the first-party education page instead
+	// of the page's configured redirect. The click (GET) still renders the
+	// landing page normally, so the open -> click -> submit funnel (and the
+	// "Submitted Data" event) is preserved.
+	if c.TeachableMoment && r.Method == http.MethodPost {
+		renderTeachableMoment(w, r, ptx)
+		return
 	}
 	renderPhishResponse(w, r, ptx, p)
 }

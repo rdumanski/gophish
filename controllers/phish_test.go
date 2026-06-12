@@ -362,6 +362,92 @@ func TestTransparencyRequest(t *testing.T) {
 	transparencyRequest(t, ctx, result, rid, "/report")
 }
 
+func TestTeachableMoment(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	// A redirect is configured so we can prove the teachable moment takes
+	// precedence over it on submit.
+	p := models.Page{
+		Name:        "Teachable Landing Page",
+		HTML:        "<html>Landing Page</html>",
+		RedirectURL: "http://example.com/should-not-be-followed",
+		UserID:      1,
+	}
+	if err := models.PostPage(&p); err != nil {
+		t.Fatalf("error posting new page: %v", err)
+	}
+	smtp, _ := models.GetSMTP(1, 1)
+	template, _ := models.GetTemplate(1, 1)
+	group, _ := models.GetGroup(1, 1)
+
+	campaign := models.Campaign{Name: "Teachable campaign", TeachableMoment: true}
+	campaign.UserID = 1
+	campaign.Template = template
+	campaign.Page = p
+	campaign.SMTP = smtp
+	campaign.Groups = []models.Group{group}
+	if err := models.PostCampaign(&campaign, campaign.UserID); err != nil {
+		t.Fatalf("error creating campaign: %v", err)
+	}
+	result := campaign.Results[0]
+
+	// On click (GET) the normal landing page is shown, NOT the teachable page,
+	// so the recipient can still reach the form and submit.
+	clickResp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.RID))
+	if err != nil {
+		t.Fatalf("error requesting / endpoint: %v", err)
+	}
+	defer clickResp.Body.Close()
+	clickBody, err := io.ReadAll(clickResp.Body)
+	if err != nil {
+		t.Fatalf("error reading click response body: %v", err)
+	}
+	if !bytes.Equal(clickBody, []byte(p.HTML)) {
+		t.Fatalf("expected landing page on click, got: %s", clickBody)
+	}
+
+	// On submit (POST) the teachable page is served instead of the redirect.
+	client := http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	submitResp, err := client.PostForm(
+		fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.RID),
+		url.Values{"username": {"test"}, "password": {"test"}},
+	)
+	if err != nil {
+		t.Fatalf("error posting to / endpoint: %v", err)
+	}
+	defer submitResp.Body.Close()
+	if submitResp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 with teachable page on submit, got status %d", submitResp.StatusCode)
+	}
+	submitBody, err := io.ReadAll(submitResp.Body)
+	if err != nil {
+		t.Fatalf("error reading submit response body: %v", err)
+	}
+	if !bytes.Contains(submitBody, []byte("This was a simulated phishing test")) {
+		t.Fatalf("teachable moment page not served on submit. got: %s", submitBody)
+	}
+
+	// The submit should still have been recorded as Submitted Data.
+	campaign = getCampaignByID(t, campaign.Id)
+	result = campaign.Results[0]
+	if result.Status != models.EventDataSubmit {
+		t.Fatalf("unexpected result status received. expected %s got %s", models.EventDataSubmit, result.Status)
+	}
+}
+
+func getCampaignByID(t *testing.T, id int64) models.Campaign {
+	c, err := models.GetCampaign(id, 1)
+	if err != nil {
+		t.Fatalf("error getting campaign %d from database: %v", id, err)
+	}
+	return c
+}
+
 func TestRedirectTemplating(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
