@@ -63,6 +63,7 @@ func (s *ModelsSuite) TearDownTest(c *check.C) {
 	gdb.Delete(&TrainingModule{})
 	gdb.Delete(&Recipient{})
 	gdb.Delete(&Enrollment{})
+	gdb.Delete(&TrainingCampaign{})
 	// Drop the cached matcher between tests so an earlier test's
 	// policy doesn't bleed into the next one.
 	matcherCache.Store(nil)

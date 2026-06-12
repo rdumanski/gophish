@@ -119,6 +119,14 @@ export const api = {
         put: (m) => query('/training_modules/' + m.id, 'PUT', m, false),
         delete: (id) => query('/training_modules/' + id, 'DELETE', {}, false),
     },
+    training_campaigns: {
+        get: () => query('/training_campaigns/', 'GET', {}, false),
+        post: (tc) => query('/training_campaigns/', 'POST', tc, false),
+    },
+    trainingCampaignId: {
+        get: (id) => query('/training_campaigns/' + id, 'GET', {}, false),
+        delete: (id) => query('/training_campaigns/' + id, 'DELETE', {}, false),
+    },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),
         post: (page) => query('/pages/', 'POST', page, false),
