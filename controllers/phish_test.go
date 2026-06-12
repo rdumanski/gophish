@@ -362,6 +362,66 @@ func TestTransparencyRequest(t *testing.T) {
 	transparencyRequest(t, ctx, result, rid, "/report")
 }
 
+func TestTeachableMoment(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	p := models.Page{
+		Name:   "Teachable Landing Page",
+		HTML:   "<html>Landing Page Should Not Be Shown</html>",
+		UserID: 1,
+	}
+	if err := models.PostPage(&p); err != nil {
+		t.Fatalf("error posting new page: %v", err)
+	}
+	smtp, _ := models.GetSMTP(1, 1)
+	template, _ := models.GetTemplate(1, 1)
+	group, _ := models.GetGroup(1, 1)
+
+	campaign := models.Campaign{Name: "Teachable campaign", TeachableMoment: true}
+	campaign.UserID = 1
+	campaign.Template = template
+	campaign.Page = p
+	campaign.SMTP = smtp
+	campaign.Groups = []models.Group{group}
+	if err := models.PostCampaign(&campaign, campaign.UserID); err != nil {
+		t.Fatalf("error creating campaign: %v", err)
+	}
+
+	result := campaign.Results[0]
+	resp, err := http.Get(fmt.Sprintf("%s/?%s=%s", ctx.phishServer.URL, models.RecipientParameter, result.RID))
+	if err != nil {
+		t.Fatalf("error requesting / endpoint: %v", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("error reading payload from / endpoint response: %v", err)
+	}
+	// The teachable-moment page should be served, not the landing page.
+	if !bytes.Contains(body, []byte("This was a simulated phishing test")) {
+		t.Fatalf("teachable moment page not served. got: %s", body)
+	}
+	if bytes.Contains(body, []byte("Landing Page Should Not Be Shown")) {
+		t.Fatalf("landing page was served instead of the teachable moment page")
+	}
+
+	// The click should still have been recorded.
+	campaign = getCampaignByID(t, campaign.Id)
+	result = campaign.Results[0]
+	if result.Status != models.EventClicked {
+		t.Fatalf("unexpected result status received. expected %s got %s", models.EventClicked, result.Status)
+	}
+}
+
+func getCampaignByID(t *testing.T, id int64) models.Campaign {
+	c, err := models.GetCampaign(id, 1)
+	if err != nil {
+		t.Fatalf("error getting campaign %d from database: %v", id, err)
+	}
+	return c
+}
+
 func TestRedirectTemplating(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)

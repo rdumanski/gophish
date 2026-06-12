@@ -16,27 +16,32 @@ import (
 // Channel is "email" (default, existing behavior) or "sms" (Phase 8).
 // SMS campaigns use SMSProfileID/SMSProfile instead of SMTPId/SMTP.
 type Campaign struct {
-	Id            int64      `json:"id"`
-	UserID        int64      `json:"-"`
-	Name          string     `json:"name" sql:"not null"`
-	CreatedDate   time.Time  `json:"created_date"`
-	LaunchDate    time.Time  `json:"launch_date"`
-	SendByDate    time.Time  `json:"send_by_date"`
-	CompletedDate time.Time  `json:"completed_date"`
-	TemplateID    int64      `json:"-"`
-	Template      Template   `json:"template"`
-	PageID        int64      `json:"-"`
-	Page          Page       `json:"page"`
-	Status        string     `json:"status"`
-	Results       []Result   `json:"results,omitempty"`
-	Groups        []Group    `json:"groups,omitempty" gorm:"-"`
-	Events        []Event    `json:"timeline,omitempty"`
-	SMTPId        int64      `json:"-"`
-	SMTP          SMTP       `json:"smtp"`
-	URL           string     `json:"url"`
-	Channel       string     `json:"channel,omitempty" gorm:"column:channel;default:email"`
-	SMSProfileID  int64      `json:"-" gorm:"column:sms_profile_id"`
-	SMSProfile    SMSProfile `json:"sms_profile,omitempty" gorm:"-"`
+	Id            int64     `json:"id"`
+	UserID        int64     `json:"-"`
+	Name          string    `json:"name" sql:"not null"`
+	CreatedDate   time.Time `json:"created_date"`
+	LaunchDate    time.Time `json:"launch_date"`
+	SendByDate    time.Time `json:"send_by_date"`
+	CompletedDate time.Time `json:"completed_date"`
+	TemplateID    int64     `json:"-"`
+	Template      Template  `json:"template"`
+	PageID        int64     `json:"-"`
+	Page          Page      `json:"page"`
+	Status        string    `json:"status"`
+	Results       []Result  `json:"results,omitempty"`
+	Groups        []Group   `json:"groups,omitempty" gorm:"-"`
+	Events        []Event   `json:"timeline,omitempty"`
+	SMTPId        int64     `json:"-"`
+	SMTP          SMTP      `json:"smtp"`
+	URL           string    `json:"url"`
+	// TeachableMoment, when true, redirects a recipient who clicks the link
+	// or submits the form to a first-party security-awareness page instead
+	// of rendering the landing page (Phase 9). Defaults to false so existing
+	// campaigns behave exactly as before.
+	TeachableMoment bool       `json:"teachable_moment" gorm:"column:teachable_moment;default:false"`
+	Channel         string     `json:"channel,omitempty" gorm:"column:channel;default:email"`
+	SMSProfileID    int64      `json:"-" gorm:"column:sms_profile_id"`
+	SMSProfile      SMSProfile `json:"sms_profile,omitempty" gorm:"-"`
 }
 
 // CampaignResults is a struct representing the results from a campaign

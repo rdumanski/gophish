@@ -261,6 +261,14 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error(err)
 		http.NotFound(w, r)
+		return
+	}
+	// Phase 9: if this campaign uses teachable moments, the recipient has now
+	// clicked (or submitted), so show them the first-party education page
+	// instead of the landing page / configured redirect.
+	if c.TeachableMoment {
+		renderTeachableMoment(w, r, ptx)
+		return
 	}
 	renderPhishResponse(w, r, ptx, p)
 }
