@@ -90,3 +90,13 @@ func GetRecipientByEmail(email string, userID int64) (Recipient, error) {
 	err := db.Where("user_id = ? AND email = ?", userID, email).First(&r).Error
 	return r, err
 }
+
+// GetRecipientByID returns the Recipient with the given id. Not user-scoped:
+// the learner portal resolves the recipient from an enrollment whose token
+// already authorized the request, so there is no operator session to scope
+// against.
+func GetRecipientByID(id int64) (Recipient, error) {
+	r := Recipient{}
+	err := db.Where("id = ?", id).First(&r).Error
+	return r, err
+}
