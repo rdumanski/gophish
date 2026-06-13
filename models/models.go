@@ -417,7 +417,16 @@ func Setup(c *config.Config) error {
 		log.Error(err)
 		return err
 	}
-	sqlDB.SetMaxOpenConns(1)
+	// Limit the pool to a single connection ONLY for sqlite: modernc.org/sqlite
+	// is a single-writer file database, so concurrent opens cause "database is
+	// locked" errors. For mysql this cap is actively harmful — golang-migrate's
+	// mysql driver holds a dedicated connection for its advisory migration lock,
+	// and with a one-connection pool the first post-migration query starves,
+	// deadlocking startup (every goroutine asleep). Let mysql use the default
+	// pool so the lock connection and query connection can coexist.
+	if conf.DBName != "mysql" {
+		sqlDB.SetMaxOpenConns(1)
+	}
 
 	// Apply pending migrations (golang-migrate). Bootstrapped from any
 	// pre-existing goose_db_version table on first run.
