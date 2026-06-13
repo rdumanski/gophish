@@ -123,6 +123,7 @@ function dismiss() {
     $("#template").val("").change();
     $("#page").val("").change();
     $("#url").val("");
+    $("#campaign_domain").val("");
     $("#profile").val("").change();
     $("#users").val("").change();
     $("#teachable_moment").prop("checked", false);
@@ -248,6 +249,16 @@ function setupOptions() {
                 }
             }
         });
+    // Optional registered landing-domain picker (Phase 15b).
+    api.domains.get()
+        .success(function (ds) {
+            const $sel = $("#campaign_domain").empty().append('<option value="">—</option>')
+            $.each(ds, function (i, d) {
+                if (d.role === "landing" || d.role === "both") {
+                    $sel.append('<option value="' + escapeHtml(d.name) + '">' + escapeHtml(d.name) + '</option>')
+                }
+            })
+        });
 }
 
 function edit(campaign) {
@@ -342,6 +353,13 @@ $(document).ready(function () {
     });
     $('#modal').on('hidden.bs.modal', function (event) {
         dismiss()
+    });
+    // Picking a registered landing domain fills the campaign URL.
+    $('#campaign_domain').on('change', function () {
+        const domain = $(this).val()
+        if (domain) {
+            $('#url').val('https://' + domain)
+        }
     });
     api.campaigns.summary()
         .success(function (data) {
