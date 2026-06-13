@@ -62,14 +62,17 @@ type CampaignSummaries struct {
 
 // CampaignSummary is a struct representing the overview of a single camaign
 type CampaignSummary struct {
-	Id            int64         `json:"id"`
-	CreatedDate   time.Time     `json:"created_date"`
-	LaunchDate    time.Time     `json:"launch_date"`
-	SendByDate    time.Time     `json:"send_by_date"`
-	CompletedDate time.Time     `json:"completed_date"`
-	Status        string        `json:"status"`
-	Name          string        `json:"name"`
-	Stats         CampaignStats `json:"stats"`
+	Id            int64     `json:"id"`
+	CreatedDate   time.Time `json:"created_date"`
+	LaunchDate    time.Time `json:"launch_date"`
+	SendByDate    time.Time `json:"send_by_date"`
+	CompletedDate time.Time `json:"completed_date"`
+	Status        string    `json:"status"`
+	Name          string    `json:"name"`
+	// Stats is computed separately (getCampaignStats) and filled in after the
+	// summary query, so it must be ignored by GORM — without gorm:"-", v2's
+	// strict schema parser rejects the Scan with "invalid field ... Stats".
+	Stats CampaignStats `json:"stats" gorm:"-"`
 }
 
 // CampaignStats is a struct representing the statistics for a single campaign
