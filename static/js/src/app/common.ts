@@ -137,6 +137,9 @@ export const api = {
         put: (q) => query('/quizzes/' + q.id, 'PUT', q, false),
         delete: (id) => query('/quizzes/' + id, 'DELETE', {}, false),
     },
+    risk: {
+        get: () => query('/risk/', 'GET', {}, false),
+    },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),
         post: (page) => query('/pages/', 'POST', page, false),

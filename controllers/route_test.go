@@ -268,6 +268,46 @@ func TestQuizzesPageRenders(t *testing.T) {
 	}
 }
 
+// TestRiskPageRenders verifies the Phase 13 risk-report page renders.
+func TestRiskPageRenders(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	u, err := models.GetUser(1)
+	if err != nil {
+		t.Fatalf("error getting admin user: %v", err)
+	}
+	u.PasswordChangeRequired = false
+	if err := models.PutUser(&u); err != nil {
+		t.Fatalf("error clearing password-change flag: %v", err)
+	}
+
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("login failed: status %d", resp.StatusCode)
+	}
+
+	resp, err = client.Get(fmt.Sprintf("%s/risk", ctx.adminServer.URL))
+	if err != nil {
+		t.Fatalf("error requesting /risk: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 for /risk, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("error reading body: %v", err)
+	}
+	for _, marker := range []string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`} {
+		if !strings.Contains(string(body), marker) {
+			t.Fatalf("rendered risk page missing marker %q", marker)
+		}
+	}
+}
+
 func TestAccountLocked(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
