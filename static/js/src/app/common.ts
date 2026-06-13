@@ -79,6 +79,7 @@ export const api = {
         delete: (id) => query('/campaigns/' + id, 'DELETE', {}, false),
         results: (id) => query('/campaigns/' + id + '/results', 'GET', {}, true),
         complete: (id) => query('/campaigns/' + id + '/complete', 'GET', {}, true),
+        reconcileReported: (id, identifiers) => query('/campaigns/' + id + '/reported', 'POST', { identifiers }, true),
         summary: (id) => query('/campaigns/' + id + '/summary', 'GET', {}, true),
     },
     groups: {

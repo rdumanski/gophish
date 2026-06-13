@@ -29,6 +29,10 @@
             <button id="complete_button" type="button" class="btn btn-blue" data-toggle="tooltip" onclick="completeCampaign()">
                 <i class="fa fa-flag-checkered"></i> Complete
             </button>
+            <button type="button" class="btn btn-blue" data-toggle="modal" data-backdrop="static" data-target="#reconcileModal"
+                title="Credit recipients who reported this simulation (e.g. confirmed by your CERT/security team)">
+                <i class="fa fa-flag-o"></i> Reconcile Reports
+            </button>
             <button type="button" class="btn btn-danger" data-toggle="tooltip" onclick="deleteCampaign()">
                 <i class="fa fa-trash-o fa-lg"></i> Delete
             </button>
@@ -85,6 +89,32 @@
         </div>
     </div>
     <div id="flashes" class="row"></div>
+</div>
+
+<!-- Reconcile Reports Modal -->
+<div class="modal fade" id="reconcileModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">Reconcile Reports</h4>
+            </div>
+            <div class="modal-body">
+                <p>Paste the people who reported this simulation &mdash; one per line (or comma-separated).
+                    Use <strong>email addresses</strong> or 7-character result IDs. Matches are credited as
+                    "Email Reported" (feeding the stats and risk score).</p>
+                <textarea class="form-control" id="reconcileInput" rows="8"
+                    placeholder="alice@corp.example&#10;bob@corp.example"></textarea>
+                <div id="reconcileResult" style="margin-top:10px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="reconcileSubmit">Credit Reports</button>
+            </div>
+        </div>
+    </div>
 </div>
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/campaign_results.min.js"></script>
