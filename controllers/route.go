@@ -175,6 +175,12 @@ func (as *AdminServer) registerRoutes() {
 		}
 		csrfKey = []byte(key)
 	}
+	// Mark the session cookie Secure only when actually serving TLS. gorilla/
+	// sessions v1.3.0 defaults Options.Secure=true, which makes the cookie
+	// unusable over plain HTTP (browsers and Go 1.25+'s cookiejar drop Secure
+	// cookies on non-HTTPS) — breaking login behind a non-TLS listener or a
+	// TLS-terminating reverse proxy. Mirrors csrf.Secure(UseTLS) below.
+	mid.Store.Options.Secure = as.config.UseTLS
 	csrfHandler := csrf.Protect(csrfKey,
 		csrf.FieldName("csrf_token"),
 		csrf.Secure(as.config.UseTLS),
