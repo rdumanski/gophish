@@ -129,150 +129,47 @@ func TestSuccessfulRedirect(t *testing.T) {
 func TestTrainingModulesPageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-
-	// The seeded admin is flagged password-change-required, which would
-	// bounce every inner page to /reset_password. Clear it so we reach the
-	// real training-modules page like a normal logged-in admin.
-	u, err := models.GetUser(1)
-	if err != nil {
-		t.Fatalf("error getting admin user: %v", err)
-	}
-	u.PasswordChangeRequired = false
-	if err := models.PutUser(&u); err != nil {
-		t.Fatalf("error clearing password-change flag: %v", err)
-	}
-
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar}
-	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("login failed: status %d", resp.StatusCode)
-	}
-
-	resp, err = client.Get(fmt.Sprintf("%s/training_modules", ctx.adminServer.URL))
-	if err != nil {
-		t.Fatalf("error requesting /training_modules: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 for /training_modules, got %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("error reading /training_modules body: %v", err)
-	}
-	for _, marker := range []string{
-		"Training Modules",
-		`id="content_type"`,
-		`id="moduleTable"`,
-		"/js/dist/app/training_modules.min.js",
-		`href="/training_modules"`, // nav link rendered
-	} {
-		if !strings.Contains(string(body), marker) {
-			t.Fatalf("rendered training-modules page missing marker %q", marker)
-		}
-	}
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/training_modules",
+		[]string{"Training Modules", `id="content_type"`, `id="moduleTable"`, "/js/dist/app/training_modules.min.js", `href="/training_modules"`})
 }
 
-// TestTrainingCampaignsPageRenders verifies the Phase 11a training-campaigns
-// admin page renders through the full template chain.
+// TestTrainingCampaignsPageRenders verifies the Phase 11a training-campaigns page renders.
 func TestTrainingCampaignsPageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-
-	u, err := models.GetUser(1)
-	if err != nil {
-		t.Fatalf("error getting admin user: %v", err)
-	}
-	u.PasswordChangeRequired = false
-	if err := models.PutUser(&u); err != nil {
-		t.Fatalf("error clearing password-change flag: %v", err)
-	}
-
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar}
-	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("login failed: status %d", resp.StatusCode)
-	}
-
-	resp, err = client.Get(fmt.Sprintf("%s/training_campaigns", ctx.adminServer.URL))
-	if err != nil {
-		t.Fatalf("error requesting /training_campaigns: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 for /training_campaigns, got %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("error reading body: %v", err)
-	}
-	for _, marker := range []string{
-		"Training Campaigns",
-		`id="module"`,
-		`id="groups"`,
-		`id="campaignTable"`,
-		"/js/dist/app/training_campaigns.min.js",
-		`href="/training_campaigns"`,
-	} {
-		if !strings.Contains(string(body), marker) {
-			t.Fatalf("rendered training-campaigns page missing marker %q", marker)
-		}
-	}
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/training_campaigns",
+		[]string{"Training Campaigns", `id="module"`, `id="groups"`, `id="campaignTable"`, "/js/dist/app/training_campaigns.min.js", `href="/training_campaigns"`})
 }
 
 // TestQuizzesPageRenders verifies the Phase 12a quiz-authoring page renders.
 func TestQuizzesPageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-
-	u, err := models.GetUser(1)
-	if err != nil {
-		t.Fatalf("error getting admin user: %v", err)
-	}
-	u.PasswordChangeRequired = false
-	if err := models.PutUser(&u); err != nil {
-		t.Fatalf("error clearing password-change flag: %v", err)
-	}
-
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar}
-	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("login failed: status %d", resp.StatusCode)
-	}
-
-	resp, err = client.Get(fmt.Sprintf("%s/quizzes", ctx.adminServer.URL))
-	if err != nil {
-		t.Fatalf("error requesting /quizzes: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 for /quizzes, got %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("error reading body: %v", err)
-	}
-	for _, marker := range []string{
-		"Quizzes",
-		`id="quizTable"`,
-		`id="add_question"`,
-		"/js/dist/app/quizzes.min.js",
-		`href="/quizzes"`,
-	} {
-		if !strings.Contains(string(body), marker) {
-			t.Fatalf("rendered quizzes page missing marker %q", marker)
-		}
-	}
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/quizzes",
+		[]string{"Quizzes", `id="quizTable"`, `id="add_question"`, "/js/dist/app/quizzes.min.js", `href="/quizzes"`})
 }
 
 // TestRiskPageRenders verifies the Phase 13 risk-report page renders.
 func TestRiskPageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/risk",
+		[]string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`})
+}
 
+// loggedInClient returns an http.Client whose cookie jar holds an authenticated
+// admin session. Unlike attemptLogin, it drives the WHOLE flow (GET /login →
+// POST → page fetch) through the jar so the CSRF and session cookies round-trip
+// consistently — the manual single-cookie forwarding in attemptLogin breaks the
+// session on some platforms (Linux CI), bouncing authenticated GETs to /login.
+// It also clears the admin's password-change flag so inner pages aren't
+// redirected to /reset_password.
+func loggedInClient(t *testing.T, ctx *testContext) *http.Client {
+	t.Helper()
 	u, err := models.GetUser(1)
 	if err != nil {
 		t.Fatalf("error getting admin user: %v", err)
@@ -284,26 +181,50 @@ func TestRiskPageRenders(t *testing.T) {
 
 	jar, _ := cookiejar.New(nil)
 	client := &http.Client{Jar: jar}
-	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("login failed: status %d", resp.StatusCode)
-	}
 
-	resp, err = client.Get(fmt.Sprintf("%s/risk", ctx.adminServer.URL))
+	resp, err := client.Get(ctx.adminServer.URL + "/login")
 	if err != nil {
-		t.Fatalf("error requesting /risk: %v", err)
+		t.Fatalf("GET /login: %v", err)
+	}
+	doc, err := goquery.NewDocumentFromReader(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("parse /login: %v", err)
+	}
+	token, ok := doc.Find("input[name='csrf_token']").First().Attr("value")
+	if !ok {
+		t.Fatal("csrf_token not found on /login")
+	}
+	resp, err = client.PostForm(ctx.adminServer.URL+"/login", url.Values{
+		"username":   {"admin"},
+		"password":   {"gophish"},
+		"csrf_token": {token},
+	})
+	if err != nil {
+		t.Fatalf("POST /login: %v", err)
+	}
+	resp.Body.Close()
+	return client
+}
+
+// assertPageRenders fetches an authenticated admin page and asserts the markers.
+func assertPageRenders(t *testing.T, client *http.Client, url string, markers []string) {
+	t.Helper()
+	resp, err := client.Get(url)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 for /risk, got %d", resp.StatusCode)
+		t.Fatalf("GET %s: expected 200, got %d", url, resp.StatusCode)
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf("error reading body: %v", err)
+		t.Fatalf("read %s: %v", url, err)
 	}
-	for _, marker := range []string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`} {
-		if !strings.Contains(string(body), marker) {
-			t.Fatalf("rendered risk page missing marker %q", marker)
+	for _, m := range markers {
+		if !strings.Contains(string(body), m) {
+			t.Fatalf("page %s missing marker %q", url, m)
 		}
 	}
 }
@@ -312,39 +233,9 @@ func TestRiskPageRenders(t *testing.T) {
 func TestDomainsPageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)
-
-	u, err := models.GetUser(1)
-	if err != nil {
-		t.Fatalf("error getting admin user: %v", err)
-	}
-	u.PasswordChangeRequired = false
-	if err := models.PutUser(&u); err != nil {
-		t.Fatalf("error clearing password-change flag: %v", err)
-	}
-
-	jar, _ := cookiejar.New(nil)
-	client := &http.Client{Jar: jar}
-	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("login failed: status %d", resp.StatusCode)
-	}
-	resp, err = client.Get(fmt.Sprintf("%s/domains", ctx.adminServer.URL))
-	if err != nil {
-		t.Fatalf("error requesting /domains: %v", err)
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("expected 200 for /domains, got %d", resp.StatusCode)
-	}
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("error reading body: %v", err)
-	}
-	for _, marker := range []string{"Domains", `id="domainTable"`, `id="role"`, "/js/dist/app/domains.min.js", `href="/domains"`} {
-		if !strings.Contains(string(body), marker) {
-			t.Fatalf("rendered domains page missing marker %q", marker)
-		}
-	}
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/domains",
+		[]string{"Domains", `id="domainTable"`, `id="role"`, "/js/dist/app/domains.min.js", `href="/domains"`})
 }
 
 func TestAccountLocked(t *testing.T) {
