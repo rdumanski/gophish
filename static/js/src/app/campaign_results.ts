@@ -962,6 +962,35 @@ function report_mail(rid, cid) {
     })
 }
 
+// reconcileReports credits a pasted list of reporters (emails or result ids)
+// as having reported the simulation — the manual "option 3" path.
+function reconcileReports() {
+    const raw = ($("#reconcileInput").val() as string) || ""
+    const identifiers = raw.split(/[\s,;]+/).map(s => s.trim()).filter(s => s.length > 0)
+    if (identifiers.length === 0) {
+        $("#reconcileResult").html('<div class="alert alert-warning">Paste at least one email or result ID.</div>')
+        return
+    }
+    const btn = $("#reconcileSubmit")
+    const original = btn.html()
+    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Crediting')
+    api.campaignId.reconcileReported(campaign.id, identifiers)
+        .success(function (res) {
+            btn.prop("disabled", false).html(original)
+            let html = `<div class="alert alert-success">Credited <strong>${res.marked}</strong> report(s). `
+                + `${res.already_reported} already reported, ${res.not_found} not found.</div>`
+            if (res.unmatched && res.unmatched.length > 0) {
+                html += `<small class="text-muted">Not found: ${escapeHtml(res.unmatched.join(", "))}</small>`
+            }
+            $("#reconcileResult").html(html)
+            refresh()
+        })
+        .error(function (data) {
+            btn.prop("disabled", false).html(original)
+            $("#reconcileResult").html(`<div class="alert alert-danger">${escapeHtml(data.responseJSON.message)}</div>`)
+        })
+}
+
 $(document).ready(function () {
     Highcharts.setOptions({
         global: {
@@ -969,6 +998,7 @@ $(document).ready(function () {
         }
     })
     load();
+    $("#reconcileSubmit").on("click", reconcileReports)
 
     // Start the polling loop
     setRefresh = setTimeout(refresh, 60000)

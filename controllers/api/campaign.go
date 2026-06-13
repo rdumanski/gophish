@@ -84,6 +84,31 @@ func (as *Server) Campaign(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ReconcileCampaignReports credits recipients as having reported the campaign's
+// simulation from a manually-supplied list (emails or result ids) — the
+// "option 3" path when the report mailbox can't be polled directly.
+func (as *Server) ReconcileCampaignReports(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		JSONResponse(w, models.Response{Success: false, Message: "method not allowed"}, http.StatusMethodNotAllowed)
+		return
+	}
+	vars := mux.Vars(r)
+	id, _ := strconv.ParseInt(vars["id"], 0, 64)
+	req := struct {
+		Identifiers []string `json:"identifiers"`
+	}{}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
+		return
+	}
+	result, err := models.ReconcileReports(id, ctx.Get(r, "user_id").(int64), req.Identifiers)
+	if err != nil {
+		JSONResponse(w, models.Response{Success: false, Message: "Campaign not found"}, http.StatusNotFound)
+		return
+	}
+	JSONResponse(w, result, http.StatusOK)
+}
+
 // CampaignResults returns just the results for a given campaign to
 // significantly reduce the information returned.
 func (as *Server) CampaignResults(w http.ResponseWriter, r *http.Request) {
