@@ -1,8 +1,10 @@
 package controllers
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 	log "github.com/rdumanski/gophish/logger"
@@ -20,16 +22,27 @@ type learnerPageData struct {
 	// trust model gophish already applies to landing-page and email-template
 	// HTML served from the phishing origin. Recipient-derived fields
 	// (FirstName) are NOT trusted and stay auto-escaped by html/template.
-	Content   template.HTML
-	URL       string
-	Token     string
+	Content template.HTML
+	URL     string
+	Token   string
+
 	Completed bool
+
+	// Quiz fields (Phase 12b). HasQuiz is true when the module has a quiz; the
+	// learner must pass it to complete. ShowResult/LastScore/Passed render the
+	// feedback after a submission.
+	HasQuiz       bool
+	Quiz          models.Quiz
+	PassThreshold int
+	ShowResult    bool
+	LastScore     int
+	Passed        bool
 }
 
 // learnerPageTmpl is the self-contained portal page. It is html/template (not
-// the text/template used for phishing pages) so that recipient-supplied fields
-// are auto-escaped; only Content is explicitly trusted. Inline CSS, no external
-// resources — the phishing server is frequently network-isolated.
+// the text/template used for phishing pages) so recipient- and quiz-supplied
+// fields are auto-escaped; only Content is explicitly trusted. Inline CSS, no
+// external resources — the phishing server is frequently network-isolated.
 var learnerPageTmpl = template.Must(template.New("learner").Parse(learnerPageHTML))
 
 const learnerPageHTML = `<!DOCTYPE html>
@@ -51,9 +64,16 @@ const learnerPageHTML = `<!DOCTYPE html>
   .greet { font-size:16px; margin:0 0 8px; }
   .desc { color:#5a6b7b; margin:0 0 20px; }
   .done { background:#eef7ee; border-left:4px solid #27ae60; padding:14px 18px; border-radius:4px; margin:0 0 20px; font-weight:600; }
+  .fail { background:#fdecea; border-left:4px solid #c0392b; padding:14px 18px; border-radius:4px; margin:0 0 20px; }
   .content { margin:0 0 24px; }
   .video { position:relative; padding-bottom:56.25%; height:0; margin:0 0 24px; }
   .video iframe { position:absolute; top:0; left:0; width:100%; height:100%; border:0; border-radius:6px; }
+  .quiz { border-top:1px solid #ecf0f1; margin-top:8px; padding-top:16px; }
+  .quiz h2 { font-size:17px; margin:0 0 16px; }
+  .question { margin:0 0 18px; }
+  .q-prompt { font-weight:600; margin:0 0 8px; }
+  .opt { display:block; padding:6px 0; cursor:pointer; }
+  .opt input { margin-right:8px; }
   .btn { display:inline-block; background:#2c7be5; color:#fff; text-decoration:none; padding:11px 20px; border-radius:6px; border:0; font-size:15px; cursor:pointer; }
   .btn-complete { background:#27ae60; }
   .complete-form { margin:8px 0 0; }
@@ -79,9 +99,30 @@ const learnerPageHTML = `<!DOCTYPE html>
         {{end}}
 
         {{if not .Completed}}
-        <form class="complete-form" method="POST" action="/learn/{{.Token}}/complete">
-          <button type="submit" class="btn btn-complete">Mark as complete</button>
-        </form>
+          {{if .HasQuiz}}
+            {{if .ShowResult}}
+              <div class="fail">You scored {{.LastScore}}%. You need {{.PassThreshold}}% to pass &mdash; review the material and try again.</div>
+            {{end}}
+            <div class="quiz">
+              <h2>Quick check ({{.PassThreshold}}% to pass)</h2>
+              <form method="POST" action="/learn/{{.Token}}/quiz">
+                {{range .Quiz.Questions}}
+                  {{$qid := .Id}}
+                  <div class="question">
+                    <p class="q-prompt">{{.Prompt}}</p>
+                    {{range .Options}}
+                      <label class="opt"><input type="radio" name="q_{{$qid}}" value="{{.Id}}" required> {{.Text}}</label>
+                    {{end}}
+                  </div>
+                {{end}}
+                <button type="submit" class="btn btn-complete">Submit answers</button>
+              </form>
+            </div>
+          {{else}}
+            <form class="complete-form" method="POST" action="/learn/{{.Token}}/complete">
+              <button type="submit" class="btn btn-complete">Mark as complete</button>
+            </form>
+          {{end}}
         {{end}}
       </div>
       <div class="footer">Security awareness training</div>
@@ -94,52 +135,92 @@ const learnerPageHTML = `<!DOCTYPE html>
 // records that the module has been started. Marking-started is downgrade-safe
 // (see Enrollment.MarkStarted), so revisiting after completion is harmless.
 func (ps *PhishingServer) LearnHandler(w http.ResponseWriter, r *http.Request) {
-	token := mux.Vars(r)["token"]
-	e, err := models.GetEnrollmentByToken(token)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	module, err := models.GetTrainingModule(e.ModuleID, e.UserID)
-	if err != nil {
-		// The module was deleted out from under the enrollment; there's
-		// nothing to show. 404 rather than panic on the empty module.
-		http.NotFound(w, r)
+	e, module, ok := ps.resolveLearner(w, r)
+	if !ok {
 		return
 	}
 	if err := e.MarkStarted(); err != nil {
 		log.Error(err)
 	}
-	recipient, _ := models.GetRecipientByID(e.RecipientID) // best-effort greeting
-	renderLearnerPage(w, e, module, recipient)
+	quizzes, _ := models.GetQuizzesByModule(module.Id, e.UserID)
+	recipient, _ := models.GetRecipientByID(e.RecipientID)
+	renderLearnerPage(w, e, module, recipient, quizzes, false, 0, false)
 }
 
-// LearnCompleteHandler marks an enrollment completed. It is POST-only so a
-// prefetch or accidental GET can't complete a module on the learner's behalf.
+// LearnCompleteHandler marks an enrollment completed for modules WITHOUT a
+// quiz (self-attested). POST-only so a prefetch/GET can't complete a module.
 func (ps *PhishingServer) LearnCompleteHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.NotFound(w, r)
 		return
 	}
-	token := mux.Vars(r)["token"]
-	e, err := models.GetEnrollmentByToken(token)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	module, err := models.GetTrainingModule(e.ModuleID, e.UserID)
-	if err != nil {
-		http.NotFound(w, r)
+	e, module, ok := ps.resolveLearner(w, r)
+	if !ok {
 		return
 	}
 	if err := e.MarkCompleted(); err != nil {
 		log.Error(err)
 	}
+	quizzes, _ := models.GetQuizzesByModule(module.Id, e.UserID)
 	recipient, _ := models.GetRecipientByID(e.RecipientID)
-	renderLearnerPage(w, e, module, recipient)
+	renderLearnerPage(w, e, module, recipient, quizzes, false, 0, false)
 }
 
-func renderLearnerPage(w http.ResponseWriter, e models.Enrollment, module models.TrainingModule, recipient models.Recipient) {
+// LearnQuizHandler scores a submitted quiz and gates completion on passing.
+func (ps *PhishingServer) LearnQuizHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.NotFound(w, r)
+		return
+	}
+	e, module, ok := ps.resolveLearner(w, r)
+	if !ok {
+		return
+	}
+	quizzes, _ := models.GetQuizzesByModule(module.Id, e.UserID)
+	if len(quizzes) == 0 {
+		http.NotFound(w, r)
+		return
+	}
+	quiz := quizzes[0]
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+	answers := make(map[int64]int64)
+	for _, q := range quiz.Questions {
+		if v := r.PostForm.Get(fmt.Sprintf("q_%d", q.Id)); v != "" {
+			if oid, err := strconv.ParseInt(v, 10, 64); err == nil {
+				answers[q.Id] = oid
+			}
+		}
+	}
+	score, passed := models.ScoreQuiz(quiz, answers)
+	if err := e.RecordQuizResult(score, passed); err != nil {
+		log.Error(err)
+	}
+	recipient, _ := models.GetRecipientByID(e.RecipientID)
+	// Show the fail banner only when they didn't pass.
+	renderLearnerPage(w, e, module, recipient, quizzes, !passed, score, passed)
+}
+
+// resolveLearner loads the enrollment (by token) and its module, writing a 404
+// and returning ok=false on any failure (bad token or deleted module).
+func (ps *PhishingServer) resolveLearner(w http.ResponseWriter, r *http.Request) (models.Enrollment, models.TrainingModule, bool) {
+	token := mux.Vars(r)["token"]
+	e, err := models.GetEnrollmentByToken(token)
+	if err != nil {
+		http.NotFound(w, r)
+		return e, models.TrainingModule{}, false
+	}
+	module, err := models.GetTrainingModule(e.ModuleID, e.UserID)
+	if err != nil {
+		http.NotFound(w, r)
+		return e, module, false
+	}
+	return e, module, true
+}
+
+func renderLearnerPage(w http.ResponseWriter, e models.Enrollment, module models.TrainingModule, recipient models.Recipient, quizzes []models.Quiz, showResult bool, lastScore int, passed bool) {
 	data := learnerPageData{
 		ModuleName:  module.Name,
 		Description: module.Description,
@@ -148,10 +229,18 @@ func renderLearnerPage(w http.ResponseWriter, e models.Enrollment, module models
 		// module.URL is validated as absolute http(s) at module-save time
 		// (models.TrainingModule.Validate), which is what keeps the iframe
 		// src / external href safe — don't loosen that validation.
-		Content:   template.HTML(module.HTML), //nolint:gosec // trusted operator content, see learnerPageData.Content
-		URL:       module.URL,
-		Token:     e.Token,
-		Completed: e.Status == models.EnrollmentCompleted,
+		Content:    template.HTML(module.HTML), //nolint:gosec // trusted operator content, see learnerPageData.Content
+		URL:        module.URL,
+		Token:      e.Token,
+		Completed:  e.Status == models.EnrollmentCompleted,
+		ShowResult: showResult,
+		LastScore:  lastScore,
+		Passed:     passed,
+	}
+	if len(quizzes) > 0 {
+		data.HasQuiz = true
+		data.Quiz = quizzes[0]
+		data.PassThreshold = quizzes[0].PassThreshold
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := learnerPageTmpl.Execute(w, data); err != nil {

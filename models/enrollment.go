@@ -38,6 +38,9 @@ type Enrollment struct {
 	// InvitedDate is when the learner was emailed their portal link (Phase
 	// 11b). Zero/NULL until an invitation is sent.
 	InvitedDate time.Time `json:"invited_date"`
+	// QuizScore is the learner's most recent quiz result as a percent (Phase
+	// 12b). Zero until a quiz is taken.
+	QuizScore int `json:"quiz_score" gorm:"column:quiz_score"`
 }
 
 // ErrEnrollmentRecipientRequired is returned when no recipient could be
@@ -182,6 +185,26 @@ func (e *Enrollment) MarkStarted() error {
 	}
 	e.Status = EnrollmentStarted
 	e.StartedDate = time.Now().UTC()
+	return db.Save(e).Error
+}
+
+// RecordQuizResult stores a quiz score on the enrollment. Passing completes
+// the enrollment (gating completion on the quiz); failing leaves it started so
+// the learner can retry. Never downgrades an already-completed enrollment —
+// the same forward-only guarantee as MarkStarted/MarkCompleted.
+func (e *Enrollment) RecordQuizResult(score int, passed bool) error {
+	now := time.Now().UTC()
+	e.QuizScore = score
+	if e.StartedDate.IsZero() {
+		e.StartedDate = now
+	}
+	switch {
+	case passed && e.Status != EnrollmentCompleted:
+		e.Status = EnrollmentCompleted
+		e.CompletedDate = now
+	case !passed && e.Status == EnrollmentAssigned:
+		e.Status = EnrollmentStarted
+	}
 	return db.Save(e).Error
 }
 

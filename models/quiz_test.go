@@ -94,6 +94,74 @@ func (s *ModelsSuite) TestPutQuizReplacesChildren(ch *check.C) {
 	ch.Assert(optCount, check.Equals, int64(2))
 }
 
+func (s *ModelsSuite) TestScoreQuiz(ch *check.C) {
+	m := s.makeModule(ch)
+	q := s.validQuiz(m.Id)
+	q.PassThreshold = 60
+	ch.Assert(PostQuiz(&q, 1), check.Equals, nil)
+	got, _ := GetQuiz(q.Id, 1)
+
+	correctOf := func(qq QuizQuestion) int64 {
+		for _, o := range qq.Options {
+			if o.IsCorrect {
+				return o.Id
+			}
+		}
+		return 0
+	}
+	wrongOf := func(qq QuizQuestion) int64 {
+		for _, o := range qq.Options {
+			if !o.IsCorrect {
+				return o.Id
+			}
+		}
+		return 0
+	}
+
+	// All correct -> 100%, pass.
+	all := map[int64]int64{
+		got.Questions[0].Id: correctOf(got.Questions[0]),
+		got.Questions[1].Id: correctOf(got.Questions[1]),
+	}
+	score, passed := ScoreQuiz(got, all)
+	ch.Assert(score, check.Equals, 100)
+	ch.Assert(passed, check.Equals, true)
+
+	// One of two correct -> 50%, below 60% threshold, fail.
+	half := map[int64]int64{
+		got.Questions[0].Id: correctOf(got.Questions[0]),
+		got.Questions[1].Id: wrongOf(got.Questions[1]),
+	}
+	score, passed = ScoreQuiz(got, half)
+	ch.Assert(score, check.Equals, 50)
+	ch.Assert(passed, check.Equals, false)
+
+	// No answers -> 0%, fail.
+	score, passed = ScoreQuiz(got, map[int64]int64{})
+	ch.Assert(score, check.Equals, 0)
+	ch.Assert(passed, check.Equals, false)
+}
+
+func (s *ModelsSuite) TestRecordQuizResultGatesCompletion(ch *check.C) {
+	m := s.makeModule(ch)
+	e, err := CreateEnrollmentByEmail(1, BaseRecipient{Email: "q@y.com"}, m.Id)
+	ch.Assert(err, check.Equals, nil)
+
+	// Failing records the score but does not complete.
+	ch.Assert(e.RecordQuizResult(40, false), check.Equals, nil)
+	ch.Assert(e.Status, check.Equals, EnrollmentStarted)
+	ch.Assert(e.QuizScore, check.Equals, 40)
+
+	// Passing completes.
+	ch.Assert(e.RecordQuizResult(90, true), check.Equals, nil)
+	ch.Assert(e.Status, check.Equals, EnrollmentCompleted)
+	ch.Assert(e.QuizScore, check.Equals, 90)
+
+	// A later failing attempt must NOT downgrade a completed enrollment.
+	ch.Assert(e.RecordQuizResult(10, false), check.Equals, nil)
+	ch.Assert(e.Status, check.Equals, EnrollmentCompleted)
+}
+
 func (s *ModelsSuite) TestDeleteQuizRemovesChildren(ch *check.C) {
 	m := s.makeModule(ch)
 	q := s.validQuiz(m.Id)
