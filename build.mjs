@@ -24,6 +24,7 @@ const appFiles = [
     'templates.ts',
     'training_modules.ts',
     'training_campaigns.ts',
+    'quizzes.ts',
     'gophish.ts',
     'users.ts',
     'webhooks.ts',

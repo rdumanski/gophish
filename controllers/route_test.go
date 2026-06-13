@@ -222,6 +222,52 @@ func TestTrainingCampaignsPageRenders(t *testing.T) {
 	}
 }
 
+// TestQuizzesPageRenders verifies the Phase 12a quiz-authoring page renders.
+func TestQuizzesPageRenders(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	u, err := models.GetUser(1)
+	if err != nil {
+		t.Fatalf("error getting admin user: %v", err)
+	}
+	u.PasswordChangeRequired = false
+	if err := models.PutUser(&u); err != nil {
+		t.Fatalf("error clearing password-change flag: %v", err)
+	}
+
+	jar, _ := cookiejar.New(nil)
+	client := &http.Client{Jar: jar}
+	resp := attemptLogin(t, ctx, client, "admin", "gophish", "")
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("login failed: status %d", resp.StatusCode)
+	}
+
+	resp, err = client.Get(fmt.Sprintf("%s/quizzes", ctx.adminServer.URL))
+	if err != nil {
+		t.Fatalf("error requesting /quizzes: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200 for /quizzes, got %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("error reading body: %v", err)
+	}
+	for _, marker := range []string{
+		"Quizzes",
+		`id="quizTable"`,
+		`id="add_question"`,
+		"/js/dist/app/quizzes.min.js",
+		`href="/quizzes"`,
+	} {
+		if !strings.Contains(string(body), marker) {
+			t.Fatalf("rendered quizzes page missing marker %q", marker)
+		}
+	}
+}
+
 func TestAccountLocked(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)

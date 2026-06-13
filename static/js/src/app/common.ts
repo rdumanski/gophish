@@ -128,6 +128,15 @@ export const api = {
         delete: (id) => query('/training_campaigns/' + id, 'DELETE', {}, false),
         send: (id, req) => query('/training_campaigns/' + id + '/send', 'POST', req, true),
     },
+    quizzes: {
+        get: () => query('/quizzes/', 'GET', {}, false),
+        post: (q) => query('/quizzes/', 'POST', q, false),
+    },
+    quizId: {
+        get: (id) => query('/quizzes/' + id, 'GET', {}, false),
+        put: (q) => query('/quizzes/' + q.id, 'PUT', q, false),
+        delete: (id) => query('/quizzes/' + id, 'DELETE', {}, false),
+    },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),
         post: (page) => query('/pages/', 'POST', page, false),
