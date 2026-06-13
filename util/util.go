@@ -6,7 +6,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/csv"
 	"encoding/pem"
 	"fmt"
 	"io"
@@ -14,19 +13,11 @@ import (
 	"net/http"
 	"net/mail"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/jordan-wright/email"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
-)
-
-var (
-	firstNameRegex = regexp.MustCompile(`(?i)first[\s_-]*name`)
-	lastNameRegex  = regexp.MustCompile(`(?i)last[\s_-]*name`)
-	emailRegex     = regexp.MustCompile(`(?i)email`)
-	positionRegex  = regexp.MustCompile(`(?i)position`)
 )
 
 // ParseMail takes in an HTTP Request and returns an Email object
@@ -54,71 +45,19 @@ func ParseCSV(r *http.Request) ([]models.Target, error) {
 		if err == io.EOF {
 			break
 		}
+		if err != nil {
+			return ts, err
+		}
 		// Skip the "submit" part
 		if part.FileName() == "" {
 			continue
 		}
-		defer part.Close()
-		reader := csv.NewReader(part)
-		reader.TrimLeadingSpace = true
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
+		rows, perr := models.ParseCSVReader(part)
+		_ = part.Close()
+		if perr != nil {
+			return ts, perr
 		}
-		fi := -1
-		li := -1
-		ei := -1
-		pi := -1
-		fn := ""
-		ln := ""
-		ea := ""
-		ps := ""
-		for i, v := range record {
-			switch {
-			case firstNameRegex.MatchString(v):
-				fi = i
-			case lastNameRegex.MatchString(v):
-				li = i
-			case emailRegex.MatchString(v):
-				ei = i
-			case positionRegex.MatchString(v):
-				pi = i
-			}
-		}
-		if fi == -1 && li == -1 && ei == -1 && pi == -1 {
-			continue
-		}
-		for {
-			record, err := reader.Read()
-			if err == io.EOF {
-				break
-			}
-			if fi != -1 && len(record) > fi {
-				fn = record[fi]
-			}
-			if li != -1 && len(record) > li {
-				ln = record[li]
-			}
-			if ei != -1 && len(record) > ei {
-				csvEmail, err := mail.ParseAddress(record[ei])
-				if err != nil {
-					continue
-				}
-				ea = csvEmail.Address
-			}
-			if pi != -1 && len(record) > pi {
-				ps = record[pi]
-			}
-			t := models.Target{
-				BaseRecipient: models.BaseRecipient{
-					FirstName: fn,
-					LastName:  ln,
-					Email:     ea,
-					Position:  ps,
-				},
-			}
-			ts = append(ts, t)
-		}
+		ts = append(ts, rows...)
 	}
 	return ts, nil
 }
