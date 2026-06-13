@@ -126,6 +126,7 @@ export const api = {
     trainingCampaignId: {
         get: (id) => query('/training_campaigns/' + id, 'GET', {}, false),
         delete: (id) => query('/training_campaigns/' + id, 'DELETE', {}, false),
+        send: (id, req) => query('/training_campaigns/' + id + '/send', 'POST', req, true),
     },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),

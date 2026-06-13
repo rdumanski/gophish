@@ -35,6 +35,9 @@ type Enrollment struct {
 	// TrainingCampaignID links the enrollment to the campaign that created it
 	// (Phase 11a). Zero/NULL for standalone enrollments made via the 10c API.
 	TrainingCampaignID int64 `json:"training_campaign_id" gorm:"column:training_campaign_id"`
+	// InvitedDate is when the learner was emailed their portal link (Phase
+	// 11b). Zero/NULL until an invitation is sent.
+	InvitedDate time.Time `json:"invited_date"`
 }
 
 // ErrEnrollmentRecipientRequired is returned when no recipient could be

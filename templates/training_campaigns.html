@@ -76,6 +76,42 @@
     </div>
 </div>
 
+<!-- Send Invitations Modal -->
+<div class="modal fade" id="sendModal" tabindex="-1" role="dialog" aria-labelledby="sendModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="sendModalLabel">Send Invitations</h4>
+            </div>
+            <div class="modal-body" id="send_modal_body">
+                <div class="row" id="sendModal.flashes"></div>
+                <p>Email every enrollee their learner-portal link.</p>
+
+                <label class="control-label" for="send_profile">Sending Profile:</label>
+                <div class="form-group">
+                    <select class="form-control" id="send_profile"></select>
+                </div>
+
+                <label class="control-label" for="send_url">Portal Base URL:
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                        title="Public base URL of the phishing/learner server, e.g. https://learn.example.com. Links become <base>/learn/&lt;token&gt;."></i>
+                </label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="https://learn.example.com" id="send_url" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendModalSubmit">
+                    <i class="fa fa-envelope"></i> Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/training_campaigns.min.js"></script>
 {{end}}

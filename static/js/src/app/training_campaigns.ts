@@ -1,6 +1,7 @@
 import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
 
 let campaigns = []
+let sendCampaignId = -1
 
 const setupOptions = () => {
     api.training_modules.get()
@@ -92,6 +93,9 @@ const load = () => {
                     progressCell(tc.stats),
                     moment(tc.created_date).format("MMM Do YYYY"),
                     `<div class="pull-right">
+                        <button class="btn btn-primary send_button" data-toggle="modal" data-backdrop="static" data-target="#sendModal" data-campaign-id="${tc.id}" title="Send invitations">
+                          <i class="fa fa-envelope"></i>
+                        </button>
                         <button class="btn btn-danger delete_button" data-campaign-id="${tc.id}">
                           <i class="fa fa-trash-o"></i>
                         </button>
@@ -137,6 +141,39 @@ const deleteCampaign = (id) => {
     })
 }
 
+const openSendModal = (id) => {
+    sendCampaignId = id
+    $("#sendModal\\.flashes").empty()
+    api.SMTP.get()
+        .success((profiles) => {
+            const $sel = $("#send_profile").empty()
+            if (!profiles || profiles.length === 0) {
+                $("#sendModal\\.flashes").empty().append('<div class="alert alert-danger">No sending profiles found. Create one first.</div>')
+                return
+            }
+            $.each(profiles, (i, p) => $sel.append(`<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`))
+        })
+}
+
+const sendInvitations = () => {
+    const profile = $("#send_profile").val()
+    const url = $("#send_url").val()
+    const btn = $("#sendModalSubmit")
+    const original = btn.html()
+    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Sending')
+    api.trainingCampaignId.send(sendCampaignId, { smtp: { name: profile }, url: url })
+        .success((resp) => {
+            btn.prop("disabled", false).html(original)
+            $("#sendModal").modal("hide")
+            load()
+            successFlash(resp.message)
+        })
+        .error((data) => {
+            btn.prop("disabled", false).html(original)
+            $("#sendModal\\.flashes").empty().append(`<div class="alert alert-danger">${escapeHtml(data.responseJSON.message)}</div>`)
+        })
+}
+
 $(document).ready(function () {
     $.fn.select2.defaults.set("width", "100%")
     $.fn.select2.defaults.set("dropdownParent", $("#modal_body"))
@@ -153,4 +190,8 @@ $(document).ready(function () {
     $("#campaignTable").on("click", ".delete_button", function () {
         deleteCampaign($(this).attr("data-campaign-id"))
     })
+    $("#campaignTable").on("click", ".send_button", function () {
+        openSendModal($(this).attr("data-campaign-id"))
+    })
+    $("#sendModalSubmit").on("click", sendInvitations)
 })
