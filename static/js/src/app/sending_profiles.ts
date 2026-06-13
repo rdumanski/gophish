@@ -95,6 +95,7 @@ function dismiss() {
     $("#username").val("")
     $("#password").val("")
     $("#ignore_cert_errors").prop("checked", true)
+    $("#profile_domain").val("")
     $("#headersTable").dataTable().DataTable().clear().draw()
     $("#modal").modal('hide')
 }
@@ -141,10 +142,24 @@ var deleteProfile = function (idx) {
     })
 }
 
+// populateProfileDomains fills the registered-domain picker with the
+// operator's sending/both domains. Selecting one sets the From address domain.
+function populateProfileDomains() {
+    const $sel = $("#profile_domain").empty().append('<option value="">&mdash;</option>')
+    api.domains.get().success(function (ds) {
+        $.each(ds, function (i, d) {
+            if (d.role === "sending" || d.role === "both") {
+                $sel.append(`<option value="${escapeHtml(d.name)}">${escapeHtml(d.name)}</option>`)
+            }
+        })
+    })
+}
+
 // Holds the headers DataTable instance for the SMTP profile modal —
 // also touched by load() / addCustomHeader / form submit handler.
 let headers: any
 function edit(idx) {
+    populateProfileDomains()
     headers = $("#headersTable").dataTable({
         destroy: true, // Destroy any other instantiated table - http://datatables.net/manual/tech-notes/3#destroy
         columnDefs: [{
@@ -313,6 +328,16 @@ $(document).ready(function () {
     });
     $("#sendTestEmailModal").on("hidden.bs.modal", function (event) {
         dismissSendTestEmailModal()
+    })
+    // Picking a registered domain sets the From address's domain part.
+    $("#profile_domain").on("change", function () {
+        const domain = $(this).val() as string
+        if (!domain) {
+            return
+        }
+        const current = ($("#from").val() as string) || ""
+        const localpart = current.includes("@") ? current.split("@")[0] : (current || "noreply")
+        $("#from").val(localpart + "@" + domain)
     })
     // Code to deal with custom email headers
     $("#addCustomHeader").on('click', function () {
