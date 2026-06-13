@@ -80,6 +80,69 @@ func TestLearnerPortalFlow(t *testing.T) {
 	}
 }
 
+// TestLearnerQuizFlow covers the Phase 12b quiz path: a module with a quiz
+// shows the quiz (not a self-attest button); a wrong answer fails (no
+// completion); a correct answer passes and completes.
+func TestLearnerQuizFlow(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+
+	module := models.TrainingModule{Name: "Quiz Module", ContentType: models.TrainingContentHTML, HTML: "<p>read me</p>", UserID: 1}
+	if err := models.PostTrainingModule(&module); err != nil {
+		t.Fatalf("module: %v", err)
+	}
+	quiz := models.Quiz{
+		ModuleID: module.Id, Title: "Check", PassThreshold: 100,
+		Questions: []models.QuizQuestion{{
+			Prompt:  "Pick the right one",
+			Options: []models.QuizOption{{Text: "right", IsCorrect: true}, {Text: "wrong", IsCorrect: false}},
+		}},
+	}
+	if err := models.PostQuiz(&quiz, 1); err != nil {
+		t.Fatalf("quiz: %v", err)
+	}
+	e, err := models.CreateEnrollmentByEmail(1, models.BaseRecipient{Email: "lq@example.com"}, module.Id)
+	if err != nil {
+		t.Fatalf("enroll: %v", err)
+	}
+
+	// Portal shows the quiz form, not the self-attest complete button.
+	body := getBody(t, fmt.Sprintf("%s/learn/%s", ctx.phishServer.URL, e.Token), http.StatusOK)
+	if !strings.Contains(body, "Submit answers") || !strings.Contains(body, "Pick the right one") {
+		t.Fatalf("quiz form not rendered; got:\n%s", body)
+	}
+
+	loaded, _ := models.GetQuiz(quiz.Id, 1)
+	rightID := loaded.Questions[0].Options[0].Id
+	wrongID := loaded.Questions[0].Options[1].Id
+	qfield := fmt.Sprintf("q_%d", loaded.Questions[0].Id)
+	quizURL := fmt.Sprintf("%s/learn/%s/quiz", ctx.phishServer.URL, e.Token)
+
+	// Wrong answer -> not completed.
+	resp, err := (&http.Client{}).PostForm(quizURL, url.Values{qfield: {fmt.Sprintf("%d", wrongID)}})
+	if err != nil {
+		t.Fatalf("post wrong: %v", err)
+	}
+	resp.Body.Close()
+	if afterFail, _ := models.GetEnrollmentByToken(e.Token); afterFail.Status == models.EnrollmentCompleted {
+		t.Fatalf("wrong answer should not complete the enrollment")
+	}
+
+	// Correct answer -> completed with score 100.
+	resp, err = (&http.Client{}).PostForm(quizURL, url.Values{qfield: {fmt.Sprintf("%d", rightID)}})
+	if err != nil {
+		t.Fatalf("post right: %v", err)
+	}
+	resp.Body.Close()
+	afterPass, _ := models.GetEnrollmentByToken(e.Token)
+	if afterPass.Status != models.EnrollmentCompleted {
+		t.Fatalf("correct answer should complete; got %q", afterPass.Status)
+	}
+	if afterPass.QuizScore != 100 {
+		t.Fatalf("expected score 100, got %d", afterPass.QuizScore)
+	}
+}
+
 func getBody(t *testing.T, url string, wantStatus int) string {
 	t.Helper()
 	resp, err := http.Get(url)

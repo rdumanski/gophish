@@ -118,6 +118,7 @@ func (ps *PhishingServer) registerRoutes() {
 	// Phase 10c: public learner portal. Registered before the catch-all so
 	// /learn/{token} isn't swallowed by the phishing landing-page handler.
 	router.HandleFunc("/learn/{token}/complete", ps.LearnCompleteHandler)
+	router.HandleFunc("/learn/{token}/quiz", ps.LearnQuizHandler)
 	router.HandleFunc("/learn/{token}", ps.LearnHandler)
 	router.HandleFunc("/{path:.*}", ps.PhishHandler)
 

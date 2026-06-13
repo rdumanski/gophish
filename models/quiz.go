@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"math"
 	"time"
 
 	log "github.com/rdumanski/gophish/logger"
@@ -87,6 +88,32 @@ func (q *Quiz) Validate() error {
 		}
 	}
 	return nil
+}
+
+// ScoreQuiz grades a set of answers (question id -> selected option id) against
+// a quiz and returns the percent score and whether it meets the pass threshold.
+// Pure function (no DB/network) so it can be unit-tested. Unanswered or
+// wrongly-answered questions simply don't count toward the correct tally.
+func ScoreQuiz(q Quiz, answers map[int64]int64) (scorePercent int, passed bool) {
+	if len(q.Questions) == 0 {
+		return 0, false
+	}
+	correct := 0
+	for _, question := range q.Questions {
+		selected, ok := answers[question.Id]
+		if !ok {
+			continue
+		}
+		for _, opt := range question.Options {
+			if opt.Id == selected && opt.IsCorrect {
+				correct++
+				break
+			}
+		}
+	}
+	scorePercent = int(math.Round(100 * float64(correct) / float64(len(q.Questions))))
+	passed = scorePercent >= q.PassThreshold
+	return scorePercent, passed
 }
 
 // loadQuizChildren populates a quiz's questions (ordered) and their options.
