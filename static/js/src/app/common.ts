@@ -140,6 +140,16 @@ export const api = {
     risk: {
         get: () => query('/risk/', 'GET', {}, false),
     },
+    domains: {
+        get: () => query('/domains/', 'GET', {}, false),
+        post: (d) => query('/domains/', 'POST', d, false),
+    },
+    domainId: {
+        get: (id) => query('/domains/' + id, 'GET', {}, false),
+        put: (d) => query('/domains/' + d.id, 'PUT', d, false),
+        delete: (id) => query('/domains/' + id, 'DELETE', {}, false),
+        check: (id) => query('/domains/' + id + '/check', 'POST', {}, true),
+    },
     pages: {
         get: () => query('/pages/', 'GET', {}, false),
         post: (page) => query('/pages/', 'POST', page, false),

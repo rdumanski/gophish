@@ -150,6 +150,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/settings", mid.Use(as.Settings, mid.RequireLogin))
 	router.HandleFunc("/users", mid.Use(as.UserManagement, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	router.HandleFunc("/webhooks", mid.Use(as.Webhooks, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
+	router.HandleFunc("/domains", mid.Use(as.Domains, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	router.HandleFunc("/impersonate", mid.Use(as.Impersonate, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	// Create the API routes
 	apiOpts := []api.ServerOption{
@@ -398,6 +399,13 @@ func (as *AdminServer) Webhooks(w http.ResponseWriter, r *http.Request) {
 	params := as.newTemplateParams(r)
 	params.Title = "Webhooks"
 	getTemplate(w, "webhooks").ExecuteTemplate(w, "base", params)
+}
+
+// Domains handles the custom-domains registry page.
+func (as *AdminServer) Domains(w http.ResponseWriter, r *http.Request) {
+	params := as.newTemplateParams(r)
+	params.Title = "Domains"
+	getTemplate(w, "domains").ExecuteTemplate(w, "base", params)
 }
 
 // Impersonate allows an admin to login to a user account without needing the password

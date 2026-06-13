@@ -1,0 +1,105 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        {{.Title}}
+    </h1>
+    <div id="flashes" class="row"></div>
+    <p class="text-muted">
+        Register the look-alike domains you own so you can pick them when building campaigns
+        (landing host) and sending profiles (sending identity), and health-check their DNS / HTTPS / SPF / DKIM / DMARC.
+    </p>
+    <div class="row">
+        <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
+            data-domain-id="-1" data-target="#modal">
+            <i class="fa fa-plus"></i> New Domain</button>
+    </div>
+    &nbsp;
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">No domains registered yet.</div>
+    </div>
+    <div class="row">
+        <table id="domainTable" class="table" style="display:none;">
+            <thead>
+                <tr>
+                    <th class="col-md-3 no-sort">Domain</th>
+                    <th class="col-md-1 no-sort">Role</th>
+                    <th class="col-md-4 no-sort">Health</th>
+                    <th class="col-md-2 no-sort">Last Checked</th>
+                    <th class="col-md-2 no-sort"></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="domainModalLabel">Add or Edit Domain</h4>
+            </div>
+            <div class="modal-body" id="modal_body">
+                <div class="row" id="modal.flashes"></div>
+
+                <label class="control-label" for="name">Domain name:</label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="pse.org.pl" id="name" required />
+                </div>
+
+                <label class="control-label" for="role">Role:</label>
+                <div class="form-group">
+                    <select class="form-control" id="role">
+                        <option value="both">Both (sending + landing)</option>
+                        <option value="sending">Sending identity (email From)</option>
+                        <option value="landing">Landing host (links / pages)</option>
+                    </select>
+                </div>
+
+                <label class="control-label" for="dkim_selector">DKIM selector
+                    <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
+                        title="The selector your mail relay signs with (e.g. 'default' or 's1'). Used to verify the published DKIM record. Leave blank if sending-only setup isn't ready."></i>
+                </label>
+                <div class="form-group">
+                    <input type="text" class="form-control" placeholder="default" id="dkim_selector" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Records Modal -->
+<div class="modal fade" id="recordsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title">DNS records to publish</h4>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted">Publish these on the domain's DNS, then use <strong>Check</strong> to verify.</p>
+                <table class="table table-condensed">
+                    <thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead>
+                    <tbody id="recordsBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/domains.min.js"></script>
+{{end}}
