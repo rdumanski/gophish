@@ -50,8 +50,15 @@ import (
 func buildAIGenerator(cfg config.AIConfig) (ai.Generator, error) {
 	switch cfg.Provider {
 	case "anthropic", "":
+		// Fall back to the ANTHROPIC_API_KEY environment variable when the
+		// config omits the key — keeps the secret out of config.json (and out
+		// of source control / backups), the standard way to handle API keys.
+		apiKey := cfg.Anthropic.APIKey
+		if apiKey == "" {
+			apiKey = os.Getenv("ANTHROPIC_API_KEY")
+		}
 		return ai.NewAnthropic(ai.AnthropicConfig{
-			APIKey:    cfg.Anthropic.APIKey,
+			APIKey:    apiKey,
 			Model:     cfg.Anthropic.Model,
 			MaxTokens: cfg.Anthropic.MaxTokens,
 		})
