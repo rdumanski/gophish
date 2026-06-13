@@ -104,6 +104,22 @@ func (mbox *Mailbox) MarkAsUnread(seqs []uint32) error {
 
 }
 
+// MarkAsRead sets the SEEN flag on the supplied slice of SeqNums. Used by the
+// roster sync to mark messages read only AFTER they've been processed.
+func (mbox *Mailbox) MarkAsRead(seqs []uint32) error {
+	imapClient, err := mbox.newClient()
+	if err != nil {
+		return err
+	}
+	defer logoutClient(imapClient)
+
+	seqSet := new(imap.SeqSet)
+	seqSet.AddNum(seqs...)
+
+	item := imap.FormatFlagsOp(imap.AddFlags, true)
+	return imapClient.Store(seqSet, item, imap.SeenFlag, nil)
+}
+
 // DeleteEmails will delete emails from the supplied slice of SeqNums
 func (mbox *Mailbox) DeleteEmails(seqs []uint32) error {
 	imapClient, err := mbox.newClient()
