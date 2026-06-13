@@ -153,6 +153,21 @@ func (s *ModelsSuite) TestCampaignGetResults(c *check.C) {
 	c.Assert(len(campaign.Results), check.Equals, len(got.Results))
 }
 
+// TestGetCampaignResults pins the GORM v2 strict-scan fix: CampaignResults
+// is a DTO whose Results/Events slices are loaded by separate follow-up
+// queries, so they must be tagged gorm:"-". Without the tag the initial
+// db.Table("campaigns").First(&cr) scan errors with "invalid field ...
+// define a valid foreign key", which surfaced as a 404 "Campaign not
+// found!" on the View Results page.
+func (s *ModelsSuite) TestGetCampaignResults(c *check.C) {
+	campaign := s.createCampaign(c)
+	cr, err := GetCampaignResults(campaign.Id, campaign.UserID)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(cr.Id, check.Equals, campaign.Id)
+	c.Assert(cr.Name, check.Equals, campaign.Name)
+	c.Assert(len(cr.Results), check.Equals, len(campaign.Results))
+}
+
 // TestCampaignStatsAppliesPhishFilterRetroactively pins down the
 // defining property of Phase 7c.2: the campaign summary reads the
 // CURRENT phish_filter policy at query time, so a click recorded

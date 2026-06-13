@@ -47,11 +47,16 @@ type Campaign struct {
 
 // CampaignResults is a struct representing the results from a campaign
 type CampaignResults struct {
-	Id      int64    `json:"id"`
-	Name    string   `json:"name"`
-	Status  string   `json:"status"`
-	Results []Result `json:"results,omitempty"`
-	Events  []Event  `json:"timeline,omitempty"`
+	Id     int64  `json:"id"`
+	Name   string `json:"name"`
+	Status string `json:"status"`
+	// Results and Events are loaded by explicit follow-up queries in
+	// GetCampaignResults, not by the initial campaigns-table scan. They must be
+	// gorm:"-" or GORM v2's strict schema parser rejects the Scan with
+	// "invalid field ... define a valid foreign key" (this struct is a DTO with
+	// no relation metadata) — which 404'd the campaign results page.
+	Results []Result `json:"results,omitempty" gorm:"-"`
+	Events  []Event  `json:"timeline,omitempty" gorm:"-"`
 }
 
 // CampaignSummaries is a struct representing the overview of campaigns
