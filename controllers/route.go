@@ -144,6 +144,8 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/training_campaigns", mid.Use(as.TrainingCampaignsPage, mid.RequireLogin))
 	router.HandleFunc("/quizzes", mid.Use(as.Quizzes, mid.RequireLogin))
 	router.HandleFunc("/risk", mid.Use(as.Risk, mid.RequireLogin))
+	router.HandleFunc("/compliance", mid.Use(as.Compliance, mid.RequireLogin))
+	router.HandleFunc("/compliance/report.pdf", mid.Use(as.ComplianceReportPDF, mid.RequireLogin))
 	router.HandleFunc("/groups", mid.Use(as.Groups, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", mid.Use(as.LandingPages, mid.RequireLogin))
 	router.HandleFunc("/sending_profiles", mid.Use(as.SendingProfiles, mid.RequireLogin))
@@ -295,6 +297,13 @@ func (as *AdminServer) Risk(w http.ResponseWriter, r *http.Request) {
 	params := as.newTemplateParams(r)
 	params.Title = "Risk Report"
 	getTemplate(w, "risk").ExecuteTemplate(w, "base", params)
+}
+
+// Compliance renders the NIS2 compliance report page.
+func (as *AdminServer) Compliance(w http.ResponseWriter, r *http.Request) {
+	params := as.newTemplateParams(r)
+	params.Title = "NIS2 Compliance Report"
+	getTemplate(w, "compliance").ExecuteTemplate(w, "base", params)
 }
 
 // Groups handles the default path and template execution

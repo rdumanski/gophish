@@ -1,0 +1,127 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        {{.Title}}
+    </h1>
+    <div id="flashes" class="row"></div>
+    <p class="text-muted">
+        A period-scoped summary of the security-awareness program &mdash; training
+        coverage (NIS2 Art. 21(2)(g)), phishing-simulation results, and current human-risk
+        posture &mdash; to support management-body oversight (NIS2 Art. 20). This is an
+        operational summary, not a legal certification of NIS2 conformance.
+    </p>
+
+    <!-- Reporting period controls -->
+    <div class="row" style="margin-bottom:15px;">
+        <div class="col-md-12">
+            <div class="btn-group" role="group" aria-label="Period presets">
+                <button type="button" class="btn btn-default period-preset" data-days="90">Last 90 days</button>
+                <button type="button" class="btn btn-default period-preset active" data-days="365">Last 12 months</button>
+                <button type="button" class="btn btn-default period-preset" data-days="all">All time</button>
+            </div>
+            <span style="display:inline-block; margin-left:15px;">
+                <input type="date" id="startDate" class="form-control" style="display:inline-block; width:auto;">
+                <span class="text-muted">&ndash;</span>
+                <input type="date" id="endDate" class="form-control" style="display:inline-block; width:auto;">
+                <button type="button" id="applyPeriod" class="btn btn-primary">Apply</button>
+            </span>
+            <a id="downloadPdf" class="btn btn-success pull-right" href="#">
+                <i class="fa fa-file-pdf-o"></i> Download PDF report
+            </a>
+        </div>
+    </div>
+    <p class="text-muted" id="periodLabel"></p>
+
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+
+    <div id="report" style="display:none;">
+        <!-- Headline KPI cards -->
+        <div class="row">
+            <div class="col-md-2 col-sm-4">
+                <div class="panel panel-default"><div class="panel-body text-center">
+                    <h2 id="kpiPopulation" style="margin:0;">0</h2>
+                    <small class="text-muted">People</small>
+                </div></div>
+            </div>
+            <div class="col-md-2 col-sm-4">
+                <div class="panel panel-default"><div class="panel-body text-center">
+                    <h2 id="kpiCompletion" style="margin:0;">0%</h2>
+                    <small class="text-muted">Training completion</small>
+                </div></div>
+            </div>
+            <div class="col-md-2 col-sm-4">
+                <div class="panel panel-default"><div class="panel-body text-center">
+                    <h2 id="kpiClickRate" style="margin:0;">0%</h2>
+                    <small class="text-muted">Phishing click rate</small>
+                </div></div>
+            </div>
+            <div class="col-md-2 col-sm-4">
+                <div class="panel panel-default"><div class="panel-body text-center">
+                    <h2 id="kpiReportRate" style="margin:0;">0%</h2>
+                    <small class="text-muted">Phishing report rate</small>
+                </div></div>
+            </div>
+            <div class="col-md-4 col-sm-12">
+                <div class="panel panel-default"><div class="panel-body text-center">
+                    <h2 style="margin:0;">
+                        <span class="label label-success" id="kpiRiskLow">0</span>
+                        <span class="label label-warning" id="kpiRiskMed">0</span>
+                        <span class="label label-danger" id="kpiRiskHigh">0</span>
+                    </h2>
+                    <small class="text-muted">Risk: low / medium / high (avg <span id="kpiRiskAvg">0</span>)</small>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- Program detail -->
+        <div class="row">
+            <div class="col-md-6">
+                <h3>Training coverage</h3>
+                <table class="table table-condensed">
+                    <tr><td>Assigned (in period)</td><td id="trAssigned" class="text-right">0</td></tr>
+                    <tr><td>Started</td><td id="trStarted" class="text-right">0</td></tr>
+                    <tr><td>Completed</td><td id="trCompleted" class="text-right">0</td></tr>
+                    <tr><td>Outstanding</td><td id="trOutstanding" class="text-right">0</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h3>Phishing program</h3>
+                <table class="table table-condensed">
+                    <tr><td>Campaigns</td><td id="phCampaigns" class="text-right">0</td></tr>
+                    <tr><td>Recipients targeted</td><td id="phTargeted" class="text-right">0</td></tr>
+                    <tr><td>Emails sent</td><td id="phSent" class="text-right">0</td></tr>
+                    <tr><td>Clicked</td><td id="phClicked" class="text-right">0</td></tr>
+                    <tr><td>Submitted data</td><td id="phSubmitted" class="text-right">0</td></tr>
+                    <tr><td>Reported</td><td id="phReported" class="text-right">0</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Per-group breakdown -->
+        <h3>By group / department</h3>
+        <table id="groupTable" class="table">
+            <thead>
+                <tr>
+                    <th>Group</th>
+                    <th class="text-right">Members</th>
+                    <th class="text-right">Trained %</th>
+                    <th class="text-right">Click %</th>
+                    <th class="text-right">Report %</th>
+                    <th class="text-right">Avg risk</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <p class="text-muted"><small>
+            Group membership and "trained %" reflect current state; click/report % cover the
+            selected period's campaigns. Members matched by email; phone-only contacts are excluded.
+            Per-group click counts are raw, while the org-wide click rate applies the sandbox
+            (phish_filter) exclusion, so the two can differ slightly.
+        </small></p>
+    </div>
+</div>
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/compliance.min.js"></script>
+{{end}}
