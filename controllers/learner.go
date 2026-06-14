@@ -30,6 +30,13 @@ type learnerPageData struct {
 	// Lang is the recipient's UI language (from Accept-Language); T localizes.
 	Lang string
 
+	// Engagement (Phase 19.2): the recipient's own gamified standing, shown as
+	// a panel. HasEngagement guards rendering when the recipient resolved.
+	HasEngagement bool
+	Score         int
+	Streak        int
+	Badges        []string
+
 	Completed bool
 
 	// Quiz fields (Phase 12b). HasQuiz is true when the module has a quiz; the
@@ -87,6 +94,11 @@ const learnerPageHTML = `<!DOCTYPE html>
   .btn-complete { background:#27ae60; }
   .complete-form { margin:8px 0 0; }
   .footer { padding:18px 32px 24px; font-size:13px; color:#7f8c8d; border-top:1px solid #ecf0f1; }
+  .score-panel { background:#f4f8fd; border:1px solid #d6e4f5; border-radius:8px; padding:14px 18px; margin:0 0 22px; }
+  .score-panel .head { font-weight:600; margin:0 0 8px; }
+  .score-num { display:inline-block; min-width:34px; text-align:center; background:#2c7be5; color:#fff; font-weight:700; border-radius:6px; padding:2px 8px; margin-left:6px; }
+  .badge-pill { display:inline-block; background:#eaf3ff; color:#2c7be5; border:1px solid #cfe0f5; border-radius:12px; padding:2px 10px; font-size:12px; margin:4px 4px 0 0; }
+  .streak { margin:8px 0 0; color:#27ae60; font-weight:600; }
 </style>
 </head>
 <body>
@@ -95,6 +107,13 @@ const learnerPageHTML = `<!DOCTYPE html>
       <div class="banner"><h1>{{.ModuleName}}</h1></div>
       <div class="body">
         {{if .FirstName}}<p class="greet">{{ .T "learner.greeting" .FirstName }}</p>{{end}}
+        {{if .HasEngagement}}
+        <div class="score-panel">
+          <div class="head">{{ .T "learner.score_heading" }}<span class="score-num">{{.Score}}</span></div>
+          {{range .Badges}}<span class="badge-pill">{{ $.T (printf "badge.%s" .) }}</span>{{end}}
+          {{if .Streak}}<div class="streak">&#128293; {{ .T "learner.streak" .Streak }}</div>{{end}}
+        </div>
+        {{end}}
         {{if .Description}}<p class="desc">{{.Description}}</p>{{end}}
         {{if .Completed}}<div class="done">&#10003; {{ .T "learner.completed" }}</div>{{end}}
 
@@ -254,6 +273,15 @@ func renderLearnerPage(w http.ResponseWriter, lang string, e models.Enrollment, 
 		data.HasQuiz = true
 		data.Quiz = quizzes[0]
 		data.PassThreshold = quizzes[0].PassThreshold
+	}
+	// The recipient's own engagement standing (Phase 19.2).
+	if recipient.Id != 0 {
+		if eng, err := models.GetRecipientEngagement(recipient.Id); err == nil {
+			data.HasEngagement = true
+			data.Score = eng.Score
+			data.Streak = eng.Streak
+			data.Badges = eng.Badges
+		}
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := learnerPageTmpl.Execute(w, data); err != nil {

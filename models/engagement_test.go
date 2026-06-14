@@ -1,6 +1,9 @@
 package models
 
 import (
+	"fmt"
+	"time"
+
 	check "gopkg.in/check.v1"
 )
 
@@ -78,4 +81,50 @@ func (s *ModelsSuite) TestGetEngagementReport(c *check.C) {
 	c.Assert(rep.Departments[0].Department, check.Equals, "Eksploatacja")
 	c.Assert(rep.Departments[0].Members, check.Equals, int64(2))
 	c.Assert(rep.Departments[0].AvgScore >= rep.Departments[1].AvgScore, check.Equals, true)
+}
+
+// mkResult inserts a Result for a recipient at a given send-date offset (days
+// from now) with the chosen reported flag — for streak tests.
+func (s *ModelsSuite) mkResult(c *check.C, rid int64, days int, reported bool) {
+	r := Result{
+		CampaignID: 1, UserID: 1, RecipientID: rid, Status: EventSent,
+		Reported: reported, SendDate: time.Now().UTC().AddDate(0, 0, days),
+		BaseRecipient: BaseRecipient{Email: fmt.Sprintf("r%d-%d@x.com", rid, days)},
+	}
+	c.Assert(r.GenerateId(db), check.Equals, nil)
+	c.Assert(db.Create(&r).Error, check.Equals, nil)
+}
+
+// TestReportStreak: leading run of most-recent reported sims; broken by a
+// non-reported most-recent; future-dated sims excluded.
+func (s *ModelsSuite) TestReportStreak(c *check.C) {
+	rid, err := UpsertRecipient(db, 1, BaseRecipient{Email: "streaker@x.com"})
+	c.Assert(err, check.Equals, nil)
+	// Oldest -> newest: reported, true, true (2-day & 1-day ago), 3-day ago false.
+	s.mkResult(c, rid, -3, false)
+	s.mkResult(c, rid, -2, true)
+	s.mkResult(c, rid, -1, true)
+	// A future, unsent sim must not reset the streak.
+	s.mkResult(c, rid, 5, false)
+	c.Assert(reportStreak(rid), check.Equals, 2)
+
+	// A non-reported most-recent (delivered) sim breaks it.
+	s.mkResult(c, rid, 0, false)
+	c.Assert(reportStreak(rid), check.Equals, 0)
+}
+
+// TestGetRecipientEngagement: single-recipient score + badges + streak.
+func (s *ModelsSuite) TestGetRecipientEngagement(c *check.C) {
+	rid, err := UpsertRecipient(db, 1, BaseRecipient{Email: "solo@x.com", FirstName: "Solo"})
+	c.Assert(err, check.Equals, nil)
+	s.mkResult(c, rid, -2, true)
+	s.mkResult(c, rid, -1, true)
+
+	eng, err := GetRecipientEngagement(rid)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(eng.RecipientID, check.Equals, rid)
+	c.Assert(eng.Score > 50, check.Equals, true) // reporting lifts above base
+	c.Assert(eng.Streak, check.Equals, 2)
+	c.Assert(hasBadge(eng.Badges, "reporter"), check.Equals, true)
+	c.Assert(hasBadge(eng.Badges, "sharp_eye"), check.Equals, true) // never clicked
 }

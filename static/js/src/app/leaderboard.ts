@@ -57,11 +57,15 @@ const load = () => {
                 const who = e.name
                     ? `${escapeHtml(e.name)} <br><small class="text-muted">${escapeHtml(e.email)}</small>`
                     : escapeHtml(e.email)
+                const streak = e.streak > 0
+                    ? `<span class="label label-success">${e.streak}</span>`
+                    : '<span class="text-muted">—</span>'
                 table.row.add([
                     i + 1,
                     `<span data-order="${e.score}">${scoreBadge(e.score)}</span>`,
                     who,
                     renderBadges(e.badges),
+                    streak,
                     e.reported,
                     e.sims
                 ]).draw(false)

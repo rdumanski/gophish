@@ -68,20 +68,27 @@ func GetRiskScores(uid int64) ([]RiskScore, error) {
 	}
 	out := make([]RiskScore, 0, len(recipients))
 	for _, rec := range recipients {
-		rs := RiskScore{
-			RecipientID: rec.Id,
-			Email:       rec.Email,
-			Name:        strings.TrimSpace(rec.FirstName + " " + rec.LastName),
-		}
-		db.Model(&Result{}).Where("recipient_id=?", rec.Id).Count(&rs.Sims)
-		db.Model(&Result{}).Where("recipient_id=? AND status IN ?", rec.Id, []string{EventClicked, EventDataSubmit}).Count(&rs.Clicked)
-		db.Model(&Result{}).Where("recipient_id=? AND status=?", rec.Id, EventDataSubmit).Count(&rs.Submitted)
-		db.Model(&Result{}).Where("recipient_id=? AND reported=?", rec.Id, true).Count(&rs.Reported)
-		db.Model(&Enrollment{}).Where("recipient_id=?", rec.Id).Count(&rs.TrainingAssigned)
-		db.Model(&Enrollment{}).Where("recipient_id=? AND status=?", rec.Id, EnrollmentCompleted).Count(&rs.TrainingCompleted)
-		rs.Score = computeRiskScore(rs)
-		out = append(out, rs)
+		out = append(out, recipientRiskScore(rec))
 	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].Score > out[j].Score })
 	return out, nil
+}
+
+// recipientRiskScore computes the RiskScore for a single recipient. Shared by
+// GetRiskScores and the per-recipient engagement view so the count logic lives
+// in one place.
+func recipientRiskScore(rec Recipient) RiskScore {
+	rs := RiskScore{
+		RecipientID: rec.Id,
+		Email:       rec.Email,
+		Name:        strings.TrimSpace(rec.FirstName + " " + rec.LastName),
+	}
+	db.Model(&Result{}).Where("recipient_id=?", rec.Id).Count(&rs.Sims)
+	db.Model(&Result{}).Where("recipient_id=? AND status IN ?", rec.Id, []string{EventClicked, EventDataSubmit}).Count(&rs.Clicked)
+	db.Model(&Result{}).Where("recipient_id=? AND status=?", rec.Id, EventDataSubmit).Count(&rs.Submitted)
+	db.Model(&Result{}).Where("recipient_id=? AND reported=?", rec.Id, true).Count(&rs.Reported)
+	db.Model(&Enrollment{}).Where("recipient_id=?", rec.Id).Count(&rs.TrainingAssigned)
+	db.Model(&Enrollment{}).Where("recipient_id=? AND status=?", rec.Id, EnrollmentCompleted).Count(&rs.TrainingCompleted)
+	rs.Score = computeRiskScore(rs)
+	return rs
 }
