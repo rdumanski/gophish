@@ -3,7 +3,7 @@
 	Handles the creation, editing, and deletion of landing pages
 	Author: Jordan Wright <github.com/jordan-wright>
 */
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 var pages = []
 
@@ -21,7 +21,7 @@ function save(idx) {
         page.id = pages[idx].id
         api.pageId.put(page)
             .success(function (data) {
-                successFlash("Page edited successfully!")
+                successFlash(T("landing_pages.edited"))
                 load()
                 dismiss()
             })
@@ -29,7 +29,7 @@ function save(idx) {
         // Submit the page
         api.pages.post(page)
             .success(function (data) {
-                successFlash("Page added successfully!")
+                successFlash(T("landing_pages.added"))
                 load()
                 dismiss()
             })
@@ -53,12 +53,12 @@ function dismiss() {
 
 var deletePage = function (idx) {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the landing page. This can't be undone!",
+        title: T("landing_pages.delete_title"),
+        text: T("landing_pages.delete_confirm"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete " + escapeHtml(pages[idx].name),
+        confirmButtonText: T("common.delete_named", escapeHtml(pages[idx].name)),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -76,8 +76,8 @@ var deletePage = function (idx) {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'Landing Page Deleted!',
-                'This landing page has been deleted!',
+                T("landing_pages.deleted_title"),
+                T("landing_pages.deleted_text"),
                 'success'
             );
         }
@@ -90,7 +90,7 @@ var deletePage = function (idx) {
 function importSite() {
     const url = $("#url").val()
     if (!url) {
-        modalError("No URL Specified!")
+        modalError(T("landing_pages.no_url"))
     } else {
         api.clone_site({
                 url: url,
@@ -115,7 +115,7 @@ function edit(idx) {
     setupAutocomplete(CKEDITOR.instances["html_editor"])
     var page: any = {}
     if (idx != -1) {
-        $("#modalLabel").text("Edit Landing Page")
+        $("#modalLabel").text(T("landing_pages.edit_title"))
         page = pages[idx]
         $("#name").val(page.name)
         $("#html_editor").val(page.html)
@@ -127,7 +127,7 @@ function edit(idx) {
             $("#redirect_url").show()
         }
     } else {
-        $("#modalLabel").text("New Landing Page")
+        $("#modalLabel").text(T("landing_pages.new_title"))
     }
 }
 
@@ -137,7 +137,7 @@ function copy(idx) {
     })
     $("#html_editor").ckeditor()
     var page = pages[idx]
-    $("#name").val("Copy of " + page.name)
+    $("#name").val(T("common.copy_of", page.name))
     $("#html_editor").val(page.html)
 }
 
@@ -167,13 +167,13 @@ function load() {
                     pageRows.push([
                         escapeHtml(page.name),
                         moment(page.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
-                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Page' onclick='edit(" + i + ")'>\
+                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("landing_pages.edit_tooltip") + "' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button></span>\
-		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Page' onclick='copy(" + i + ")'>\
+		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("landing_pages.copy_tooltip") + "' onclick='copy(" + i + ")'>\
                     <i class='fa fa-copy'></i>\
                     </button></span>\
-                    <button class='btn btn-danger' data-toggle='tooltip' data-placement='left' title='Delete Page' onclick='deletePage(" + i + ")'>\
+                    <button class='btn btn-danger' data-toggle='tooltip' data-placement='left' title='" + T("landing_pages.delete_tooltip") + "' onclick='deletePage(" + i + ")'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
                     ])
@@ -186,7 +186,7 @@ function load() {
         })
         .error(function () {
             $("#loading").hide()
-            errorFlash("Error fetching pages")
+            errorFlash(T("landing_pages.fetch_error"))
         })
 }
 

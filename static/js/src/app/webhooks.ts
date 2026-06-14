@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let webhooks = [];
 
@@ -24,7 +24,7 @@ const saveWebhook = (id) => {
                 dismiss();
                 load();
                 $("#modal").modal("hide");
-                successFlash(`Webhook "${escapeHtml(wh.name)}" has been updated successfully!`);
+                successFlash(T("webhooks.updated", escapeHtml(wh.name)));
             })
             .error(function(data) {
                 modalError(data.responseJSON.message)
@@ -35,7 +35,7 @@ const saveWebhook = (id) => {
                 load();
                 dismiss();
                 $("#modal").modal("hide");
-                successFlash(`Webhook "${escapeHtml(wh.name)}" has been created successfully!`);
+                successFlash(T("webhooks.created", escapeHtml(wh.name)));
             })
             .error(function(data) {
                 modalError(data.responseJSON.message)
@@ -67,7 +67,7 @@ const load = () => {
                     `
                       <div class="pull-right">
                         <button class="btn btn-primary ping_button" data-webhook-id="${webhook.id}">
-                          Ping
+                          ${T("webhooks.ping")}
                         </button>
                         <button class="btn btn-primary edit_button" data-toggle="modal" data-backdrop="static" data-target="#modal" data-webhook-id="${webhook.id}">
                           <i class="fa fa-pencil"></i>
@@ -81,7 +81,7 @@ const load = () => {
             })
         })
         .error(() => {
-            errorFlash("Error fetching webhooks")
+            errorFlash(T("webhooks.fetch_error"))
         })
 };
 
@@ -90,7 +90,7 @@ const editWebhook = (id) => {
         saveWebhook(id);
     });
     if (id !== -1) {
-        $("#webhookModalLabel").text("Edit Webhook")
+        $("#webhookModalLabel").text(T("webhooks.edit_title"))
         api.webhookId.get(id)
           .success(function(wh) {
               $("#name").val(wh.name);
@@ -99,10 +99,10 @@ const editWebhook = (id) => {
               $("#is_active").prop("checked", wh.is_active);
           })
           .error(function () {
-              errorFlash("Error fetching webhook")
+              errorFlash(T("webhooks.fetch_one_error"))
           });
     } else {
-        $("#webhookModalLabel").text("New Webhook")
+        $("#webhookModalLabel").text(T("webhooks.new_title"))
     }
 };
 
@@ -112,12 +112,12 @@ const deleteWebhook = (id) => {
         return;
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: `This will delete the webhook '${escapeHtml(wh.name)}'`,
+        title: T("webhooks.delete_title"),
+        text: T("webhooks.delete_confirm", escapeHtml(wh.name)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -138,8 +138,8 @@ const deleteWebhook = (id) => {
     }).then(function(result) {
         if (result.value) {
             Swal.fire(
-                "Webhook Deleted!",
-                `The webhook has been deleted!`,
+                T("webhooks.deleted_title"),
+                T("webhooks.deleted_text"),
                 "success"
             );
         }
@@ -155,7 +155,7 @@ const pingUrl = (btn, whId) => {
     api.webhookId.ping(whId)
         .success(function(wh) {
             btn.disabled = false;
-            successFlash(`Ping of "${escapeHtml(wh.name)}" webhook succeeded.`);
+            successFlash(T("webhooks.ping_success", escapeHtml(wh.name)));
         })
         .error(function(data) {
             btn.disabled = false;
@@ -163,7 +163,7 @@ const pingUrl = (btn, whId) => {
             if (!wh) {
                 return
             }
-            errorFlash(`Ping of "${escapeHtml(wh.name)}" webhook failed: "${escapeHtml(data.responseJSON.message)}"`)
+            errorFlash(T("webhooks.ping_failed", escapeHtml(wh.name), escapeHtml(data.responseJSON.message)))
         });
 };
 

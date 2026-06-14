@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let quizzes = []
 let gidCounter = 0
@@ -7,10 +7,10 @@ const addOption = ($container, gid, text = "", isCorrect = false) => {
     const $row = $(`
       <div class="option-row" style="margin-bottom:6px;">
         <div class="input-group">
-          <span class="input-group-addon" title="Mark correct">
+          <span class="input-group-addon" title="${T("quizzes.mark_correct")}">
             <input type="radio" name="correct-${gid}" class="o-correct" />
           </span>
-          <input type="text" class="form-control o-text" placeholder="Answer option" />
+          <input type="text" class="form-control o-text" placeholder="${T("quizzes.answer_option")}" />
           <span class="input-group-btn">
             <button type="button" class="btn btn-default remove-option"><i class="fa fa-times"></i></button>
           </span>
@@ -29,14 +29,14 @@ const addQuestion = (prompt = "", options: any[] = []) => {
       <div class="question-block panel panel-default" data-gid="${gid}" style="padding:12px;margin-bottom:12px;background:#fafafa;">
         <div class="form-group" style="margin-bottom:8px;">
           <div class="input-group">
-            <input type="text" class="form-control q-prompt" placeholder="Question prompt" />
+            <input type="text" class="form-control q-prompt" placeholder="${T("quizzes.question_prompt")}" />
             <span class="input-group-btn">
-              <button type="button" class="btn btn-danger remove-question" title="Remove question"><i class="fa fa-trash-o"></i></button>
+              <button type="button" class="btn btn-danger remove-question" title="${T("quizzes.remove_question")}"><i class="fa fa-trash-o"></i></button>
             </span>
           </div>
         </div>
         <div class="options"></div>
-        <button type="button" class="btn btn-xs btn-default add-option"><i class="fa fa-plus"></i> Add Option</button>
+        <button type="button" class="btn btn-xs btn-default add-option"><i class="fa fa-plus"></i> ${T("quizzes.add_option")}</button>
       </div>`)
     $block.find(".q-prompt").val(prompt)
     const $opts = $block.find(".options")
@@ -69,7 +69,7 @@ const setupModuleOptions = (selected?) => {
     return api.training_modules.get().success((modules) => {
         const $sel = $("#module").empty()
         if (!modules || modules.length === 0) {
-            modalError("No training modules found! Create one first.")
+            modalError(T("quizzes.no_modules"))
             return
         }
         $.each(modules, (i, m) => {
@@ -95,17 +95,17 @@ const save = (id) => {
         pass_threshold: parseInt($("#pass_threshold").val() as string),
         questions: serializeQuestions(),
     }
-    const done = (verb) => {
+    const done = (msgKey) => {
         dismiss()
         $("#modal").modal("hide")
         load()
-        successFlash(`Quiz "${escapeHtml(quiz.title)}" ${verb}.`)
+        successFlash(T(msgKey, escapeHtml(quiz.title)))
     }
     if (id != -1) {
         quiz.id = parseInt(id)
-        api.quizId.put(quiz).success(() => done("updated")).error((d) => modalError(d.responseJSON.message))
+        api.quizId.put(quiz).success(() => done("quizzes.updated")).error((d) => modalError(d.responseJSON.message))
     } else {
-        api.quizzes.post(quiz).success(() => done("created")).error((d) => modalError(d.responseJSON.message))
+        api.quizzes.post(quiz).success(() => done("quizzes.created")).error((d) => modalError(d.responseJSON.message))
     }
 }
 
@@ -113,12 +113,12 @@ const editQuiz = (id) => {
     $("#modalSubmit").unbind("click").click(() => save(id))
     $("#questions").empty()
     if (id === -1) {
-        $("#quizModalLabel").text("New Quiz")
+        $("#quizModalLabel").text(T("quizzes.new_title"))
         setupModuleOptions().success(() => { /* options ready */ })
         addQuestion()
         return
     }
-    $("#quizModalLabel").text("Edit Quiz")
+    $("#quizModalLabel").text(T("quizzes.edit_title"))
     api.quizId.get(id).success((q) => {
         $("#title").val(q.title)
         $("#pass_threshold").val(q.pass_threshold)
@@ -127,7 +127,7 @@ const editQuiz = (id) => {
         if (!q.questions || q.questions.length === 0) {
             addQuestion()
         }
-    }).error(() => errorFlash("Error fetching quiz"))
+    }).error(() => errorFlash(T("quizzes.fetch_one_error")))
 }
 
 const load = () => {
@@ -167,7 +167,7 @@ const load = () => {
         })
         .error(() => {
             $("#loading").hide()
-            errorFlash("Error fetching quizzes")
+            errorFlash(T("quizzes.fetch_error"))
         })
 }
 
@@ -177,12 +177,12 @@ const deleteQuiz = (id) => {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: `This will delete the quiz '${escapeHtml(q.title)}'.`,
+        title: T("quizzes.delete_title"),
+        text: T("quizzes.delete_confirm", escapeHtml(q.title)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -191,7 +191,7 @@ const deleteQuiz = (id) => {
         }).catch(error => { Swal.showValidationMessage(error) })
     }).then((result) => {
         if (result.value) {
-            Swal.fire("Deleted!", "The quiz has been deleted.", "success")
+            Swal.fire(T("quizzes.deleted_title"), T("quizzes.deleted_text"), "success")
         }
         $("button:contains('OK')").on("click", () => location.reload())
     })

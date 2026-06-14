@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml, T } from './common'
 
 var templates = []
 
@@ -60,7 +60,7 @@ function save(idx) {
         template.id = templates[idx].id
         api.templateId.put(template)
             .success(function (data) {
-                successFlash("Template edited successfully!")
+                successFlash(T("templates.edit_success"))
                 load()
                 dismiss()
             })
@@ -71,7 +71,7 @@ function save(idx) {
         // Submit the template
         api.templates.post(template)
             .success(function (data) {
-                successFlash("Template added successfully!")
+                successFlash(T("templates.add_success"))
                 load()
                 dismiss()
             })
@@ -94,12 +94,12 @@ function dismiss() {
 
 var deleteTemplate = function (idx) {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the template. This can't be undone!",
+        title: T("templates.delete_confirm_title"),
+        text: T("templates.delete_confirm_text"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete " + escapeHtml(templates[idx].name),
+        confirmButtonText: T("templates.delete_confirm_button", escapeHtml(templates[idx].name)),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -117,8 +117,8 @@ var deleteTemplate = function (idx) {
     }).then(function (result) {
         if(result.value) {
             Swal.fire(
-                'Template Deleted!',
-                'This template has been deleted!',
+                T("templates.deleted_title"),
+                T("templates.deleted_text"),
                 'success'
             );
         }
@@ -194,7 +194,7 @@ function edit(idx) {
         attachments: []
     }
     if (idx != -1) {
-        $("#templateModalLabel").text("Edit Template")
+        $("#templateModalLabel").text(T("templates.modal_edit"))
         template = templates[idx]
         $("#name").val(template.name)
         $("#subject").val(template.subject)
@@ -221,7 +221,7 @@ function edit(idx) {
         }
 
     } else {
-        $("#templateModalLabel").text("New Template")
+        $("#templateModalLabel").text(T("templates.modal_new"))
     }
     // Handle Deletion
     $("#attachmentsTable").unbind('click').on("click", "span>i.fa-trash-o", function () {
@@ -257,7 +257,7 @@ function copy(idx) {
         attachments: []
     }
     template = templates[idx]
-    $("#name").val("Copy of " + template.name)
+    $("#name").val(T("templates.copy_of", template.name))
     $("#subject").val(template.subject)
     $("#envelope-sender").val(template.envelope_sender)
     $("#html_editor").val(template.html)
@@ -290,7 +290,7 @@ function importEmail() {
     const raw = $("#email_content").val()
     const convert_links = $("#convert_links_checkbox").prop("checked")
     if (!raw) {
-        modalError("No Content Specified!")
+        modalError(T("templates.no_content"))
     } else {
         api.import_email({
                 content: raw,
@@ -318,7 +318,7 @@ function importEmail() {
 function renderScoreList(selector: string, items: string[]) {
     const $list = $(selector).empty()
     if (!items || items.length === 0) {
-        $list.append('<li class="text-muted">(none reported)</li>')
+        $list.append(`<li class="text-muted">${T("templates.score_none_reported")}</li>`)
         return
     }
     items.forEach(s => {
@@ -354,7 +354,7 @@ function scoreTemplate() {
 
     if (!subject || (!text && !html)) {
         $("#ai_score_spinner").hide()
-        $("#ai_score_error").text("Please fill in a Subject and at least one of the Text or HTML body before scoring.").show()
+        $("#ai_score_error").text(T("templates.score_validation")).show()
         return
     }
 
@@ -371,12 +371,12 @@ function scoreTemplate() {
             renderScoreList("#ai_score_strengths", data.strengths || [])
             renderScoreList("#ai_score_weaknesses", data.weaknesses || [])
             renderScoreList("#ai_score_harder", data.would_make_harder || [])
-            $("#ai_score_model").text(data.model || 'unknown model')
+            $("#ai_score_model").text(data.model || T("templates.unknown_model"))
             $("#ai_score_result").show()
         })
         .error(function (data) {
             $("#ai_score_spinner").hide()
-            const msg = (data.responseJSON && data.responseJSON.message) || ("AI scoring failed (HTTP " + data.status + ")")
+            const msg = (data.responseJSON && data.responseJSON.message) || T("templates.score_failed", data.status)
             $("#ai_score_error").text(msg).show()
         })
 }
@@ -389,7 +389,7 @@ function generateTemplate() {
     const audience = ($("#ai_audience").val() as string || '').trim()
     const theme = ($("#ai_theme").val() as string || '').trim()
     if (!audience || !theme) {
-        modalError("Audience and Theme are required.")
+        modalError(T("templates.generate_validation"))
         return
     }
     const brief = {
@@ -418,10 +418,10 @@ function generateTemplate() {
             }
             lastGeneratedBy = data.model ? "anthropic:" + data.model : "anthropic"
             $("#aiGenerateModal").modal("hide")
-            successFlash("Draft generated. Review the content and Save when ready.")
+            successFlash(T("templates.generate_success"))
         })
         .error(function (data) {
-            const msg = (data.responseJSON && data.responseJSON.message) || ("AI request failed (HTTP " + data.status + ")")
+            const msg = (data.responseJSON && data.responseJSON.message) || T("templates.generate_failed", data.status)
             modalError(msg)
         })
         .always(function () {
@@ -453,13 +453,13 @@ function load() {
                     templateRows.push([
                         escapeHtml(template.name),
                         moment(template.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
-                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Edit Template' onclick='edit(" + i + ")'>\
+                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_edit") + "' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button></span>\
-		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Template' onclick='copy(" + i + ")'>\
+		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_copy") + "' onclick='copy(" + i + ")'>\
                     <i class='fa fa-copy'></i>\
                     </button></span>\
-                    <button class='btn btn-danger' data-toggle='tooltip' data-placement='left' title='Delete Template' onclick='deleteTemplate(" + i + ")'>\
+                    <button class='btn btn-danger' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_delete") + "' onclick='deleteTemplate(" + i + ")'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
                     ])
@@ -472,7 +472,7 @@ function load() {
         })
         .error(function () {
             $("#loading").hide()
-            errorFlash("Error fetching templates")
+            errorFlash(T("templates.fetch_error"))
         })
 }
 

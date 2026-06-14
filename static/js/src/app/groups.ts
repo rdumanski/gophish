@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash, unescapeHtml } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T, unescapeHtml } from './common'
 
 var groups = []
 
@@ -24,7 +24,7 @@ function save(id) {
         group.id = id
         api.groupId.put(group)
             .success(function (data) {
-                successFlash("Group updated successfully!")
+                successFlash(T("groups.updated"))
                 load()
                 dismiss()
                 $("#modal").modal('hide')
@@ -37,7 +37,7 @@ function save(id) {
         // to /groups
         api.groups.post(group)
             .success(function (data) {
-                successFlash("Group added successfully!")
+                successFlash(T("groups.added"))
                 load()
                 dismiss()
                 $("#modal").modal('hide')
@@ -70,10 +70,10 @@ function edit(id) {
         save(id)
     })
     if (id == -1) {
-        $("#groupModalLabel").text("New Group");
+        $("#groupModalLabel").text(T("groups.new_title"));
         var group = {}
     } else {
-        $("#groupModalLabel").text("Edit Group");
+        $("#groupModalLabel").text(T("groups.edit_title"));
         api.groupId.get(id)
             .success(function (group) {
                 $("#name").val(group.name)
@@ -90,7 +90,7 @@ function edit(id) {
                 targets.DataTable().rows.add(targetRows).draw()
             })
             .error(function () {
-                errorFlash("Error fetching group")
+                errorFlash(T("groups.fetch_one_error"))
             })
     }
     // Handle file uploads
@@ -105,7 +105,7 @@ function edit(id) {
             var acceptFileTypes = /(csv|txt)$/i;
             var filename = data.originalFiles[0]['name']
             if (filename && !acceptFileTypes.test(filename.split(".").pop())) {
-                modalError("Unsupported file extension (use .csv or .txt)")
+                modalError(T("groups.bad_file_ext"))
                 return false;
             }
             data.submit();
@@ -158,12 +158,12 @@ var deleteGroup = function (id) {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the group. This can't be undone!",
+        title: T("groups.delete_title"),
+        text: T("groups.delete_confirm"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete " + escapeHtml(group.name),
+        confirmButtonText: T("common.delete_named", escapeHtml(group.name)),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -181,8 +181,8 @@ var deleteGroup = function (id) {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'Group Deleted!',
-                'This group has been deleted!',
+                T("groups.deleted_title"),
+                T("groups.deleted_text"),
                 'success'
             );
         }
@@ -262,7 +262,7 @@ function load() {
             }
         })
         .error(function () {
-            errorFlash("Error fetching groups")
+            errorFlash(T("groups.fetch_error"))
         })
 }
 

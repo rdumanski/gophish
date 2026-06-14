@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let users = []
 
@@ -6,7 +6,7 @@ let users = []
 const save = (id) => {
     // Validate that the passwords match
     if ($("#password").val() !== $("#confirm_password").val()) {
-        modalError("Passwords must match.")
+        modalError(T("users.passwords_must_match"))
         return
     }
     let user: any = {
@@ -23,7 +23,7 @@ const save = (id) => {
         user.id = id
         api.userId.put(user)
             .success((data) => {
-                successFlash("User " + escapeHtml(user.username) + " updated successfully!")
+                successFlash(T("users.updated_success", escapeHtml(user.username)))
                 load()
                 dismiss()
                 $("#modal").modal('hide')
@@ -36,7 +36,7 @@ const save = (id) => {
         // to /user
         api.users.post(user)
             .success((data) => {
-                successFlash("User " + escapeHtml(user.username) + " registered successfully!")
+                successFlash(T("users.registered_success", escapeHtml(user.username)))
                 load()
                 dismiss()
                 $("#modal").modal('hide')
@@ -64,11 +64,11 @@ const edit = (id) => {
     })
     $("#role").select2()
     if (id == -1) {
-        $("#userModalLabel").text("New User")
+        $("#userModalLabel").text(T("users.new_user"))
         $("#role").val("user")
         $("#role").trigger("change")
     } else {
-        $("#userModalLabel").text("Edit User")
+        $("#userModalLabel").text(T("users.edit_user"))
         api.userId.get(id)
             .success((user) => {
                 $("#username").val(user.username)
@@ -81,7 +81,7 @@ const edit = (id) => {
                 }
             })
             .error(function () {
-                errorFlash("Error fetching user")
+                errorFlash(T("users.fetch_user_error"))
             })
     }
 }
@@ -93,19 +93,19 @@ const deleteUser = (id) => {
     }
     if (user.username == "admin") {
         Swal.fire({
-            title: "Unable to Delete User",
-            text: "The user account " + escapeHtml(user.username) + " cannot be deleted.",
+            title: T("users.unable_delete_title"),
+            text: T("users.unable_delete_text", escapeHtml(user.username)),
             type: "info"
         });
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the account for " + escapeHtml(user.username) + " as well as all of the objects they have created.\n\nThis can't be undone!",
+        title: T("users.confirm_delete_title"),
+        text: T("users.confirm_delete_text", escapeHtml(user.username)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -126,8 +126,8 @@ const deleteUser = (id) => {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'User Deleted!',
-                "The user account for " + escapeHtml(user.username) + " and all associated objects have been deleted!",
+                T("users.deleted_title"),
+                T("users.deleted_text", escapeHtml(user.username)),
                 'success'
             );
         }
@@ -143,12 +143,12 @@ const impersonate = (id) => {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        html: "You will be logged out of your account and logged in as <strong>" + escapeHtml(user.username) + "</strong>",
+        title: T("users.confirm_impersonate_title"),
+        html: T("users.confirm_impersonate_html", escapeHtml(user.username)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Swap User",
+        confirmButtonText: T("users.swap_user"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -164,11 +164,11 @@ const impersonate = (id) => {
           }).then((response) => {
                 if (response.status == 200) {
                     Swal.fire({
-                        title: "Success!",
-                        html: "Successfully changed to user <strong>" + escapeHtml(user.username) + "</strong>.",
+                        title: T("users.success_title"),
+                        html: T("users.impersonate_success_html", escapeHtml(user.username)),
                         type: "success",
                         showCancelButton: false,
-                        confirmButtonText: "Home",
+                        confirmButtonText: T("users.home"),
                         allowOutsideClick: false,
                     }).then((result) => {
                         if (result.value) {
@@ -176,9 +176,9 @@ const impersonate = (id) => {
                         }});
                 } else {
                     Swal.fire({
-                        title: "Error!",
+                        title: T("users.error_title"),
                         type: "error",
-                        html: "Failed to change to user <strong>" + escapeHtml(user.username) + "</strong>.",
+                        html: T("users.impersonate_error_html", escapeHtml(user.username)),
                         showCancelButton: false,
                     })
                 }
@@ -228,7 +228,7 @@ const load = () => {
             userTable.rows.add(userRows).draw();
         })
         .error(() => {
-            errorFlash("Error fetching users")
+            errorFlash(T("users.fetch_error"))
         })
 }
 

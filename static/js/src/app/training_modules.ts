@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let modules = []
 
@@ -40,7 +40,7 @@ const saveModule = (id) => {
                 dismiss()
                 load()
                 $("#modal").modal("hide")
-                successFlash(`Training module "${escapeHtml(m.name)}" updated successfully!`)
+                successFlash(T("training_modules.updated", escapeHtml(m.name)))
             })
             .error(function (data) {
                 modalError(data.responseJSON.message)
@@ -51,7 +51,7 @@ const saveModule = (id) => {
                 dismiss()
                 load()
                 $("#modal").modal("hide")
-                successFlash(`Training module "${escapeHtml(m.name)}" created successfully!`)
+                successFlash(T("training_modules.created", escapeHtml(m.name)))
             })
             .error(function (data) {
                 modalError(data.responseJSON.message)
@@ -98,7 +98,7 @@ const load = () => {
         })
         .error(() => {
             $("#loading").hide()
-            errorFlash("Error fetching training modules")
+            errorFlash(T("training_modules.fetch_error"))
         })
 }
 
@@ -107,7 +107,7 @@ const editModule = (id) => {
         saveModule(id)
     })
     if (id !== -1) {
-        $("#moduleModalLabel").text("Edit Training Module")
+        $("#moduleModalLabel").text(T("training_modules.edit_title"))
         api.trainingModuleId.get(id)
             .success(function (m) {
                 $("#name").val(m.name)
@@ -118,10 +118,10 @@ const editModule = (id) => {
                 toggleContentFields()
             })
             .error(function () {
-                errorFlash("Error fetching training module")
+                errorFlash(T("training_modules.fetch_one_error"))
             })
     } else {
-        $("#moduleModalLabel").text("New Training Module")
+        $("#moduleModalLabel").text(T("training_modules.new_title"))
         toggleContentFields()
     }
 }
@@ -132,12 +132,12 @@ const deleteModule = (id) => {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: `This will delete the training module '${escapeHtml(m.name)}'`,
+        title: T("training_modules.delete_title"),
+        text: T("training_modules.delete_confirm", escapeHtml(m.name)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -153,7 +153,7 @@ const deleteModule = (id) => {
         }
     }).then(function (result) {
         if (result.value) {
-            Swal.fire("Training Module Deleted!", "The training module has been deleted!", "success")
+            Swal.fire(T("training_modules.deleted_title"), T("training_modules.deleted_text"), "success")
         }
         $("button:contains('OK')").on("click", function () {
             location.reload()

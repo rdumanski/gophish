@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml } from './common'
+import { api, errorFlash, escapeHtml, T } from './common'
 
 // Format a Date as YYYY-MM-DD (the wire format the API expects).
 const ymd = (d) => d.toISOString().slice(0, 10)
@@ -58,9 +58,9 @@ const render = (rep) => {
     })
 
     const label = period.start === 'all'
-        ? `All time through ${period.end}`
-        : `Reporting period: ${period.start} – ${period.end}`
-    $('#periodLabel').text(`${label} · prepared by ${escapeHtml(rep.operator)}`)
+        ? T("compliance.all_time_through", period.end)
+        : T("compliance.reporting_period", period.start, period.end)
+    $('#periodLabel').text(T("compliance.prepared_by", label, escapeHtml(rep.operator)))
     $('#downloadPdf').attr('href', `/compliance/report.pdf?start=${period.start}&end=${period.end}`)
 }
 
@@ -75,7 +75,7 @@ const load = () => {
         })
         .error(() => {
             $('#loading').hide()
-            errorFlash('Error fetching compliance report')
+            errorFlash(T("compliance.fetch_error"))
         })
 }
 
@@ -104,7 +104,7 @@ $(document).ready(function () {
         const start = $('#startDate').val()
         const end = $('#endDate').val()
         if (!start || !end) {
-            errorFlash('Please choose both a start and end date')
+            errorFlash(T("compliance.choose_dates"))
             return
         }
         $('.period-preset').removeClass('active')

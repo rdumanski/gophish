@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, successFlash } from './common'
+import { api, errorFlash, escapeHtml, successFlash, T } from './common'
 
 var campaigns = []
 // statuses is a helper map to point result statuses to ui classes
@@ -93,7 +93,7 @@ var statsMapping = {
 }
 
 function deleteCampaign(idx) {
-    if (confirm("Delete " + campaigns[idx].name + "?")) {
+    if (confirm(T("dashboard.delete_confirm", campaigns[idx].name))) {
         api.campaignId.delete(campaigns[idx].id)
             .success(function (data) {
                 successFlash(data.message)
@@ -228,7 +228,7 @@ function generateTimelineChart(campaigns) {
             type: 'areaspline'
         },
         title: {
-            text: 'Phishing Success Overview'
+            text: T("dashboard.overview_title")
         },
         xAxis: {
             type: 'datetime',
@@ -245,13 +245,13 @@ function generateTimelineChart(campaigns) {
             min: 0,
             max: 100,
             title: {
-                text: "% of Success"
+                text: T("dashboard.pct_success_axis")
             }
         },
         tooltip: {
             formatter: function () {
                 return Highcharts.dateFormat('%A, %b %d %l:%M:%S %P', new Date(this.x)) +
-                    '<br>' + this.point.name + '<br>% Success: <b>' + this.y + '%</b>'
+                    '<br>' + this.point.name + '<br>' + T("dashboard.pct_success_label") + ': <b>' + this.y + '%</b>'
             }
         },
         legend: {
@@ -335,11 +335,11 @@ $(document).ready(function () {
                     //section for tooltips on the status of a campaign to show some quick stats
                     var launchDate;
                     if (moment(campaign.launch_date).isAfter(moment())) {
-                        launchDate = "Scheduled to start: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total
+                        launchDate = T("dashboard.scheduled_start", moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a'))
+                        var quickStats = launchDate + "<br><br>" + T("dashboard.recipients", campaign.stats.total)
                     } else {
-                        launchDate = "Launch Date: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total + "<br><br>" + "Emails opened: " + campaign.stats.opened + "<br><br>" + "Emails clicked: " + campaign.stats.clicked + "<br><br>" + "Submitted Credentials: " + campaign.stats.submitted_data + "<br><br>" + "Errors : " + campaign.stats.error + "<br><br>" + "Reported : " + campaign.stats.email_reported
+                        launchDate = T("dashboard.launch_date", moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a'))
+                        var quickStats = launchDate + "<br><br>" + T("dashboard.recipients", campaign.stats.total) + "<br><br>" + T("dashboard.emails_opened", campaign.stats.opened) + "<br><br>" + T("dashboard.emails_clicked", campaign.stats.clicked) + "<br><br>" + T("dashboard.submitted_credentials", campaign.stats.submitted_data) + "<br><br>" + T("dashboard.errors", campaign.stats.error) + "<br><br>" + T("dashboard.reported", campaign.stats.email_reported)
                     }
                     // Add it to the list
                     campaignRows.push([
@@ -351,10 +351,10 @@ $(document).ready(function () {
                         campaign.stats.submitted_data,
                         campaign.stats.email_reported,
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
+                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.view_results") + "'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
-                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
+                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.delete_campaign") + "'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
                     ])
@@ -369,7 +369,7 @@ $(document).ready(function () {
             }
         })
         .error(function () {
-            errorFlash("Error fetching campaigns")
+            errorFlash(T("dashboard.fetch_error"))
         })
 })
 
