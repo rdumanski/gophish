@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 // labels is a map of campaign statuses to
 // CSS classes
@@ -16,12 +16,12 @@ var campaign: any = {}
 // Launch attempts to POST to /campaigns/
 function launch() {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will schedule the campaign to be launched.",
+        title: T("campaigns.confirm_launch_title"),
+        text: T("campaigns.confirm_launch_text"),
         type: "question",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Launch",
+        confirmButtonText: T("campaigns.launch"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -72,8 +72,8 @@ function launch() {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'Campaign Scheduled!',
-                'This campaign has been scheduled for launch!',
+                T("campaigns.scheduled_title"),
+                T("campaigns.scheduled_text"),
                 'success'
             );
         }
@@ -102,12 +102,12 @@ function sendTestEmail() {
         }
     }
     const btnHtml = $("#sendTestModalSubmit").html()
-    $("#sendTestModalSubmit").html('<i class="fa fa-spinner fa-spin"></i> Sending')
+    $("#sendTestModalSubmit").html('<i class="fa fa-spinner fa-spin"></i> ' + T("campaigns.sending"))
     // Send the test email
     api.send_test_email(test_email_request)
         .success(function (data) {
             $("#sendTestEmailModal\\.flashes").empty().append("<div style=\"text-align:center\" class=\"alert alert-success\">\
-            <i class=\"fa fa-check-circle\"></i> Email Sent!</div>")
+            <i class=\"fa fa-check-circle\"></i> " + T("campaigns.email_sent") + "</div>")
             $("#sendTestModalSubmit").html(btnHtml)
         })
         .error(function (data) {
@@ -132,12 +132,12 @@ function dismiss() {
 
 function deleteCampaign(idx) {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the campaign. This can't be undone!",
+        title: T("campaigns.confirm_delete_title"),
+        text: T("campaigns.confirm_delete_text"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete " + campaigns[idx].name,
+        confirmButtonText: T("campaigns.delete_named", campaigns[idx].name),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -155,8 +155,8 @@ function deleteCampaign(idx) {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'Campaign Deleted!',
-                'This campaign has been deleted!',
+                T("campaigns.deleted_title"),
+                T("campaigns.deleted_text"),
                 'success'
             );
         }
@@ -171,17 +171,17 @@ function setupOptions() {
         .success(function (summaries) {
             const groups = summaries.groups
             if (groups.length == 0) {
-                modalError("No groups found!")
+                modalError(T("campaigns.no_groups"))
                 return false;
             } else {
                 var group_s2 = $.map(groups, function (obj) {
                     obj.text = obj.name
-                    obj.title = obj.num_targets + " targets"
+                    obj.title = T("campaigns.num_targets", obj.num_targets)
                     return obj
                 });
                 console.log(group_s2)
                 $("#users.form-control").select2({
-                    placeholder: "Select Groups",
+                    placeholder: T("campaigns.select_groups"),
                     data: group_s2,
                 });
             }
@@ -189,7 +189,7 @@ function setupOptions() {
     api.templates.get()
         .success(function (templates) {
             if (templates.length == 0) {
-                modalError("No templates found!")
+                modalError(T("campaigns.no_templates"))
                 return false
             } else {
                 var template_s2 = $.map(templates, function (obj) {
@@ -198,7 +198,7 @@ function setupOptions() {
                 });
                 var template_select = $("#template.form-control")
                 template_select.select2({
-                    placeholder: "Select a Template",
+                    placeholder: T("campaigns.select_template"),
                     data: template_s2,
                 });
                 if (templates.length === 1) {
@@ -210,7 +210,7 @@ function setupOptions() {
     api.pages.get()
         .success(function (pages) {
             if (pages.length == 0) {
-                modalError("No pages found!")
+                modalError(T("campaigns.no_pages"))
                 return false
             } else {
                 var page_s2 = $.map(pages, function (obj) {
@@ -219,7 +219,7 @@ function setupOptions() {
                 });
                 var page_select = $("#page.form-control")
                 page_select.select2({
-                    placeholder: "Select a Landing Page",
+                    placeholder: T("campaigns.select_page"),
                     data: page_s2,
                 });
                 if (pages.length === 1) {
@@ -231,7 +231,7 @@ function setupOptions() {
     api.SMTP.get()
         .success(function (profiles) {
             if (profiles.length == 0) {
-                modalError("No profiles found!")
+                modalError(T("campaigns.no_profiles"))
                 return false
             } else {
                 var profile_s2 = $.map(profiles, function (obj) {
@@ -240,7 +240,7 @@ function setupOptions() {
                 });
                 var profile_select = $("#profile.form-control")
                 profile_select.select2({
-                    placeholder: "Select a Sending Profile",
+                    placeholder: T("campaigns.select_profile"),
                     data: profile_s2,
                 }).select2("val", profile_s2[0]);
                 if (profiles.length === 1) {
@@ -270,7 +270,7 @@ function copy(idx) {
     // Set our initial values
     api.campaignId.get(campaigns[idx].id)
         .success(function (campaign) {
-            $("#name").val("Copy of " + campaign.name)
+            $("#name").val(T("campaigns.copy_of", campaign.name))
             if (!campaign.template.id) {
                 $("#template").val("").change();
                 $("#template").select2({
@@ -397,24 +397,24 @@ $(document).ready(function () {
                     //section for tooltips on the status of a campaign to show some quick stats
                     var launchDate;
                     if (moment(campaign.launch_date).isAfter(moment())) {
-                        launchDate = "Scheduled to start: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total
+                        launchDate = T("campaigns.scheduled_to_start", moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a'))
+                        var quickStats = launchDate + "<br><br>" + T("campaigns.num_recipients", campaign.stats.total)
                     } else {
-                        launchDate = "Launch Date: " + moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a')
-                        var quickStats = launchDate + "<br><br>" + "Number of recipients: " + campaign.stats.total + "<br><br>" + "Emails opened: " + campaign.stats.opened + "<br><br>" + "Emails clicked: " + campaign.stats.clicked + "<br><br>" + "Submitted Credentials: " + campaign.stats.submitted_data + "<br><br>" + "Errors : " + campaign.stats.error + "<br><br>" + "Reported : " + campaign.stats.email_reported
+                        launchDate = T("campaigns.launch_date", moment(campaign.launch_date).format('MMMM Do YYYY, h:mm:ss a'))
+                        var quickStats = launchDate + "<br><br>" + T("campaigns.num_recipients", campaign.stats.total) + "<br><br>" + T("campaigns.emails_opened", campaign.stats.opened) + "<br><br>" + T("campaigns.emails_clicked", campaign.stats.clicked) + "<br><br>" + T("campaigns.submitted_credentials", campaign.stats.submitted_data) + "<br><br>" + T("campaigns.errors", campaign.stats.error) + "<br><br>" + T("campaigns.reported", campaign.stats.email_reported)
                     }
 
                     var row = [
                         escapeHtml(campaign.name),
                         moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='View Results'>\
+                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.view_results") + "'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
-            <span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='Copy Campaign' onclick='copy(" + i + ")'>\
+            <span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.copy_campaign") + "' onclick='copy(" + i + ")'>\
                     <i class='fa fa-copy'></i>\
                     </button></span>\
-                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='Delete Campaign'>\
+                    <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.delete_campaign") + "'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
                     ]
@@ -433,7 +433,7 @@ $(document).ready(function () {
         })
         .error(function () {
             $("#loading").hide()
-            errorFlash("Error fetching campaigns")
+            errorFlash(T("campaigns.fetch_error"))
         })
     // Select2 Defaults
     $.fn.select2.defaults.set("width", "100%");

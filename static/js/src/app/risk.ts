@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml } from './common'
+import { api, errorFlash, escapeHtml, T } from './common'
 
 // Colour the score badge by band: low (green) < 40, medium (amber) < 70, high (red).
 const scoreBadge = (score) => {
@@ -34,8 +34,8 @@ const load = () => {
                     ? `${escapeHtml(r.name)} <br><small class="text-muted">${escapeHtml(r.email)}</small>`
                     : escapeHtml(r.email)
                 const training = r.training_assigned > 0
-                    ? `${r.training_completed}/${r.training_assigned} completed`
-                    : '<span class="text-muted">none</span>'
+                    ? `${r.training_completed}/${r.training_assigned} ${T("risk.completed")}`
+                    : `<span class="text-muted">${T("risk.none")}</span>`
                 table.row.add([
                     `<span data-order="${r.score}">${scoreBadge(r.score)}</span>`,
                     who,
@@ -49,7 +49,7 @@ const load = () => {
         })
         .error(() => {
             $("#loading").hide()
-            errorFlash("Error fetching risk report")
+            errorFlash(T("risk.fetch_error"))
         })
 }
 

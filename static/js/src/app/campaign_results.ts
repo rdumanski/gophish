@@ -1,4 +1,4 @@
-import { api, capitalize, errorFlash, escapeHtml } from './common'
+import { api, capitalize, errorFlash, escapeHtml, T } from './common'
 
 var map = null
 var doPoll = true;
@@ -128,12 +128,12 @@ function dismiss() {
 // Deletes a campaign after prompting the user
 function deleteCampaign() {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This will delete the campaign. This can't be undone!",
+        title: T("campaign_results.delete_confirm_title"),
+        text: T("campaign_results.delete_confirm_text"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete Campaign",
+        confirmButtonText: T("campaign_results.delete_confirm_button"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -152,8 +152,8 @@ function deleteCampaign() {
     }).then(function (result) {
         if(result.value){
             Swal.fire(
-                'Campaign Deleted!',
-                'This campaign has been deleted!',
+                T("campaign_results.deleted_title"),
+                T("campaign_results.deleted_text"),
                 'success'
             );
         }
@@ -166,12 +166,12 @@ function deleteCampaign() {
 // Completes a campaign after prompting the user
 function completeCampaign() {
     Swal.fire({
-        title: "Are you sure?",
-        text: "Gophish will stop processing events for this campaign",
+        title: T("campaign_results.complete_confirm_title"),
+        text: T("campaign_results.complete_confirm_text"),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Complete Campaign",
+        confirmButtonText: T("campaign_results.complete_confirm_button"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -190,12 +190,12 @@ function completeCampaign() {
     }).then(function (result) {
         if (result.value){
             Swal.fire(
-                'Campaign Completed!',
-                'This campaign has been completed!',
+                T("campaign_results.completed_title"),
+                T("campaign_results.completed_text"),
                 'success'
             );
             ($('#complete_button')[0] as HTMLButtonElement).disabled = true;
-            $('#complete_button').text('Completed!')
+            $('#complete_button').text(T("campaign_results.completed_button"))
             doPoll = false;
         }
     })
@@ -262,7 +262,7 @@ function replay(event_idx) {
     /* Ensure we know where to send the user */
     // Prompt for the URL
     Swal.fire({
-        title: 'Where do you want the credentials submitted to?',
+        title: T("campaign_results.replay_title"),
         input: 'text',
         showCancelButton: true,
         inputPlaceholder: "http://example.com/login",
@@ -272,7 +272,7 @@ function replay(event_idx) {
                 if (value) {
                     resolve();
                 } else {
-                    reject('Invalid URL.');
+                    reject(T("campaign_results.invalid_url"));
                 }
             });
         }
@@ -318,7 +318,7 @@ var renderDevice = function (event_details: any) {
         if (deviceVendor == 'microsoft') deviceVendor = 'windows'
     }
 
-    var deviceName = 'Unknown'
+    var deviceName = T("campaign_results.unknown")
     if (ua.os.name) {
         deviceName = ua.os.name
         if (deviceName == "Mac OS") {
@@ -332,7 +332,7 @@ var renderDevice = function (event_details: any) {
     }
 
     if (ua.os.version) {
-        deviceName = deviceName + ' (OS Version: ' + ua.os.version + ')'
+        deviceName = deviceName + ' ' + T("campaign_results.os_version", ua.os.version)
     }
 
     const deviceString = '<div class="timeline-device-os"><span class="fa fa-stack">' +
@@ -342,7 +342,7 @@ var renderDevice = function (event_details: any) {
 
     detailsString += deviceString
 
-    var deviceBrowser = 'Unknown'
+    var deviceBrowser = T("campaign_results.unknown")
     var browserIcon = 'info-circle'
     var browserVersion = ''
 
@@ -354,7 +354,7 @@ var renderDevice = function (event_details: any) {
             browserIcon = deviceBrowser.toLowerCase()
             if (browserIcon == 'ie') browserIcon = 'internet-explorer'
         }
-        browserVersion = '(Version: ' + ua.browser.version + ')'
+        browserVersion = T("campaign_results.browser_version", ua.browser.version)
     }
 
     var browserString = '<div class="timeline-device-browser"><span class="fa fa-stack">' +
@@ -378,9 +378,9 @@ function renderTimeline(data) {
         "send_date": data[8]
     }
     let results = '<div class="timeline col-sm-12 well well-lg">' +
-        '<h6>Timeline for ' + escapeHtml(record.first_name) + ' ' + escapeHtml(record.last_name) +
-        '</h6><span class="subtitle">Email: ' + escapeHtml(record.email) +
-        '<br>Result ID: ' + escapeHtml(record.id) + '</span>' +
+        '<h6>' + T("campaign_results.timeline_for", escapeHtml(record.first_name) + ' ' + escapeHtml(record.last_name)) +
+        '</h6><span class="subtitle">' + T("campaign_results.email_label") + ' ' + escapeHtml(record.email) +
+        '<br>' + T("campaign_results.result_id_label") + ' ' + escapeHtml(record.id) + '</span>' +
         '<div class="timeline-graph col-sm-6">'
     $.each(campaign.timeline, function (i, event) {
         if (!event.email || event.email == record.email) {
@@ -402,13 +402,13 @@ function renderTimeline(data) {
                 }
                 if (event.message == "Submitted Data") {
                     results += '<div class="timeline-replay-button"><button onclick="replay(' + String(i) + ')" class="btn btn-success">'
-                    results += '<i class="fa fa-refresh"></i> Replay Credentials</button></div>'
-                    results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> View Details</div>'
+                    results += '<i class="fa fa-refresh"></i> ' + T("campaign_results.replay_credentials") + '</button></div>'
+                    results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> ' + T("campaign_results.view_details") + '</div>'
                 }
                 if (details.payload) {
                     results += '<div class="timeline-event-results">'
                     results += '    <table class="table table-condensed table-bordered table-striped">'
-                    results += '        <thead><tr><th>Parameter</th><th>Value(s)</tr></thead><tbody>'
+                    results += '        <thead><tr><th>' + T("campaign_results.col_parameter") + '</th><th>' + T("campaign_results.col_values") + '</tr></thead><tbody>'
                     $.each(Object.keys(details.payload), function (i, param) {
                         if (param == "rid") {
                             return true;
@@ -422,9 +422,9 @@ function renderTimeline(data) {
                     results += '</div>'
                 }
                 if (details.error) {
-                    results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> View Details</div>'
+                    results += '<div class="timeline-event-details"><i class="fa fa-caret-right"></i> ' + T("campaign_results.view_details") + '</div>'
                     results += '<div class="timeline-event-results">'
-                    results += '<span class="label label-default">Error</span> ' + details.error
+                    results += '<span class="label label-default">' + T("campaign_results.error_label") + '</span> ' + details.error
                     results += '</div>'
                 }
             }
@@ -438,7 +438,7 @@ function renderTimeline(data) {
         results +=
             '    <div class="timeline-icon ' + statuses[record.status].label + '">' +
             '    <i class="fa ' + statuses[record.status].icon + '"></i></div>' +
-            '    <div class="timeline-message">' + "Scheduled to send at " + record.send_date + '</span>'
+            '    <div class="timeline-message">' + T("campaign_results.scheduled_to_send", record.send_date) + '</span>'
     }
     results += '</div></div>'
     return results
@@ -452,7 +452,7 @@ var renderTimelineChart = function (chartopts) {
             height: "200px"
         },
         title: {
-            text: 'Campaign Timeline'
+            text: T("campaign_results.chart_timeline_title")
         },
         xAxis: {
             type: 'datetime',
@@ -480,7 +480,7 @@ var renderTimelineChart = function (chartopts) {
         tooltip: {
             formatter: function () {
                 return Highcharts.dateFormat('%A, %b %d %l:%M:%S %P', new Date(this.x)) +
-                    '<br>Event: ' + this.point.message + '<br>Email: <b>' + this.point.email + '</b>'
+                    '<br>' + T("campaign_results.tooltip_event") + ' ' + this.point.message + '<br>' + T("campaign_results.tooltip_email") + ' <b>' + this.point.email + '</b>'
             }
         },
         legend: {
@@ -618,7 +618,7 @@ function createStatusLabel(status, send_date) {
     var statusColumn = "<span class=\"label " + label + "\">" + status + "</span>"
     // Add the tooltip if the email is scheduled to be sent
     if (status == "Scheduled" || status == "Retrying") {
-        var sendDateMessage = "Scheduled to send at " + send_date
+        var sendDateMessage = T("campaign_results.scheduled_to_send", send_date)
         statusColumn = "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-html=\"true\" title=\"" + sendDateMessage + "\">" + status + "</span>"
     }
     return statusColumn
@@ -732,10 +732,10 @@ function load() {
                 $("#loading").hide()
                 $("#campaignResults").show()
                 // Set the title
-                $("#page-title").text("Results for " + c.name)
+                $("#page-title").text(T("campaign_results.page_title", c.name))
                 if (c.status == "Completed") {
                     ($('#complete_button')[0] as HTMLButtonElement).disabled = true;
-                    $('#complete_button').text('Completed!');
+                    $('#complete_button').text(T("campaign_results.completed_button"));
                     doPoll = false;
                 }
                 // Setup viewing the details of a result
@@ -903,7 +903,7 @@ function load() {
         })
         .error(function () {
             $("#loading").hide()
-            errorFlash(" Campaign not found!")
+            errorFlash(T("campaign_results.not_found"))
         })
 }
 
@@ -922,12 +922,12 @@ function refresh() {
 
 function report_mail(rid, cid) {
     Swal.fire({
-        title: "Are you sure?",
-        text: "This result will be flagged as reported (RID: " + rid + ")",
+        title: T("campaign_results.report_confirm_title"),
+        text: T("campaign_results.report_confirm_text", rid),
         type: "question",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Continue",
+        confirmButtonText: T("campaign_results.report_confirm_button"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -948,13 +948,13 @@ function report_mail(rid, cid) {
                 .catch(error => {
                     let errorMessage = error.message;
                     if (error.message === "Failed to fetch") {
-                        errorMessage = "This might be due to Mixed Content issues or network problems.";
+                        errorMessage = T("campaign_results.report_fetch_error");
                     }
                     Swal.fire({
-                        title: 'Error',
+                        title: T("campaign_results.error_title"),
                         text: errorMessage,
                         type: 'error',
-                        confirmButtonText: 'Close'
+                        confirmButtonText: T("common.close")
                     });
                 });
             }));
@@ -968,19 +968,20 @@ function reconcileReports() {
     const raw = ($("#reconcileInput").val() as string) || ""
     const identifiers = raw.split(/[\s,;]+/).map(s => s.trim()).filter(s => s.length > 0)
     if (identifiers.length === 0) {
-        $("#reconcileResult").html('<div class="alert alert-warning">Paste at least one email or result ID.</div>')
+        $("#reconcileResult").html(`<div class="alert alert-warning">${T("campaign_results.reconcile_empty")}</div>`)
         return
     }
     const btn = $("#reconcileSubmit")
     const original = btn.html()
-    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Crediting')
+    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> ' + T("campaign_results.reconcile_crediting"))
     api.campaignId.reconcileReported(campaign.id, identifiers)
         .success(function (res) {
             btn.prop("disabled", false).html(original)
-            let html = `<div class="alert alert-success">Credited <strong>${res.marked}</strong> report(s). `
-                + `${res.already_reported} already reported, ${res.not_found} not found.</div>`
+            let html = `<div class="alert alert-success">`
+                + T("campaign_results.reconcile_summary", `<strong>${res.marked}</strong>`, res.already_reported, res.not_found)
+                + `</div>`
             if (res.unmatched && res.unmatched.length > 0) {
-                html += `<small class="text-muted">Not found: ${escapeHtml(res.unmatched.join(", "))}</small>`
+                html += `<small class="text-muted">${T("campaign_results.reconcile_not_found", escapeHtml(res.unmatched.join(", ")))}</small>`
             }
             $("#reconcileResult").html(html)
             refresh()

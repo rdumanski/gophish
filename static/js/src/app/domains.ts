@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let domains = []
 
@@ -21,7 +21,7 @@ const healthCell = (d) => {
     if (d.status) {
         html += `<br><small class="text-muted">${escapeHtml(d.status)}</small>`
     }
-    return html || '<span class="text-muted">not checked</span>'
+    return html || '<span class="text-muted">' + T("domains.not_checked") + '</span>'
 }
 
 const dismiss = () => {
@@ -37,28 +37,28 @@ const save = (id) => {
         role: $("#role").val(),
         dkim_selector: $("#dkim_selector").val(),
     }
-    const done = (verb) => {
+    const done = (msg) => {
         dismiss()
         $("#modal").modal("hide")
         load()
-        successFlash(`Domain "${escapeHtml(d.name)}" ${verb}.`)
+        successFlash(msg)
     }
     if (id != -1) {
         d.id = parseInt(id)
-        api.domainId.put(d).success(() => done("updated")).error((x) => modalError(x.responseJSON.message))
+        api.domainId.put(d).success(() => done(T("domains.updated", escapeHtml(d.name)))).error((x) => modalError(x.responseJSON.message))
     } else {
-        api.domains.post(d).success(() => done("registered")).error((x) => modalError(x.responseJSON.message))
+        api.domains.post(d).success(() => done(T("domains.registered", escapeHtml(d.name)))).error((x) => modalError(x.responseJSON.message))
     }
 }
 
 const editDomain = (id) => {
     $("#modalSubmit").unbind("click").click(() => save(id))
     if (id === -1) {
-        $("#domainModalLabel").text("New Domain")
+        $("#domainModalLabel").text(T("domains.new_domain"))
         dismiss()
         return
     }
-    $("#domainModalLabel").text("Edit Domain")
+    $("#domainModalLabel").text(T("domains.edit_domain"))
     const d = domains.find(x => x.id == id)
     if (d) {
         $("#name").val(d.name)
@@ -94,12 +94,12 @@ const deleteDomain = (id) => {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: `This will remove the domain '${escapeHtml(d.name)}' from the registry.`,
+        title: T("domains.confirm_delete_title"),
+        text: T("domains.confirm_delete_text", escapeHtml(d.name)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -108,7 +108,7 @@ const deleteDomain = (id) => {
         }).catch(e => Swal.showValidationMessage(e))
     }).then((result) => {
         if (result.value) {
-            Swal.fire("Deleted!", "The domain has been removed.", "success")
+            Swal.fire(T("domains.deleted_title"), T("domains.deleted_text"), "success")
         }
         $("button:contains('OK')").on("click", () => location.reload())
     })
@@ -138,15 +138,15 @@ const load = () => {
                     healthCell(d),
                     last,
                     `<div class="pull-right">
-                        <button class="btn btn-primary check_button" data-domain-id="${d.id}" title="Run health check"><i class="fa fa-heartbeat"></i></button>
-                        <button class="btn btn-default records_button" data-domain-id="${d.id}" title="DNS records to publish"><i class="fa fa-list"></i></button>
+                        <button class="btn btn-primary check_button" data-domain-id="${d.id}" title="${T("domains.run_health_check")}"><i class="fa fa-heartbeat"></i></button>
+                        <button class="btn btn-default records_button" data-domain-id="${d.id}" title="${T("domains.dns_records")}"><i class="fa fa-list"></i></button>
                         <button class="btn btn-primary edit_button" data-toggle="modal" data-backdrop="static" data-target="#modal" data-domain-id="${d.id}"><i class="fa fa-pencil"></i></button>
                         <button class="btn btn-danger delete_button" data-domain-id="${d.id}"><i class="fa fa-trash-o"></i></button>
                      </div>`
                 ]).draw(false)
             })
         })
-        .error(() => { $("#loading").hide(); errorFlash("Error fetching domains") })
+        .error(() => { $("#loading").hide(); errorFlash(T("domains.fetch_error")) })
 }
 
 $(document).ready(function () {

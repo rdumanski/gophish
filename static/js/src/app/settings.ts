@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, successFlash, successFlashFade } from './common'
+import { api, errorFlash, escapeHtml, successFlash, successFlashFade, T } from './common'
 
 $(document).ready(function () {
     $('[data-toggle="tooltip"]').tooltip();
@@ -43,19 +43,19 @@ $(document).ready(function () {
         
         //To avoid unmarshalling error in controllers/api/imap.go. It would fail gracefully, but with a generic error.
         if (imapSettings.host == ""){
-            errorFlash("No IMAP Host specified")
+            errorFlash(T("settings.imap_no_host"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
         }
         if (imapSettings.port == ""){
-            errorFlash("No IMAP Port specified")
+            errorFlash(T("settings.imap_no_port"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
         }
         if (isNaN(imapSettings.port) || imapSettings.port <1 || imapSettings.port > 65535  ){ 
-            errorFlash("Invalid IMAP Port")
+            errorFlash(T("settings.imap_invalid_port"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
@@ -66,9 +66,9 @@ $(document).ready(function () {
 
         api.IMAP.post(imapSettings).done(function (data) {
                 if (data.success == true) {
-                    successFlashFade("Successfully updated IMAP settings.", 2)
+                    successFlashFade(T("settings.imap_update_success"), 2)
                 } else {
-                    errorFlash("Unable to update IMAP settings.")
+                    errorFlash(T("settings.imap_update_failed"))
                 }
             })
             .success(function (data){
@@ -98,19 +98,19 @@ $(document).ready(function () {
 
         //To avoid unmarshalling error in controllers/api/imap.go. It would fail gracefully, but with a generic error. 
         if (server.host == ""){
-            errorFlash("No IMAP Host specified")
+            errorFlash(T("settings.imap_no_host"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
         }
         if (server.port == ""){
-            errorFlash("No IMAP Port specified")
+            errorFlash(T("settings.imap_no_port"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
         }
         if (isNaN(server.port) || server.port <1 || server.port > 65535  ){
-            errorFlash("Invalid IMAP Port")
+            errorFlash(T("settings.imap_invalid_port"))
             document.body.scrollTop = 0;
             document.documentElement.scrollTop = 0;
             return false
@@ -131,29 +131,29 @@ $(document).ready(function () {
         $('#lastlogin').prop("disabled", true);
         $('#imapfreq').prop("disabled", true);
         $("#validateimap").prop("disabled", true);  
-        $("#validateimap").html("<i class='fa fa-circle-o-notch fa-spin'></i> Testing...");
+        $("#validateimap").html("<i class='fa fa-circle-o-notch fa-spin'></i> " + T("settings.imap_testing"));
         
         api.IMAP.validate(server).done(function(data) {
             if (data.success == true) {
                 Swal.fire({
-                    title: "Success",
-                    html: "Logged into <b>" + escapeHtml($("#imaphost").val()) + "</b>",
+                    title: T("settings.imap_login_success_title"),
+                    html: T("settings.imap_login_success", "<b>" + escapeHtml($("#imaphost").val()) + "</b>"),
                     type: "success",
                 })
             } else {
                 Swal.fire({
-                    title: "Failed!",
-                    html: "Unable to login to <b>" + escapeHtml($("#imaphost").val()) + "</b>.",
+                    title: T("settings.imap_login_failed_title"),
+                    html: T("settings.imap_login_failed", "<b>" + escapeHtml($("#imaphost").val()) + "</b>"),
                     type: "error",
                     showCancelButton: true,
-                    cancelButtonText: "Close",
-                    confirmButtonText: "More Info",
+                    cancelButtonText: T("common.close"),
+                    confirmButtonText: T("settings.more_info"),
                     confirmButtonColor: "#428bca",
                     allowOutsideClick: false,
                 }).then(function(result) {
                     if (result.value) {
                         Swal.fire({
-                            title: "Error:",
+                            title: T("settings.error_title"),
                             text: data.message,
                         })
                     }
@@ -163,8 +163,8 @@ $(document).ready(function () {
           })
           .fail(function() {
             Swal.fire({
-                title: "Failed!",
-                text: "An unecpected error occured.",
+                title: T("settings.imap_login_failed_title"),
+                text: T("settings.unexpected_error"),
                 type: "error",
             })
           })
@@ -226,7 +226,7 @@ $(document).ready(function () {
 
         })
         .error(function () {
-            errorFlash("Error fetching IMAP settings")
+            errorFlash(T("settings.imap_fetch_error"))
         })
     }
 
@@ -250,7 +250,7 @@ $(document).ready(function () {
                 // Endpoint is admin-only; non-admin users can't see the
                 // tab anyway, but if they somehow hit it surface the
                 // error in the global flash region.
-                const msg = (data.responseJSON && data.responseJSON.message) || "Error fetching sandbox filter settings"
+                const msg = (data.responseJSON && data.responseJSON.message) || T("settings.sandbox_fetch_error")
                 errorFlash(msg)
             })
     }
@@ -264,10 +264,10 @@ $(document).ready(function () {
             .success(function (pf) {
                 $("#min_click_seconds").val(pf.min_click_seconds || 0)
                 $("#sandbox_ips").val(pf.sandbox_ips || "")
-                successFlashFade("Sandbox filter saved", 3)
+                successFlashFade(T("settings.sandbox_saved"), 3)
             })
             .error(function (data) {
-                const msg = (data.responseJSON && data.responseJSON.message) || ("Save failed (HTTP " + data.status + ")")
+                const msg = (data.responseJSON && data.responseJSON.message) || T("settings.sandbox_save_failed", data.status)
                 errorFlash(msg)
             })
     }

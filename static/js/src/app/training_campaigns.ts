@@ -1,4 +1,4 @@
-import { api, errorFlash, escapeHtml, modalError, successFlash } from './common'
+import { api, errorFlash, escapeHtml, modalError, successFlash, T } from './common'
 
 let campaigns = []
 let sendCampaignId = -1
@@ -7,21 +7,21 @@ const setupOptions = () => {
     api.training_modules.get()
         .success((modules) => {
             if (!modules || modules.length === 0) {
-                modalError("No training modules found! Create one first.")
+                modalError(T("training_campaigns.no_modules"))
                 return
             }
             const data = $.map(modules, (m) => ({ id: m.id, text: m.name }))
-            $("#module").select2({ placeholder: "Select a module", data: data })
+            $("#module").select2({ placeholder: T("training_campaigns.select_module"), data: data })
         })
     api.groups.summary()
         .success((summaries) => {
             const groups = summaries.groups || []
             if (groups.length === 0) {
-                modalError("No groups found! Create one first.")
+                modalError(T("training_campaigns.no_groups"))
                 return
             }
             const data = $.map(groups, (g) => ({ id: g.id, text: g.name }))
-            $("#groups").select2({ placeholder: "Select groups", data: data })
+            $("#groups").select2({ placeholder: T("training_campaigns.select_groups"), data: data })
         })
 }
 
@@ -48,7 +48,7 @@ const save = () => {
             dismiss()
             $("#modal").modal("hide")
             load()
-            successFlash(`Training campaign "${escapeHtml(tc.name)}" created.`)
+            successFlash(T("training_campaigns.created", escapeHtml(tc.name)))
         })
         .error((data) => {
             modalError(data.responseJSON.message)
@@ -62,7 +62,7 @@ const progressCell = (stats) => {
       <div class="progress" style="margin-bottom:4px">
         <div class="progress-bar progress-bar-success" role="progressbar" style="width:${pct}%">${pct}%</div>
       </div>
-      <small>${stats.completed}/${total} completed &middot; ${stats.started} in progress</small>`
+      <small>${T("training_campaigns.progress", stats.completed, total, stats.started)}</small>`
 }
 
 const load = () => {
@@ -93,7 +93,7 @@ const load = () => {
                     progressCell(tc.stats),
                     moment(tc.created_date).format("MMM Do YYYY"),
                     `<div class="pull-right">
-                        <button class="btn btn-primary send_button" data-toggle="modal" data-backdrop="static" data-target="#sendModal" data-campaign-id="${tc.id}" title="Send invitations">
+                        <button class="btn btn-primary send_button" data-toggle="modal" data-backdrop="static" data-target="#sendModal" data-campaign-id="${tc.id}" title="${T("training_campaigns.send_tooltip")}">
                           <i class="fa fa-envelope"></i>
                         </button>
                         <button class="btn btn-danger delete_button" data-campaign-id="${tc.id}">
@@ -105,7 +105,7 @@ const load = () => {
         })
         .error(() => {
             $("#loading").hide()
-            errorFlash("Error fetching training campaigns")
+            errorFlash(T("training_campaigns.fetch_error"))
         })
 }
 
@@ -115,12 +115,12 @@ const deleteCampaign = (id) => {
         return
     }
     Swal.fire({
-        title: "Are you sure?",
-        text: `This will delete the training campaign '${escapeHtml(tc.name)}' and its enrollments.`,
+        title: T("training_campaigns.delete_title"),
+        text: T("training_campaigns.delete_confirm", escapeHtml(tc.name)),
         type: "warning",
         animation: false,
         showCancelButton: true,
-        confirmButtonText: "Delete",
+        confirmButtonText: T("common.delete"),
         confirmButtonColor: "#428bca",
         reverseButtons: true,
         allowOutsideClick: false,
@@ -135,7 +135,7 @@ const deleteCampaign = (id) => {
         }
     }).then((result) => {
         if (result.value) {
-            Swal.fire("Deleted!", "The training campaign has been deleted.", "success")
+            Swal.fire(T("training_campaigns.deleted_title"), T("training_campaigns.deleted_text"), "success")
         }
         $("button:contains('OK')").on("click", () => location.reload())
     })
@@ -148,7 +148,7 @@ const openSendModal = (id) => {
         .success((profiles) => {
             const $sel = $("#send_profile").empty()
             if (!profiles || profiles.length === 0) {
-                $("#sendModal\\.flashes").empty().append('<div class="alert alert-danger">No sending profiles found. Create one first.</div>')
+                $("#sendModal\\.flashes").empty().append('<div class="alert alert-danger">' + T("training_campaigns.no_profiles") + '</div>')
                 return
             }
             $.each(profiles, (i, p) => $sel.append(`<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`))
@@ -160,7 +160,7 @@ const sendInvitations = () => {
     const url = $("#send_url").val()
     const btn = $("#sendModalSubmit")
     const original = btn.html()
-    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Sending')
+    btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> ' + T("training_campaigns.sending"))
     api.trainingCampaignId.send(sendCampaignId, { smtp: { name: profile }, url: url })
         .success((resp) => {
             btn.prop("disabled", false).html(original)
