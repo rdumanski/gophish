@@ -164,6 +164,9 @@ export const api = {
     risk: {
         get: () => query('/risk/', 'GET', {}, false),
     },
+    engagement: {
+        get: () => query('/engagement/', 'GET', {}, false),
+    },
     compliance: {
         get: (start, end) => query('/compliance/?start=' + start + '&end=' + end, 'GET', {}, false),
     },
