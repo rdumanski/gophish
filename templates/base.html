@@ -19,12 +19,14 @@
         {{if .User}}
     var user = {
         api_key : {{ .User.APIKey }},
-        username : {{ .User.Username }}
+        username : {{ .User.Username }},
+        language : {{ .User.Language }}
     }
     {{end}}
     {{if .Token}}
         var csrf_token = {{.Token}}
     {{end}}
+    var i18n = {{ .I18nJSON }}
     </script>
 </head>
 
@@ -43,6 +45,18 @@
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-right">
+                    {{if .User}}
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-globe"></i> {{ .T (printf "lang.%s" .Language) }} <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            {{range .SupportedLanguages}}
+                            <li><a href="/language?lang={{.}}">{{ $.T (printf "lang.%s" .) }}</a></li>
+                            {{end}}
+                        </ul>
+                    </li>
+                    {{end}}
                     <li>
                         {{if .User}}
                         <div class="btn-group" id="navbar-dropdown">
@@ -53,7 +67,7 @@
                         </div>
                         {{else}}
                         <a href="/login">
-                            <button type="button" class="btn btn-primary">Login</button>
+                            <button type="button" class="btn btn-primary">{{ .T "common.login" }}</button>
                         </a>
                         {{end}}
                     </li>

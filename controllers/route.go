@@ -21,6 +21,7 @@ import (
 	"github.com/rdumanski/gophish/config"
 	ctx "github.com/rdumanski/gophish/context"
 	"github.com/rdumanski/gophish/controllers/api"
+	"github.com/rdumanski/gophish/i18n"
 	log "github.com/rdumanski/gophish/logger"
 	mid "github.com/rdumanski/gophish/middleware"
 	"github.com/rdumanski/gophish/middleware/ratelimit"
@@ -145,6 +146,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/quizzes", mid.Use(as.Quizzes, mid.RequireLogin))
 	router.HandleFunc("/risk", mid.Use(as.Risk, mid.RequireLogin))
 	router.HandleFunc("/compliance", mid.Use(as.Compliance, mid.RequireLogin))
+	router.HandleFunc("/language", mid.Use(as.SetLanguage, mid.RequireLogin))
 	router.HandleFunc("/compliance/report.pdf", mid.Use(as.ComplianceReportPDF, mid.RequireLogin))
 	router.HandleFunc("/groups", mid.Use(as.Groups, mid.RequireLogin))
 	router.HandleFunc("/landing_pages", mid.Use(as.LandingPages, mid.RequireLogin))
@@ -225,6 +227,27 @@ type templateParams struct {
 	// supplied). Page templates use it to hide the "Draft with AI"
 	// affordance when the feature is off.
 	AIEnabled bool
+	// Language is the resolved UI language ("en"/"pl"). Templates localize via
+	// the T method below; the active catalog is injected for the JS side via
+	// I18nJSON.
+	Language string
+}
+
+// T localizes a message key for the page's language. Templates call it as
+// {{ .T "nav.dashboard" }}; optional args feed fmt.Sprintf placeholders.
+func (p templateParams) T(key string, args ...interface{}) string {
+	return i18n.T(p.Language, key, args...)
+}
+
+// I18nJSON is the active catalog as JSON, injected into the page as window.i18n
+// so the browser bundles share the same single source of truth.
+func (p templateParams) I18nJSON() template.JS {
+	return i18n.CatalogJSON(p.Language)
+}
+
+// SupportedLanguages lists the available UI languages for the switcher.
+func (p templateParams) SupportedLanguages() []string {
+	return i18n.Supported()
 }
 
 // newTemplateParams returns the default template parameters for a user and
@@ -240,6 +263,7 @@ func (as *AdminServer) newTemplateParams(r *http.Request) templateParams {
 		Version:      config.Version,
 		Flashes:      session.Flashes(),
 		AIEnabled:    as.aiGenerator != nil,
+		Language:     i18n.Normalize(user.Language),
 	}
 }
 
@@ -304,6 +328,22 @@ func (as *AdminServer) Compliance(w http.ResponseWriter, r *http.Request) {
 	params := as.newTemplateParams(r)
 	params.Title = "NIS2 Compliance Report"
 	getTemplate(w, "compliance").ExecuteTemplate(w, "base", params)
+}
+
+// SetLanguage persists the current user's preferred UI language and redirects
+// back. Language is a personal preference, so it's session-authed only (no
+// RBAC) and a simple GET so it can be a plain link. e.g. GET /language?lang=pl
+func (as *AdminServer) SetLanguage(w http.ResponseWriter, r *http.Request) {
+	user := ctx.Get(r, "user").(models.User)
+	user.Language = i18n.Normalize(r.URL.Query().Get("lang"))
+	if err := models.PutUser(&user); err != nil {
+		log.Error(err)
+	}
+	dest := r.Header.Get("Referer")
+	if dest == "" {
+		dest = "/"
+	}
+	http.Redirect(w, r, dest, http.StatusFound)
 }
 
 // Groups handles the default path and template execution

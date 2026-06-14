@@ -66,6 +66,20 @@ export function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1)
 }
 
+// T localizes a message key using the catalog the server injects into every
+// page as window.i18n (single source of truth shared with the Go templates).
+// Unknown keys return the key itself; %s/%d placeholders are filled positionally
+// from args.
+export function T(key, ...args) {
+    const cat = (window as any).i18n || {}
+    const msg = cat[key]
+    if (msg === undefined) {
+        return key
+    }
+    let i = 0
+    return String(msg).replace(/%[sd]/g, () => (i < args.length ? String(args[i++]) : ''))
+}
+
 // API endpoint definitions. Each section maps to a Go controller in
 // controllers/api/. Keep this in sync with route registrations there.
 export const api = {

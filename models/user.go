@@ -23,6 +23,9 @@ type User struct {
 	PasswordChangeRequired bool      `json:"password_change_required"`
 	AccountLocked          bool      `json:"account_locked"`
 	LastLogin              time.Time `json:"last_login"`
+	// Language is the user's preferred UI language (e.g. "en", "pl"). Empty is
+	// treated as the default by i18n.Normalize.
+	Language string `json:"language" gorm:"default:'en'"`
 }
 
 // GetUser returns the user that the given id corresponds to. If no user is found, an
