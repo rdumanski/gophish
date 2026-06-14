@@ -126,8 +126,12 @@ func PostIMAP(im *IMAP, uid int64) error {
 		return err
 	}
 
-	// Insert new settings into the DB
-	err = db.Save(im).Error
+	// Insert new settings into the DB. We use Create (not Save) because the
+	// IMAP model has no primary key field: under GORM v2, db.Save on a keyless
+	// struct takes the UPDATE path and emits an UPDATE with no WHERE, which the
+	// global-update guard rejects with "WHERE conditions required". DeleteIMAP
+	// above already cleared any existing row, so a plain INSERT is correct.
+	err = db.Create(im).Error
 	if err != nil {
 		log.Error("Unable to save to database: ", err.Error())
 	}

@@ -327,19 +327,17 @@ func (c *Campaign) generateSendDate(idx int, totalRecipients int) time.Time {
 // reported, or trigger send/error transitions).
 func getCampaignStats(cid int64) (CampaignStats, error) {
 	s := CampaignStats{}
-	query := db.Table("results").Where("campaign_id = ?", cid)
-	err := query.Count(&s.Total).Error
-	if err != nil {
+	// Each count must start from a fresh query. Reusing one *gorm.DB across
+	// Count() calls accumulates WHERE conditions in GORM v2, so e.g.
+	// EmailReported would be ANDed with the prior status='Submitted Data'
+	// filter and silently read 0 even when recipients have reported. (The
+	// clicked/opened/sent figures are saved by their += backfills below, which
+	// is why only EmailReported visibly broke.)
+	if err := db.Table("results").Where("campaign_id = ?", cid).Count(&s.Total).Error; err != nil {
 		return s, err
 	}
-	query.Where("status=?", EventDataSubmit).Count(&s.SubmittedData)
-	if err != nil {
-		return s, err
-	}
-	query.Where("reported=?", true).Count(&s.EmailReported)
-	if err != nil {
-		return s, err
-	}
+	db.Table("results").Where("campaign_id = ?", cid).Where("status=?", EventDataSubmit).Count(&s.SubmittedData)
+	db.Table("results").Where("campaign_id = ?", cid).Where("reported=?", true).Count(&s.EmailReported)
 	clicked, opened, err := countFilteredClicksAndOpens(cid)
 	if err != nil {
 		return s, err
@@ -350,13 +348,10 @@ func getCampaignStats(cid int64) (CampaignStats, error) {
 	s.ClickedLink += s.SubmittedData
 	// Every clicked link event implies they opened the email.
 	s.OpenedEmail += s.ClickedLink
-	err = query.Where("status=?", EventSent).Count(&s.EmailsSent).Error
-	if err != nil {
-		return s, err
-	}
+	db.Table("results").Where("campaign_id = ?", cid).Where("status=?", EventSent).Count(&s.EmailsSent)
 	// Every opened email event implies the email was sent.
 	s.EmailsSent += s.OpenedEmail
-	err = query.Where("status=?", Error).Count(&s.Error).Error
+	err = db.Table("results").Where("campaign_id = ?", cid).Where("status=?", Error).Count(&s.Error).Error
 	return s, err
 }
 
