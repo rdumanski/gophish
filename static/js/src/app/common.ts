@@ -14,12 +14,17 @@
 // available as window globals when these modules execute.
 
 export function errorFlash(message) {
+    // Run through T() so server-supplied messages (keyed by their exact English
+    // text in the catalog) are localized; already-localized strings have no
+    // catalog match and pass through unchanged.
+    message = T(message)
     $('#flashes').empty()
     $('#flashes').append('<div style="text-align:center" class="alert alert-danger">' +
         '<i class="fa fa-exclamation-circle"></i> ' + message + '</div>')
 }
 
 export function successFlash(message) {
+    message = T(message)
     $('#flashes').empty()
     $('#flashes').append('<div style="text-align:center" class="alert alert-success">' +
         '<i class="fa fa-check-circle"></i> ' + message + '</div>')
@@ -36,6 +41,7 @@ export function successFlashFade(message, fade) {
 }
 
 export function modalError(message) {
+    message = T(message)
     $('#modal\\.flashes').empty().append('<div style="text-align:center" class="alert alert-danger">' +
         '<i class="fa fa-exclamation-circle"></i> ' + message + '</div>')
 }
