@@ -237,6 +237,17 @@ func ProcessRoster(rs *RosterSource, msgs []RosterMessage) RosterSyncResult {
 	if applyErr != nil {
 		return RosterSyncResult{Applied: false, ConsumedSeqNums: consumed, Message: "apply failed: " + applyErr.Error()}
 	}
+	// Keep the canonical recipient set current with the roster (so org fields
+	// land on Recipients), then rebuild the per-org-unit auto-groups. Failures
+	// here don't fail the sync — the membership update already succeeded.
+	for _, t := range targets {
+		if _, err := UpsertRecipient(db, rs.UserID, t.BaseRecipient); err != nil {
+			log.Error(err)
+		}
+	}
+	if _, err := RegenerateOrgGroups(rs.UserID); err != nil {
+		log.Error(err)
+	}
 	return RosterSyncResult{
 		Applied:         true,
 		Total:           len(targets),

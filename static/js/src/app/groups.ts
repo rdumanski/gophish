@@ -244,16 +244,24 @@ function load() {
                 groupTable.clear();
                 const groupRows: any[] = []
                 $.each(groups, function (i, group) {
-                    groupRows.push([
-                        escapeHtml(group.name),
-                        escapeHtml(group.num_targets),
-                        moment(group.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
-                        "<div class='pull-right'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
+                    // Auto-generated org-unit groups are rebuilt by the server,
+                    // so they're badged and not hand-editable/deletable.
+                    const name = group.is_auto
+                        ? escapeHtml(group.name) + " <span class='label label-info'>" + T("groups.auto_badge") + "</span>"
+                        : escapeHtml(group.name)
+                    const actions = group.is_auto
+                        ? ""
+                        : "<div class='pull-right'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button>\
                     <button class='btn btn-danger' onclick='deleteGroup(" + group.id + ")'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
+                    groupRows.push([
+                        name,
+                        escapeHtml(group.num_targets),
+                        moment(group.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
+                        actions
                     ])
                 })
                 groupTable.rows.add(groupRows).draw()
@@ -304,4 +312,16 @@ $(document).ready(function () {
 
 // Inline-onclick references from templates/groups.html plus
 // JS-string-built buttons in this file's load handler.
-Object.assign(window, { deleteGroup, dismiss, edit })
+// Rebuild the system-managed per-org-unit groups from current recipients.
+function regenerateOrgGroups() {
+    api.org_groups.regenerate()
+        .success(function (r) {
+            successFlash(r.message)
+            load()
+        })
+        .error(function (e) {
+            errorFlash(e.responseJSON ? e.responseJSON.message : T("groups.fetch_error"))
+        })
+}
+
+Object.assign(window, { deleteGroup, dismiss, edit, regenerateOrgGroups })
