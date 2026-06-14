@@ -11,10 +11,17 @@ import (
 // Column-header matchers for recipient CSVs. Matched case-insensitively and
 // anywhere in the header cell, so column order and extra columns don't matter.
 var (
-	csvFirstNameRegex = regexp.MustCompile(`(?i)first[\s_-]*name`)
-	csvLastNameRegex  = regexp.MustCompile(`(?i)last[\s_-]*name`)
-	csvEmailRegex     = regexp.MustCompile(`(?i)email`)
-	csvPositionRegex  = regexp.MustCompile(`(?i)position`)
+	csvFirstNameRegex = regexp.MustCompile(`(?i)first[\s_-]*name|imi[eę]`)
+	csvLastNameRegex  = regexp.MustCompile(`(?i)last[\s_-]*name|nazwisko`)
+	csvEmailRegex     = regexp.MustCompile(`(?i)email|e-mail`)
+	csvPositionRegex  = regexp.MustCompile(`(?i)position|stanowisko`)
+	// Org structure (PSE). Polish + English aliases. Header-scan order below
+	// matters: sub-department before department (both contain "depart"), and
+	// position-level before position.
+	csvSubDepartmentRegex = regexp.MustCompile(`(?i)pod[\s_-]*departament|sub[\s_-]*depart`)
+	csvDepartmentRegex    = regexp.MustCompile(`(?i)departament|department`)
+	csvWydzialRegex       = regexp.MustCompile(`(?i)wydzia[lł]`)
+	csvPositionLevelRegex = regexp.MustCompile(`(?i)poziom|szczebel|position[\s_-]*level|grade`)
 )
 
 // ParseCSVReader parses a CSV stream of recipients into Targets. It is the
@@ -37,6 +44,7 @@ func ParseCSVReader(r io.Reader) ([]Target, error) {
 		return ts, err
 	}
 	fi, li, ei, pi := -1, -1, -1, -1
+	di, sdi, wi, pli := -1, -1, -1, -1
 	for i, v := range header {
 		switch {
 		case csvFirstNameRegex.MatchString(v):
@@ -45,11 +53,20 @@ func ParseCSVReader(r io.Reader) ([]Target, error) {
 			li = i
 		case csvEmailRegex.MatchString(v):
 			ei = i
+		case csvSubDepartmentRegex.MatchString(v):
+			sdi = i
+		case csvDepartmentRegex.MatchString(v):
+			di = i
+		case csvWydzialRegex.MatchString(v):
+			wi = i
+		case csvPositionLevelRegex.MatchString(v):
+			pli = i
 		case csvPositionRegex.MatchString(v):
 			pi = i
 		}
 	}
-	if fi == -1 && li == -1 && ei == -1 && pi == -1 {
+	if fi == -1 && li == -1 && ei == -1 && pi == -1 &&
+		di == -1 && sdi == -1 && wi == -1 && pli == -1 {
 		return ts, nil
 	}
 	for {
@@ -60,13 +77,15 @@ func ParseCSVReader(r io.Reader) ([]Target, error) {
 		if err != nil {
 			continue
 		}
-		fn, ln, ea, ps := "", "", "", ""
-		if fi != -1 && len(record) > fi {
-			fn = record[fi]
+		cell := func(idx int) string {
+			if idx != -1 && len(record) > idx {
+				return record[idx]
+			}
+			return ""
 		}
-		if li != -1 && len(record) > li {
-			ln = record[li]
-		}
+		fn, ln, ps := cell(fi), cell(li), cell(pi)
+		dept, sdept, wydz, plvl := cell(di), cell(sdi), cell(wi), cell(pli)
+		ea := ""
 		if ei != -1 && len(record) > ei {
 			csvEmail, err := mail.ParseAddress(record[ei])
 			if err != nil {
@@ -74,11 +93,11 @@ func ParseCSVReader(r io.Reader) ([]Target, error) {
 			}
 			ea = csvEmail.Address
 		}
-		if pi != -1 && len(record) > pi {
-			ps = record[pi]
-		}
 		ts = append(ts, Target{
-			BaseRecipient: BaseRecipient{FirstName: fn, LastName: ln, Email: ea, Position: ps},
+			BaseRecipient: BaseRecipient{
+				FirstName: fn, LastName: ln, Email: ea, Position: ps,
+				Department: dept, SubDepartment: sdept, Wydzial: wydz, PositionLevel: plvl,
+			},
 		})
 	}
 	return ts, nil

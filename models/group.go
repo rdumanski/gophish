@@ -62,6 +62,13 @@ type BaseRecipient struct {
 	LastName  string `json:"last_name"`
 	Position  string `json:"position"`
 	Phone     string `json:"phone"`
+	// Org structure (PSE): Department > SubDepartment > Wydzial, plus an ordered
+	// position level/grade (distinct from the free-text Position title). All
+	// optional; populated from CSV/roster import and threaded to recipients.
+	Department    string `json:"department"`
+	SubDepartment string `json:"sub_department" gorm:"column:sub_department"`
+	Wydzial       string `json:"wydzial"`
+	PositionLevel string `json:"position_level" gorm:"column:position_level"`
 }
 
 // FormatAddress returns the email address to use in the "To" header of the email
@@ -391,10 +398,14 @@ func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
 // UpdateTarget updates the given target information in the database.
 func UpdateTarget(tx *gorm.DB, target Target) error {
 	targetInfo := map[string]interface{}{
-		"first_name": target.FirstName,
-		"last_name":  target.LastName,
-		"position":   target.Position,
-		"phone":      target.Phone,
+		"first_name":     target.FirstName,
+		"last_name":      target.LastName,
+		"position":       target.Position,
+		"phone":          target.Phone,
+		"department":     target.Department,
+		"sub_department": target.SubDepartment,
+		"wydzial":        target.Wydzial,
+		"position_level": target.PositionLevel,
 	}
 	err := tx.Model(&target).Where("id = ?", target.Id).Updates(targetInfo).Error
 	if err != nil {
@@ -408,6 +419,6 @@ func UpdateTarget(tx *gorm.DB, target Target) error {
 // GetTargets performs a many-to-many select to get all the Targets for a Group
 func GetTargets(gid int64) ([]Target, error) {
 	ts := []Target{}
-	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position, targets.phone").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
+	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position, targets.phone, targets.department, targets.sub_department, targets.wydzial, targets.position_level").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
 	return ts, err
 }
