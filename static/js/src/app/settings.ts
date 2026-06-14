@@ -274,6 +274,57 @@ $(document).ready(function () {
     $("#savePhishFilter").click(savePhishFilter)
     $('a[href="#sandboxFilterSettings"]').on('shown.bs.tab', loadPhishFilter)
 
+    // --- Phase 20: remediation auto-enrollment tab ------------------------
+    function fillSelect(sel, items, valKey, labelKey, selectedVal, placeholder) {
+        const $s = $(sel).empty()
+        $s.append($("<option></option>").attr("value", "").text(placeholder))
+        $.each(items || [], function (i, it) {
+            const opt = $("<option></option>").attr("value", it[valKey]).text(it[labelKey])
+            if (String(it[valKey]) === String(selectedVal)) {
+                opt.attr("selected", "selected")
+            }
+            $s.append(opt)
+        })
+    }
+    function loadRemediation() {
+        api.remediation.get()
+            .success(function (s) {
+                $("#rem_enabled").prop("checked", !!s.enabled)
+                $("#rem_trigger").val(s.trigger_on || "click_or_submit")
+                $("#rem_base_url").val(s.portal_base_url || "")
+                api.training_modules.get().success(function (mods) {
+                    fillSelect("#rem_module", mods, "id", "name", s.module_id, T("settings.remediation.module_none"))
+                })
+                api.SMTP.get().success(function (profiles) {
+                    fillSelect("#rem_smtp", profiles, "name", "name", s.smtp_name, T("settings.remediation.smtp_none"))
+                })
+            })
+            .error(function (data) {
+                errorFlash((data.responseJSON && data.responseJSON.message) || T("settings.remediation.saved"))
+            })
+    }
+    function saveRemediation() {
+        const body = {
+            enabled: $("#rem_enabled").is(":checked"),
+            module_id: parseInt(($("#rem_module").val() as string) || "0", 10) || 0,
+            trigger_on: ($("#rem_trigger").val() as string) || "click_or_submit",
+            smtp_name: ($("#rem_smtp").val() as string) || "",
+            portal_base_url: ($("#rem_base_url").val() as string) || "",
+        }
+        api.remediation.put(body)
+            .success(function () {
+                successFlashFade(T("settings.remediation.saved"), 3)
+            })
+            .error(function (data) {
+                errorFlash((data.responseJSON && data.responseJSON.message) || T("settings.remediation.saved"))
+            })
+    }
+    $("#saveRemediation").click(saveRemediation)
+    $('a[href="#remediationSettings"]').on('shown.bs.tab', loadRemediation)
+    if ($("#rem_trigger").length) {
+        loadRemediation()
+    }
+
     loadIMAPSettings()
     // The Sandbox Filter tab is server-rendered only for admins
     // (`{{if .ModifySystem}}`). Skip the initial fetch for non-admin

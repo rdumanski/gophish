@@ -262,6 +262,14 @@ func (ps *PhishingServer) PhishHandler(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 	}
+	// Phase 20: a recipient who failed (clicked/submitted) may be auto-enrolled
+	// in remediation training. Run async so the SMTP send never delays the
+	// phishing response; the function is a no-op unless remediation is enabled.
+	go func(res models.Result) {
+		if err := models.TriggerRemediation(res); err != nil {
+			log.Error(err)
+		}
+	}(rs)
 	ptx, err = models.NewPhishingTemplateContext(&c, rs.BaseRecipient, rs.RID)
 	if err != nil {
 		log.Error(err)
