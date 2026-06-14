@@ -273,3 +273,27 @@ func GetResult(rid string) (Result, error) {
 	err := db.Where("r_id=?", rid).First(&r).Error
 	return r, err
 }
+
+// GetActiveUnreportedResultsByEmail returns the operator's results for the given
+// email address that have not been reported yet and belong to a campaign that
+// isn't Completed, ordered most-recent first. It backs the IMAP monitor's
+// sender-address fallback: when a forwarded report no longer carries the rid,
+// the reporter's own address is matched against their in-flight simulations.
+//
+// A subquery (not a JOIN) restricts to active campaigns on purpose: joining
+// campaigns would emit SELECT * across two tables that both have id/user_id/
+// status/modified_date columns, and the duplicate names let campaigns.id
+// overwrite Result.Id during scan — which would later make HandleEmailReport
+// save onto the wrong row.
+func GetActiveUnreportedResultsByEmail(uid int64, email string) ([]Result, error) {
+	rs := []Result{}
+	activeCampaigns := db.Table("campaigns").Select("id").Where("status <> ?", CampaignComplete)
+	err := db.Where("user_id = ? AND LOWER(email) = LOWER(?) AND reported = ?", uid, email, false).
+		Where("campaign_id IN (?)", activeCampaigns).
+		Order("modified_date DESC").
+		Find(&rs).Error
+	if err != nil {
+		log.Error(err)
+	}
+	return rs, err
+}
