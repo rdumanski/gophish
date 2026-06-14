@@ -4,6 +4,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"time"
 )
 
 // EngagementScore is the positive, gamified counterpart to RiskScore: a
@@ -21,6 +22,7 @@ type EngagementScore struct {
 	TrainingAssigned  int64    `json:"training_assigned"`
 	TrainingCompleted int64    `json:"training_completed"`
 	Score             int      `json:"score"`
+	Streak            int      `json:"streak"` // consecutive most-recent sims reported
 	Badges            []string `json:"badges"`
 }
 
@@ -85,6 +87,41 @@ func computeEngagement(r RiskScore) (int, []string) {
 	return int(math.Round(score)), badges
 }
 
+// reportStreak counts the recipient's leading run of most-recent simulations
+// that were reported. Only delivered sims (send_date <= now) count, so a
+// future-scheduled result can't reset the streak.
+func reportStreak(recipientID int64) int {
+	results := []Result{}
+	db.Model(&Result{}).
+		Where("recipient_id = ? AND send_date <= ?", recipientID, time.Now().UTC()).
+		Order("send_date desc").Find(&results)
+	streak := 0
+	for _, r := range results {
+		if !r.Reported {
+			break
+		}
+		streak++
+	}
+	return streak
+}
+
+// GetRecipientEngagement returns one recipient's engagement score, badges, and
+// report streak — for the recipient-facing learner portal.
+func GetRecipientEngagement(recipientID int64) (EngagementScore, error) {
+	rec, err := GetRecipientByID(recipientID)
+	if err != nil {
+		return EngagementScore{}, err
+	}
+	rs := recipientRiskScore(rec)
+	sc, badges := computeEngagement(rs)
+	return EngagementScore{
+		RecipientID: rs.RecipientID, Email: rs.Email, Name: rs.Name,
+		Sims: rs.Sims, Clicked: rs.Clicked, Submitted: rs.Submitted, Reported: rs.Reported,
+		TrainingAssigned: rs.TrainingAssigned, TrainingCompleted: rs.TrainingCompleted,
+		Score: sc, Streak: reportStreak(recipientID), Badges: badges,
+	}, nil
+}
+
 // GetEngagementReport builds the individuals leaderboard (engagement score
 // desc) and the department leaderboard (avg engagement desc), reusing
 // GetRiskScores for the per-recipient behavioural data and the canonical
@@ -102,7 +139,7 @@ func GetEngagementReport(uid int64) (EngagementReport, error) {
 			RecipientID: rs.RecipientID, Email: rs.Email, Name: rs.Name,
 			Sims: rs.Sims, Clicked: rs.Clicked, Submitted: rs.Submitted, Reported: rs.Reported,
 			TrainingAssigned: rs.TrainingAssigned, TrainingCompleted: rs.TrainingCompleted,
-			Score: sc, Badges: badges,
+			Score: sc, Streak: reportStreak(rs.RecipientID), Badges: badges,
 		}
 		rep.Individuals = append(rep.Individuals, es)
 		byEmail[normEmail(rs.Email)] = es
