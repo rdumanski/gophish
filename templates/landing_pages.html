@@ -1,12 +1,12 @@
 {{define "body"}}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <h1 class="page-header">
-        Landing Pages
+        {{ .T "landing_pages.title" }}
     </h1>
     <div id="flashes" class="row"></div>
     <div class="row">
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
-            data-target="#modal"><i class="fa fa-plus"></i> New Page</button>
+            data-target="#modal"><i class="fa fa-plus"></i> {{ .T "landing_pages.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -14,15 +14,15 @@
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No pages created yet. Let's create one!
+            {{ .T "landing_pages.empty" }}
         </div>
     </div>
     <div class="row">
         <table id="pagesTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Last Modified Date</th>
+                    <th>{{ .T "common.name" }}</th>
+                    <th>{{ .T "landing_pages.last_modified" }}</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
             </thead>
@@ -39,18 +39,18 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()"><span
                         aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="modalLabel">New Landing Page</h4>
+                <h4 class="modal-title" id="modalLabel">{{ .T "landing_pages.modal.title" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="name">Name:</label>
+                <label class="control-label" for="name">{{ .T "common.name" }}:</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Page name" id="name" autofocus />
+                    <input type="text" class="form-control" placeholder="{{ .T "landing_pages.name_placeholder" }}" id="name" autofocus />
                 </div>
                 <div class="form-group">
                     <button class="btn btn-danger" data-toggle="modal" data-backdrop="static" data-target="#importSiteModal"><i
                             class="fa fa-globe"></i>
-                        Import Site</button>
+                        {{ .T "landing_pages.import_site" }}</button>
                 </div>
                 <!-- Nav tabs -->
                 <ul class="nav nav-tabs" role="tablist">
@@ -64,29 +64,27 @@
                 </div>
                 <div class="checkbox checkbox-primary">
                     <input id="capture_credentials_checkbox" type="checkbox">
-                    <label for="capture_credentials_checkbox">Capture Submitted Data <i class="fa fa-question-circle"
-                            data-toggle="tooltip" data-placement="right" title="If the landing page contains a form, submitted input (except passwords!) will be captured."></i></label>
+                    <label for="capture_credentials_checkbox">{{ .T "landing_pages.capture_data" }} <i class="fa fa-question-circle"
+                            data-toggle="tooltip" data-placement="right" title="{{ .T "landing_pages.capture_data_help" }}"></i></label>
                 </div>
                 <div class="checkbox checkbox-primary" id="capture_passwords">
                     <input id="capture_passwords_checkbox" type="checkbox">
-                    <label for="capture_passwords_checkbox">Capture Passwords</label>
+                    <label for="capture_passwords_checkbox">{{ .T "landing_pages.capture_passwords" }}</label>
                     <div class="alert alert-warning">
-                        <i class="fa fa-exclamation-circle"></i> <b>Warning:</b> Credentials are currently <b>not
-                            encrypted</b>. This means that captured passwords are stored in the database as cleartext.
-                        Be careful with this!
+                        <i class="fa fa-exclamation-circle"></i> <b>{{ .T "landing_pages.warning_label" }}</b> {{ .T "landing_pages.password_warning" }}
                     </div>
                 </div>
                 <div id="redirect_url">
-                    <label class="control-label" for="redirect_url_input">Redirect to: <i class="fa fa-question-circle"
-                            data-toggle="tooltip" data-placement="right" title="This option lets you redirect the user to a page after credentials are submitted."></i></label>
+                    <label class="control-label" for="redirect_url_input">{{ .T "landing_pages.redirect_to" }}: <i class="fa fa-question-circle"
+                            data-toggle="tooltip" data-placement="right" title="{{ .T "landing_pages.redirect_help" }}"></i></label>
                     <div class="form-group">
                         <input id="redirect_url_input" class="form-control" placeholder="http://example.com" />
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save Page</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">{{ .T "common.cancel" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "landing_pages.save" }}</button>
             </div>
         </div>
     </div>
@@ -98,18 +96,18 @@
             <!-- New Template Modal -->
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="importSiteModalLabel">Import Site</h4>
+                <h4 class="modal-title" id="importSiteModalLabel">{{ .T "landing_pages.import_site" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="url">URL:</label>
+                <label class="control-label" for="url">{{ .T "landing_pages.url" }}:</label>
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="http://google.com" id="url" autofocus />
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importSite()">Import</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default">{{ .T "common.cancel" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importSite()">{{ .T "common.import" }}</button>
             </div>
         </div>
     </div>

@@ -161,6 +161,37 @@ func TestRiskPageRenders(t *testing.T) {
 		[]string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`})
 }
 
+// TestAllAdminPagesRender executes every no-parameter admin page in both
+// languages so a broken {{ .T }} call or template typo from localization fails
+// the build rather than 500ing at runtime.
+func TestAllAdminPagesRender(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+	client := loggedInClient(t, ctx)
+	pages := []string{
+		"/", "/campaigns", "/groups", "/templates", "/landing_pages",
+		"/sending_profiles", "/settings", "/users", "/webhooks", "/domains",
+		"/training_modules", "/training_campaigns", "/quizzes", "/risk", "/compliance",
+	}
+	for _, lang := range []string{"en", "pl"} {
+		resp, err := client.Get(ctx.adminServer.URL + "/language?lang=" + lang)
+		if err != nil {
+			t.Fatalf("set lang %s: %v", lang, err)
+		}
+		resp.Body.Close()
+		for _, p := range pages {
+			r, err := client.Get(ctx.adminServer.URL + p)
+			if err != nil {
+				t.Fatalf("GET %s (%s): %v", p, lang, err)
+			}
+			r.Body.Close()
+			if r.StatusCode != http.StatusOK {
+				t.Fatalf("GET %s (%s): expected 200, got %d", p, lang, r.StatusCode)
+			}
+		}
+	}
+}
+
 // TestLanguageSwitch pins the bilingual i18n stack end-to-end: a logged-in user
 // renders English by default, switching via /language?lang=pl persists the
 // preference, and subsequent pages render the Polish catalog (server templates +

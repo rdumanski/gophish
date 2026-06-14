@@ -5,28 +5,27 @@
     </h1>
     <div id="flashes" class="row"></div>
     <p class="text-muted">
-        Per-person risk blends phishing-simulation behaviour (clicks, credential
-        submissions, reports) with training engagement. Higher is riskier.
+        {{ .T "risk.intro" }}
     </p>
     <div id="loading">
         <i class="fa fa-spinner fa-spin fa-4x"></i>
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No data yet. Run a campaign or assign training to populate the risk report.
+            {{ .T "risk.empty" }}
         </div>
     </div>
     <div class="row">
         <table id="riskTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th class="col-md-1">Score</th>
-                    <th class="col-md-4">Recipient</th>
-                    <th class="col-md-1">Sims</th>
-                    <th class="col-md-1">Clicked</th>
-                    <th class="col-md-1">Submitted</th>
-                    <th class="col-md-1">Reported</th>
-                    <th class="col-md-3">Training</th>
+                    <th class="col-md-1">{{ .T "risk.score" }}</th>
+                    <th class="col-md-4">{{ .T "risk.recipient" }}</th>
+                    <th class="col-md-1">{{ .T "risk.sims" }}</th>
+                    <th class="col-md-1">{{ .T "risk.clicked" }}</th>
+                    <th class="col-md-1">{{ .T "risk.submitted" }}</th>
+                    <th class="col-md-1">{{ .T "risk.reported" }}</th>
+                    <th class="col-md-3">{{ .T "risk.training" }}</th>
                 </tr>
             </thead>
             <tbody>

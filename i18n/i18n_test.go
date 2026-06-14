@@ -30,6 +30,23 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+// TestCatalogParity guards that every key exists in both locales, so a string
+// is never localized in one language and missing in the other.
+func TestCatalogParity(t *testing.T) {
+	ensure()
+	en, pl := catalogs["en"], catalogs["pl"]
+	for k := range en {
+		if _, ok := pl[k]; !ok {
+			t.Errorf("key %q present in en but missing in pl", k)
+		}
+	}
+	for k := range pl {
+		if _, ok := en[k]; !ok {
+			t.Errorf("key %q present in pl but missing in en", k)
+		}
+	}
+}
+
 func TestCatalogJSON(t *testing.T) {
 	js := string(CatalogJSON("pl"))
 	if !strings.Contains(js, "Pulpit") {

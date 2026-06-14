@@ -7,7 +7,7 @@
     <div class="row">
         <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
             data-target="#modal">
-            <i class="fa fa-plus"></i> New Quiz</button>
+            <i class="fa fa-plus"></i> {{ .T "quizzes.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -15,17 +15,17 @@
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No quizzes yet. Create one and attach it to a training module.
+            {{ .T "quizzes.empty" }}
         </div>
     </div>
     <div class="row">
         <table id="quizTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th class="col-md-4 no-sort">Title</th>
-                    <th class="col-md-3 no-sort">Questions</th>
-                    <th class="col-md-2 no-sort">Pass %</th>
-                    <th class="col-md-2 no-sort">Modified</th>
+                    <th class="col-md-4 no-sort">{{ .T "quizzes.col_title" }}</th>
+                    <th class="col-md-3 no-sort">{{ .T "quizzes.col_questions" }}</th>
+                    <th class="col-md-2 no-sort">{{ .T "quizzes.col_pass" }}</th>
+                    <th class="col-md-2 no-sort">{{ .T "quizzes.col_modified" }}</th>
                     <th class="col-md-1 no-sort"></th>
                 </tr>
             </thead>
@@ -43,22 +43,22 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="quizModalLabel">New Quiz</h4>
+                <h4 class="modal-title" id="quizModalLabel">{{ .T "quizzes.new" }}</h4>
             </div>
             <div class="modal-body" id="modal_body">
                 <div class="row" id="modal.flashes"></div>
 
                 <div class="row">
                     <div class="col-sm-6">
-                        <label class="control-label" for="title">Title:</label>
-                        <input type="text" class="form-control" placeholder="Quiz title" id="title" />
+                        <label class="control-label" for="title">{{ .T "quizzes.title_label" }}</label>
+                        <input type="text" class="form-control" placeholder="{{ .T "quizzes.title_placeholder" }}" id="title" />
                     </div>
                     <div class="col-sm-3">
-                        <label class="control-label" for="module">Module:</label>
+                        <label class="control-label" for="module">{{ .T "quizzes.module_label" }}</label>
                         <select class="form-control" id="module"></select>
                     </div>
                     <div class="col-sm-3">
-                        <label class="control-label" for="pass_threshold">Pass %:</label>
+                        <label class="control-label" for="pass_threshold">{{ .T "quizzes.pass_label" }}</label>
                         <input type="number" class="form-control" id="pass_threshold" min="0" max="100" value="70" />
                     </div>
                 </div>
@@ -66,11 +66,11 @@
                 <hr>
                 <div id="questions"></div>
                 <button type="button" class="btn btn-default" id="add_question">
-                    <i class="fa fa-plus"></i> Add Question</button>
+                    <i class="fa fa-plus"></i> {{ .T "quizzes.add_question" }}</button>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save Quiz</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ .T "common.close" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "quizzes.save" }}</button>
             </div>
         </div>
     </div>
