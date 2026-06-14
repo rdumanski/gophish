@@ -161,6 +161,31 @@ func TestRiskPageRenders(t *testing.T) {
 		[]string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`})
 }
 
+// TestLanguageSwitch pins the bilingual i18n stack end-to-end: a logged-in user
+// renders English by default, switching via /language?lang=pl persists the
+// preference, and subsequent pages render the Polish catalog (server templates +
+// injected window.i18n).
+func TestLanguageSwitch(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+	client := loggedInClient(t, ctx)
+
+	// Default: English nav.
+	assertPageRenders(t, client, ctx.adminServer.URL+"/",
+		[]string{"Dashboard", "Campaigns", "var i18n ="})
+
+	// Switch to Polish (redirects back).
+	resp, err := client.Get(ctx.adminServer.URL + "/language?lang=pl")
+	if err != nil {
+		t.Fatalf("GET /language: %v", err)
+	}
+	resp.Body.Close()
+
+	// Now the nav renders the Polish catalog.
+	assertPageRenders(t, client, ctx.adminServer.URL+"/",
+		[]string{"Pulpit", "Kampanie", "Raport ryzyka", "Zgodność NIS2"})
+}
+
 func TestCompliancePageRenders(t *testing.T) {
 	ctx := setupTest(t)
 	defer tearDown(t, ctx)

@@ -4,59 +4,59 @@
         <div class="col-sm-3 col-md-2 sidebar">
             <ul class="nav nav-sidebar">
                 <li>
-                    <a href="/">Dashboard</a>
+                    <a href="/">{{ .T "nav.dashboard" }}</a>
                 </li>
                 <li>
-                    <a href="/campaigns">Campaigns</a>
+                    <a href="/campaigns">{{ .T "nav.campaigns" }}</a>
                 </li>
                 <li>
-                    <a href="/groups">Users &amp; Groups</a>
+                    <a href="/groups">{{ .T "nav.users_groups" }}</a>
                 </li>
-                <li> <a href="/templates">Email Templates</a>
-                </li>
-                <li>
-                    <a href="/landing_pages">Landing Pages</a>
+                <li> <a href="/templates">{{ .T "nav.email_templates" }}</a>
                 </li>
                 <li>
-                    <a href="/training_modules">Training Modules</a>
+                    <a href="/landing_pages">{{ .T "nav.landing_pages" }}</a>
                 </li>
                 <li>
-                    <a href="/training_campaigns">Training Campaigns</a>
+                    <a href="/training_modules">{{ .T "nav.training_modules" }}</a>
                 </li>
                 <li>
-                    <a href="/quizzes">Quizzes</a>
+                    <a href="/training_campaigns">{{ .T "nav.training_campaigns" }}</a>
                 </li>
                 <li>
-                    <a href="/risk">Risk Report</a>
+                    <a href="/quizzes">{{ .T "nav.quizzes" }}</a>
                 </li>
                 <li>
-                    <a href="/compliance">NIS2 Compliance</a>
+                    <a href="/risk">{{ .T "nav.risk_report" }}</a>
                 </li>
                 <li>
-                    <a href="/sending_profiles">Sending Profiles</a>
+                    <a href="/compliance">{{ .T "nav.compliance" }}</a>
                 </li>
                 <li>
-                    <a href="/settings">Account Settings</span></a>
+                    <a href="/sending_profiles">{{ .T "nav.sending_profiles" }}</a>
+                </li>
+                <li>
+                    <a href="/settings">{{ .T "nav.account_settings" }}</a>
                 </li>
                 {{if .ModifySystem}}
                 <li>
-                    <a href="/users">User Management<span class="nav-badge badge pull-right">Admin</span></a>
+                    <a href="/users">{{ .T "nav.user_management" }}<span class="nav-badge badge pull-right">{{ .T "common.admin" }}</span></a>
                 </li>
                 <li>
-                    <a href="/webhooks">Webhooks<span class="nav-badge badge pull-right">Admin</span></a>
+                    <a href="/webhooks">{{ .T "nav.webhooks" }}<span class="nav-badge badge pull-right">{{ .T "common.admin" }}</span></a>
                 </li>
                 <li>
-                    <a href="/domains">Domains<span class="nav-badge badge pull-right">Admin</span></a>
+                    <a href="/domains">{{ .T "nav.domains" }}<span class="nav-badge badge pull-right">{{ .T "common.admin" }}</span></a>
                 </li>
                 {{end}}
                 <li>
                     <hr>
                 </li>
                 <li>
-                    <a href="https://docs.getgophish.com/user-guide/">User Guide</a>
+                    <a href="https://docs.getgophish.com/user-guide/">{{ .T "nav.user_guide" }}</a>
                 </li>
                 <li>
-                    <a href="https://docs.getgophish.com/api-documentation/">API Documentation</a>
+                    <a href="https://docs.getgophish.com/api-documentation/">{{ .T "nav.api_documentation" }}</a>
                 </li>
             </ul>
         </div>
