@@ -2,22 +2,22 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <div class="row">
         <h1 class="page-header">
-            Campaigns
+            {{ .T "campaigns.title" }}
         </h1>
     </div>
     <div id="flashes" class="row"></div>
     <div class="row">
         <button type="button" class="btn btn-primary" data-toggle="modal" data-backdrop="static" data-target="#modal"
             onclick="edit('new')">
-            <i class="fa fa-plus"></i> New Campaign</button>
+            <i class="fa fa-plus"></i> {{ .T "campaigns.new" }}</button>
     </div>
     &nbsp;
 
     <ul class="nav nav-tabs" role="tablist">
         <li class="active" role="activeCampaigns"><a href="#activeCampaigns" aria-controls="activeCampaigns" role="tab"
-                data-toggle="tab">Active Campaigns</a></li>
+                data-toggle="tab">{{ .T "campaigns.tab.active" }}</a></li>
         <li role="archivedCampaigns"><a href="#archivedCampaigns" aria-controls="archivedCampaigns" role="tab"
-                data-toggle="tab">Archived Campaigns</a></li>
+                data-toggle="tab">{{ .T "campaigns.tab.archived" }}</a></li>
     </ul>
     </br>
     <div class="tab-content">
@@ -29,16 +29,16 @@
             </div>
             <div id="emptyMessage" class="row" style="display:none;">
                 <div class="alert alert-info">
-                    No campaigns created yet. Let's create one!
+                    {{ .T "campaigns.empty_active" }}
                 </div>
             </div>
             <div class="row">
                 <table id="campaignTable" class="table" style="display:none;">
                     <thead>
                         <tr>
-                            <th class="col-md-3">Name</th>
-                            <th class="col-md-4">Created Date</th>
-                            <th class="col-md-2">Status</th>
+                            <th class="col-md-3">{{ .T "common.name" }}</th>
+                            <th class="col-md-4">{{ .T "campaigns.created_date" }}</th>
+                            <th class="col-md-2">{{ .T "common.status" }}</th>
                             <th class="col-md-3 no-sort"></th>
                         </tr>
                     </thead>
@@ -52,16 +52,16 @@
             <div id="emptyMessage" class="row" style="display:none;">
                 </br>
                 <div class="alert alert-info">
-                    No archived campaigns.
+                    {{ .T "campaigns.empty_archived" }}
                 </div>
             </div>
             <div class="row">
                 <table id="campaignTableArchive" class="table" style="display:none;">
                     <thead>
                         <tr>
-                            <th class="col-md-3">Name</th>
-                            <th class="col-md-4">Created Date</th>
-                            <th class="col-md-2">Status</th>
+                            <th class="col-md-3">{{ .T "common.name" }}</th>
+                            <th class="col-md-4">{{ .T "campaigns.created_date" }}</th>
+                            <th class="col-md-2">{{ .T "common.status" }}</th>
                             <th class="col-md-3 no-sort"></th>
                         </tr>
                     </thead>
@@ -80,67 +80,67 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="campaignModalLabel">New Campaign</h4>
+                <h4 class="modal-title" id="campaignModalLabel">{{ .T "campaigns.new" }}</h4>
             </div>
             <div class="modal-body" id="modal_body">
                 <div class="row" id="modal.flashes"></div>
                 <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input type="text" class="form-control" id="name" placeholder="Campaign name" autofocus>
-                    <label class="control-label" for="template">Email Template:</label>
-                    <select class="form-control" placeholder="Template Name" id="template" />
+                    <label for="name">{{ .T "common.name" }}</label>
+                    <input type="text" class="form-control" id="name" placeholder="{{ .T "campaigns.name_placeholder" }}" autofocus>
+                    <label class="control-label" for="template">{{ .T "campaigns.email_template" }}</label>
+                    <select class="form-control" placeholder="{{ .T "campaigns.template_name_placeholder" }}" id="template" />
                     <option></option>
                     </select>
-                    <label class="control-label" for="page">Landing Page:</label>
-                    <select class="form-control" placeholder="Landing Page" id="page" />
+                    <label class="control-label" for="page">{{ .T "campaigns.landing_page" }}</label>
+                    <select class="form-control" placeholder="{{ .T "campaigns.landing_page" }}" id="page" />
                     <option></option>
                     </select>
-                    <label class="control-label" for="campaign_domain">Landing domain:
-                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="Optional: pick a registered landing domain to fill the URL with https://<domain>. Manage these on the Domains page."></i>
+                    <label class="control-label" for="campaign_domain">{{ .T "campaigns.landing_domain" }}
+                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="{{ .T "campaigns.landing_domain_tooltip" }}"></i>
                     </label>
                     <select class="form-control" id="campaign_domain"><option value="">&mdash;</option></select>
-                    <label class="control-label" for="url">URL:
-                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="Location of Gophish listener (must be reachable by targets!)"></i>
+                    <label class="control-label" for="url">{{ .T "campaigns.url" }}
+                        <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="{{ .T "campaigns.url_tooltip" }}"></i>
                     </label>
                     <input type="text" class="form-control" placeholder="http://192.168.1.1" id="url" />
                     <div class="row">
                         <div class="col-md-6">
-                            <label class="control-label" for="url">Launch Date </label>
+                            <label class="control-label" for="url">{{ .T "campaigns.launch_date" }} </label>
                             <input type="text" class="form-control" id="launch_date" />
                         </div>
                         <div class="col-md-6">
-                            <label class="control-label" for="delay">Send Emails By (Optional)
-                                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="If specified, Gophish will send emails evenly between the campaign launch and this date."></i>
+                            <label class="control-label" for="delay">{{ .T "campaigns.send_by" }}
+                                <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="{{ .T "campaigns.send_by_tooltip" }}"></i>
                             </label>
                             <input type="text" class="form-control" id="send_by_date" autocomplete="random-data"/> <!--Chrome ignores autocomplete="off".-->
                         </div>
                     </div>
-                    <label class="control-label" for="profile">Sending Profile:</label>
+                    <label class="control-label" for="profile">{{ .T "campaigns.sending_profile" }}</label>
                     <div class="input-group">
-                        <select class="form-control" placeholder="Sending Profile" id="profile" />
+                        <select class="form-control" placeholder="{{ .T "campaigns.sending_profile" }}" id="profile" />
                         <option></option>
                         </select>
                         <span class="input-group-btn">
                             <button type="button" data-toggle="modal" data-backdrop="static" data-target="#sendTestEmailModal"
                                 class="btn btn-primary button">
-                                <i class="fa fa-envelope"></i> Send Test Email</button>
+                                <i class="fa fa-envelope"></i> {{ .T "campaigns.send_test" }}</button>
                         </span>
                     </div>
-                    <label class="control-label" for="users">Groups:</label>
+                    <label class="control-label" for="users">{{ .T "campaigns.groups" }}</label>
                     <select class="form-control" id="users" multiple="multiple"></select>
                     <div class="checkbox" style="margin-top:15px;">
                         <label>
                             <input type="checkbox" id="teachable_moment">
-                            Teachable moment
-                            <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="When enabled, a recipient who submits the landing page form is shown a built-in security-awareness page instead of the page's redirect. The click still shows the landing page, so opens, clicks, and submitted data are all still tracked."></i>
+                            {{ .T "campaigns.teachable_moment" }}
+                            <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="{{ .T "campaigns.teachable_moment_tooltip" }}"></i>
                         </label>
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="dismiss()">Close</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal" onclick="dismiss()">{{ .T "common.close" }}</button>
                 <button type="button" id="launchButton" class="btn btn-primary" onclick="launch()">
-                    <i class="fa fa-rocket"></i> Launch Campaign</button>
+                    <i class="fa fa-rocket"></i> {{ .T "campaigns.launch" }}</button>
             </div>
         </div>
     </div>
@@ -154,33 +154,33 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="sendTestEmailModalTitle">Send Test Email</h4>
+                <h4 class="modal-title" id="sendTestEmailModalTitle">{{ .T "campaigns.send_test" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="sendTestEmailModal.flashes"></div>
                 <div class="row">
                     <div class="col-sm-12">
-                        <label class="control-label" for="to">Send Test Email to:</label>
+                        <label class="control-label" for="to">{{ .T "campaigns.send_test_to" }}</label>
                     </div>
                     <br>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" placeholder="First Name" name="to_first_name">
+                        <input type="text" class="form-control" placeholder="{{ .T "campaigns.first_name" }}" name="to_first_name">
                     </div>
                     <div class="col-sm-2">
-                        <input type="text" class="form-control" placeholder="Last Name" name="to_last_name">
+                        <input type="text" class="form-control" placeholder="{{ .T "campaigns.last_name" }}" name="to_last_name">
                     </div>
                     <div class="col-sm-4">
-                        <input type="email" class="form-control" placeholder="Email" name="to_email" required>
+                        <input type="email" class="form-control" placeholder="{{ .T "common.email" }}" name="to_email" required>
                     </div>
                     <div class="col-sm-4">
-                        <input type="text" class="form-control" placeholder="Position" name="to_position">
+                        <input type="text" class="form-control" placeholder="{{ .T "campaigns.position" }}" name="to_position">
                     </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default">{{ .T "common.cancel" }}</button>
                 <button type="button" class="btn btn-primary" id="sendTestModalSubmit" onclick="sendTestEmail()">
-                    <i class="fa fa-envelope"></i> Send</button>
+                    <i class="fa fa-envelope"></i> {{ .T "campaigns.send" }}</button>
             </div>
         </div>
     </div>

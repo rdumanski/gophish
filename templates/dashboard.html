@@ -1,7 +1,7 @@
 {{define "body"}}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <h1 class="page-header">
-        Dashboard
+        {{ .T "dashboard.title" }}
     </h1>
     <div id="loading">
         <i class="fa fa-spinner fa-spin fa-4x"></i>
@@ -9,7 +9,7 @@
     {{template "flashes" .Flashes}}
     <div id="emptyMessage" style="display:none;">
         <div class="alert alert-info">
-            No campaigns created yet. Let's create one!
+            {{ .T "dashboard.empty" }}
         </div>
     </div>
     <div id="dashboard" style="display:none;">
@@ -26,11 +26,11 @@
             <div style="height:200px;" class="col-lg-1 col-md-1"></div>
         </div>
         <div class="row">
-            <h2>Recent Campaigns</h2>
+            <h2>{{ .T "dashboard.recent_campaigns" }}</h2>
         </div>
         <div class="row">
             <a href="/campaigns">
-                <button type="button" class="btn btn-primary">View All</button>
+                <button type="button" class="btn btn-primary">{{ .T "dashboard.view_all" }}</button>
             </a>
         </div>
         &nbsp;&nbsp;
@@ -38,8 +38,8 @@
             <table id="campaignTable" class="table">
                 <thead>
                     <tr>
-                        <th class="col-md-2 col-sm-2">Name</th>
-                        <th class="col-md-2 col-sm-2">Created Date</th>
+                        <th class="col-md-2 col-sm-2">{{ .T "common.name" }}</th>
+                        <th class="col-md-2 col-sm-2">{{ .T "dashboard.created_date" }}</th>
                         <th class="col-md-1 col-sm-1">
                             <i class="fa fa-envelope-o"></i>
                         </th>
@@ -55,7 +55,7 @@
                         <th class="col-md-1 col-sm-1">
                             <i class="fa fa-bullhorn"></i>
                         </th>
-                        <th class="col-md-1 col-sm-1">Status</th>
+                        <th class="col-md-1 col-sm-1">{{ .T "common.status" }}</th>
                         <th class="col-md-2 col-sm-2 no-sort"></th>
                     </tr>
                 </thead>

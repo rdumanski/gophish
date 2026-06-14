@@ -5,42 +5,42 @@
     </div>
     <div style="display:none;" id="campaignResults">
         <div class="row">
-            <h1 class="page-header" id="page-title">Results for campaign.name</h1>
+            <h1 class="page-header" id="page-title">{{ .T "campaign_results.title" }}</h1>
         </div>
         <div class="row">
             <a href="/campaigns" class="btn btn-default">
-                <i class="fa fa-arrow-circle-o-left fa-lg"></i> Back
+                <i class="fa fa-arrow-circle-o-left fa-lg"></i> {{ .T "common.back" }}
             </a>
             <div class="btn-group">
                 <button type="button" id="exportButton" class="btn btn-primary dropdown-toggle" data-toggle="dropdown"
                     aria-haspopup="true" aria-expanded="true">
-                    <i class="fa fa-file-excel-o"></i> Export CSV
+                    <i class="fa fa-file-excel-o"></i> {{ .T "campaign_results.export_csv" }}
                     <i class="fa fa-caret-down"></i>
                 </button>
                 <ul class="dropdown-menu" aria-labelledby="exportButton">
                     <li>
-                        <a href="#" onclick="exportAsCSV('results')">Results</a>
+                        <a href="#" onclick="exportAsCSV('results')">{{ .T "campaign_results.export_results" }}</a>
                     </li>
                     <li>
-                        <a href="#" onclick="exportAsCSV('events')">Raw Events</a>
+                        <a href="#" onclick="exportAsCSV('events')">{{ .T "campaign_results.export_events" }}</a>
                     </li>
                 </ul>
             </div>
             <button id="complete_button" type="button" class="btn btn-blue" data-toggle="tooltip" onclick="completeCampaign()">
-                <i class="fa fa-flag-checkered"></i> Complete
+                <i class="fa fa-flag-checkered"></i> {{ .T "campaign_results.complete" }}
             </button>
             <button type="button" class="btn btn-blue" data-toggle="modal" data-backdrop="static" data-target="#reconcileModal"
-                title="Credit recipients who reported this simulation (e.g. confirmed by your CERT/security team)">
-                <i class="fa fa-flag-o"></i> Reconcile Reports
+                title="{{ .T "campaign_results.reconcile_tooltip" }}">
+                <i class="fa fa-flag-o"></i> {{ .T "campaign_results.reconcile" }}
             </button>
             <button type="button" class="btn btn-danger" data-toggle="tooltip" onclick="deleteCampaign()">
-                <i class="fa fa-trash-o fa-lg"></i> Delete
+                <i class="fa fa-trash-o fa-lg"></i> {{ .T "common.delete" }}
             </button>
             <button id="refresh_btn" type="button" class="btn btn-blue" data-toggle="tooltip" onclick="refresh()">
-                <i class="fa fa-refresh fa-lg"></i> Refresh
+                <i class="fa fa-refresh fa-lg"></i> {{ .T "campaign_results.refresh" }}
             </button>
             <span id="refresh_message">
-                <i class="fa fa-spin fa-spinner"></i> Refreshing
+                <i class="fa fa-spin fa-spinner"></i> {{ .T "campaign_results.refreshing" }}
             </span>
         </div>
         <br />
@@ -62,25 +62,25 @@
                 </div>
                 <div class="row" id="resultsMapContainer">
                     <div class="col-md-6">
-                        <p style="text-align:center;">Targets Map</p>
+                        <p style="text-align:center;">{{ .T "campaign_results.targets_map" }}</p>
                         <div id="resultsMap"></div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="row">
-            <h2>Details</h2>
+            <h2>{{ .T "campaign_results.details" }}</h2>
             <table id="resultsTable" class="table">
                 <thead>
                     <tr>
-                        <th>Result ID</th>
+                        <th>{{ .T "campaign_results.result_id" }}</th>
                         <th class="no-sort"></th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>Email</th>
-                        <th>Position</th>
-                        <th>Status</th>
-                        <th class="text-center">Reported</th>
+                        <th>{{ .T "campaign_results.first_name" }}</th>
+                        <th>{{ .T "campaign_results.last_name" }}</th>
+                        <th>{{ .T "common.email" }}</th>
+                        <th>{{ .T "campaign_results.position" }}</th>
+                        <th>{{ .T "common.status" }}</th>
+                        <th class="text-center">{{ .T "campaign_results.reported" }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,19 +99,18 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title">Reconcile Reports</h4>
+                <h4 class="modal-title">{{ .T "campaign_results.reconcile" }}</h4>
             </div>
             <div class="modal-body">
-                <p>Paste the people who reported this simulation &mdash; one per line (or comma-separated).
-                    Use <strong>email addresses</strong> or 7-character result IDs. Matches are credited as
-                    "Email Reported" (feeding the stats and risk score).</p>
+                <p>{{ .T "campaign_results.reconcile_body_1" }}
+                    {{ .T "campaign_results.reconcile_body_use" }} <strong>{{ .T "campaign_results.reconcile_body_emails" }}</strong> {{ .T "campaign_results.reconcile_body_2" }}</p>
                 <textarea class="form-control" id="reconcileInput" rows="8"
                     placeholder="alice@corp.example&#10;bob@corp.example"></textarea>
                 <div id="reconcileResult" style="margin-top:10px;"></div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="reconcileSubmit">Credit Reports</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ .T "common.close" }}</button>
+                <button type="button" class="btn btn-primary" id="reconcileSubmit">{{ .T "campaign_results.credit_reports" }}</button>
             </div>
         </div>
     </div>

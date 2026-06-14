@@ -2,14 +2,14 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <div class="row">
         <h1 class="page-header">
-            Users &amp; Groups
+            {{ .T "groups.title" }}
         </h1>
     </div>
     <div id="flashes" class="row"></div>
     <div class="row">
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
             data-target="#modal">
-            <i class="fa fa-plus"></i> New Group</button>
+            <i class="fa fa-plus"></i> {{ .T "groups.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -17,16 +17,16 @@
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No groups created yet. Let's create one!
+            {{ .T "groups.empty" }}
         </div>
     </div>
     <div class="row">
         <table id="groupTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th># of Members</th>
-                    <th>Modified Date</th>
+                    <th>{{ .T "common.name" }}</th>
+                    <th>{{ .T "groups.members_count" }}</th>
+                    <th>{{ .T "groups.modified_date" }}</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
             </thead>
@@ -43,41 +43,41 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="groupModalLabel">New Group</h4>
+                <h4 class="modal-title" id="groupModalLabel">{{ .T "groups.modal.title" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="name">Name:</label>
+                <label class="control-label" for="name">{{ .T "common.name" }}:</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" ng-model="group.name" placeholder="Group name" id="name"
+                    <input type="text" class="form-control" ng-model="group.name" placeholder="{{ .T "groups.name_placeholder" }}" id="name"
                         autofocus />
                 </div>
                 <div class="form-group">
                     <span class="btn btn-danger btn-file" data-toggle="tooltip" data-placement="right"
-                        title="Supports CSV files" id="fileUpload">
-                        <i class="fa fa-plus"></i> Bulk Import Users
+                        title="{{ .T "groups.supports_csv" }}" id="fileUpload">
+                        <i class="fa fa-plus"></i> {{ .T "groups.bulk_import" }}
                         <input type="file" id="csvupload" multiple>
                     </span>
                     <span id="csv-template" class="text-muted small">
-                        <i class="fa fa-file-excel-o"></i> Download CSV Template</span>
+                        <i class="fa fa-file-excel-o"></i> {{ .T "groups.download_template" }}</span>
                 </div>
                 <div class="row">
                     <form id="targetForm">
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" placeholder="First Name" id="firstName">
+                            <input type="text" class="form-control" placeholder="{{ .T "groups.first_name" }}" id="firstName">
                         </div>
                         <div class="col-sm-2">
-                            <input type="text" class="form-control" placeholder="Last Name" id="lastName">
+                            <input type="text" class="form-control" placeholder="{{ .T "groups.last_name" }}" id="lastName">
                         </div>
                         <div class="col-sm-3">
-                            <input type="email" class="form-control" placeholder="Email" id="email" required>
+                            <input type="email" class="form-control" placeholder="{{ .T "common.email" }}" id="email" required>
                         </div>
                         <div class="col-sm-3">
-                            <input type="text" class="form-control" placeholder="Position" id="position">
+                            <input type="text" class="form-control" placeholder="{{ .T "groups.position" }}" id="position">
                         </div>
                         <div class="col-sm-1">
                             <button type="submit" class="btn btn-danger btn-lg">
-                                <i class="fa fa-plus"></i> Add</button>
+                                <i class="fa fa-plus"></i> {{ .T "groups.add" }}</button>
                         </div>
                     </form>
                 </div>
@@ -85,18 +85,18 @@
                 <table id="targetsTable" class="table table-hover table-striped table-condensed">
                     <thead>
                         <tr>
-                            <th>First Name</th>
-                            <th>Last Name</th>
-                            <th>Email</th>
-                            <th>Position</th>
+                            <th>{{ .T "groups.first_name" }}</th>
+                            <th>{{ .T "groups.last_name" }}</th>
+                            <th>{{ .T "common.email" }}</th>
+                            <th>{{ .T "groups.position" }}</th>
                             <th class="no-sort"></th>
                     <tbody>
                     </tbody>
                 </table>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save changes</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ .T "common.close" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "groups.save_changes" }}</button>
             </div>
         </div>
     </div>

@@ -7,7 +7,7 @@
     <div class="row">
         <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
             data-webhook-id="-1" data-target="#modal">
-            <i class="fa fa-plus"></i> New Webhook</button>
+            <i class="fa fa-plus"></i> {{ .T "webhooks.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -17,9 +17,9 @@
         <table id="webhookTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th class="col-md-2 no-sort">Title</th>
-                    <th class="col-md-2 no-sort">Url</th>
-                    <th class="col-md-2 no-">Is active</th>
+                    <th class="col-md-2 no-sort">{{ .T "webhooks.col_title" }}</th>
+                    <th class="col-md-2 no-sort">{{ .T "webhooks.col_url" }}</th>
+                    <th class="col-md-2 no-">{{ .T "webhooks.col_active" }}</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
             </thead>
@@ -37,36 +37,36 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="webhookModalLabel">Add or Edit Webhook</h4>
+                <h4 class="modal-title" id="webhookModalLabel">{{ .T "webhooks.modal_title" }}</h4>
             </div>
             <div class="modal-body" id="modal_body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="title">Name:</label>
+                <label class="control-label" for="title">{{ .T "webhooks.name_label" }}</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Name" id="name" required autofocus />
+                    <input type="text" class="form-control" placeholder="{{ .T "common.name" }}" id="name" required autofocus />
                 </div>
 
-                <label class="control-label" for="url">URL:</label>
+                <label class="control-label" for="url">{{ .T "webhooks.url_label" }}</label>
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="https://example.com/webhook1" id="url" required />
                 </div>
 
-                <label class="control-label" for="secret">Secret:</label>
+                <label class="control-label" for="secret">{{ .T "webhooks.secret_label" }}</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Secret" id="secret" required />
+                    <input type="text" class="form-control" placeholder="{{ .T "webhooks.secret_placeholder" }}" id="secret" required />
                 </div>
 
                 <div class="checkbox checkbox-primary">
                     <input type="checkbox" id="is_active" value="true" />
-                    <label for="is_active">Is active <i class="fa fa-question-circle"
+                    <label for="is_active">{{ .T "webhooks.is_active" }} <i class="fa fa-question-circle"
                             data-toggle="tooltip" data-placement="right"
-                            title="Data is sent only to the active webhooks"></i>
+                            title="{{ .T "webhooks.is_active_tooltip" }}"></i>
                     </label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save changes</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ .T "common.close" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "webhooks.save_changes" }}</button>
             </div>
         </div>
     </div>

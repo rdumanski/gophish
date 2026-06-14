@@ -5,29 +5,28 @@
     </h1>
     <div id="flashes" class="row"></div>
     <p class="text-muted">
-        Register the look-alike domains you own so you can pick them when building campaigns
-        (landing host) and sending profiles (sending identity), and health-check their DNS / HTTPS / SPF / DKIM / DMARC.
+        {{ .T "domains.intro" }}
     </p>
     <div class="row">
         <button type="button" class="btn btn-primary" id="new_button" data-toggle="modal" data-backdrop="static"
             data-domain-id="-1" data-target="#modal">
-            <i class="fa fa-plus"></i> New Domain</button>
+            <i class="fa fa-plus"></i> {{ .T "domains.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
         <i class="fa fa-spinner fa-spin fa-4x"></i>
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
-        <div class="alert alert-info">No domains registered yet.</div>
+        <div class="alert alert-info">{{ .T "domains.empty" }}</div>
     </div>
     <div class="row">
         <table id="domainTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th class="col-md-3 no-sort">Domain</th>
-                    <th class="col-md-1 no-sort">Role</th>
-                    <th class="col-md-4 no-sort">Health</th>
-                    <th class="col-md-2 no-sort">Last Checked</th>
+                    <th class="col-md-3 no-sort">{{ .T "domains.domain" }}</th>
+                    <th class="col-md-1 no-sort">{{ .T "domains.role" }}</th>
+                    <th class="col-md-4 no-sort">{{ .T "domains.health" }}</th>
+                    <th class="col-md-2 no-sort">{{ .T "domains.last_checked" }}</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
             </thead>
@@ -44,36 +43,36 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title" id="domainModalLabel">Add or Edit Domain</h4>
+                <h4 class="modal-title" id="domainModalLabel">{{ .T "domains.modal.title" }}</h4>
             </div>
             <div class="modal-body" id="modal_body">
                 <div class="row" id="modal.flashes"></div>
 
-                <label class="control-label" for="name">Domain name:</label>
+                <label class="control-label" for="name">{{ .T "domains.domain_name" }}:</label>
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="pse.org.pl" id="name" required />
                 </div>
 
-                <label class="control-label" for="role">Role:</label>
+                <label class="control-label" for="role">{{ .T "domains.role" }}:</label>
                 <div class="form-group">
                     <select class="form-control" id="role">
-                        <option value="both">Both (sending + landing)</option>
-                        <option value="sending">Sending identity (email From)</option>
-                        <option value="landing">Landing host (links / pages)</option>
+                        <option value="both">{{ .T "domains.role.both" }}</option>
+                        <option value="sending">{{ .T "domains.role.sending" }}</option>
+                        <option value="landing">{{ .T "domains.role.landing" }}</option>
                     </select>
                 </div>
 
-                <label class="control-label" for="dkim_selector">DKIM selector
+                <label class="control-label" for="dkim_selector">{{ .T "domains.dkim_selector" }}
                     <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right"
-                        title="The selector your mail relay signs with (e.g. 'default' or 's1'). Used to verify the published DKIM record. Leave blank if sending-only setup isn't ready."></i>
+                        title="{{ .T "domains.dkim_help" }}"></i>
                 </label>
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="default" id="dkim_selector" />
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save</button>
+                <button type="button" class="btn btn-default" data-dismiss="modal">{{ .T "common.close" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "common.save" }}</button>
             </div>
         </div>
     </div>
@@ -87,12 +86,12 @@
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
-                <h4 class="modal-title">DNS records to publish</h4>
+                <h4 class="modal-title">{{ .T "domains.records.title" }}</h4>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Publish these on the domain's DNS, then use <strong>Check</strong> to verify.</p>
+                <p class="text-muted">{{ .T "domains.records.intro" }}</p>
                 <table class="table table-condensed">
-                    <thead><tr><th>Type</th><th>Host</th><th>Value</th></tr></thead>
+                    <thead><tr><th>{{ .T "domains.records.type" }}</th><th>{{ .T "domains.records.host" }}</th><th>{{ .T "domains.records.value" }}</th></tr></thead>
                     <tbody id="recordsBody"></tbody>
                 </table>
             </div>

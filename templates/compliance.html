@@ -5,28 +5,25 @@
     </h1>
     <div id="flashes" class="row"></div>
     <p class="text-muted">
-        A period-scoped summary of the security-awareness program &mdash; training
-        coverage (NIS2 Art. 21(2)(g)), phishing-simulation results, and current human-risk
-        posture &mdash; to support management-body oversight (NIS2 Art. 20). This is an
-        operational summary, not a legal certification of NIS2 conformance.
+        {{ .T "compliance.intro" }}
     </p>
 
     <!-- Reporting period controls -->
     <div class="row" style="margin-bottom:15px;">
         <div class="col-md-12">
             <div class="btn-group" role="group" aria-label="Period presets">
-                <button type="button" class="btn btn-default period-preset" data-days="90">Last 90 days</button>
-                <button type="button" class="btn btn-default period-preset active" data-days="365">Last 12 months</button>
-                <button type="button" class="btn btn-default period-preset" data-days="all">All time</button>
+                <button type="button" class="btn btn-default period-preset" data-days="90">{{ .T "compliance.period.90" }}</button>
+                <button type="button" class="btn btn-default period-preset active" data-days="365">{{ .T "compliance.period.365" }}</button>
+                <button type="button" class="btn btn-default period-preset" data-days="all">{{ .T "compliance.period.all" }}</button>
             </div>
             <span style="display:inline-block; margin-left:15px;">
                 <input type="date" id="startDate" class="form-control" style="display:inline-block; width:auto;">
                 <span class="text-muted">&ndash;</span>
                 <input type="date" id="endDate" class="form-control" style="display:inline-block; width:auto;">
-                <button type="button" id="applyPeriod" class="btn btn-primary">Apply</button>
+                <button type="button" id="applyPeriod" class="btn btn-primary">{{ .T "compliance.apply" }}</button>
             </span>
             <a id="downloadPdf" class="btn btn-success pull-right" href="#">
-                <i class="fa fa-file-pdf-o"></i> Download PDF report
+                <i class="fa fa-file-pdf-o"></i> {{ .T "compliance.download_pdf" }}
             </a>
         </div>
     </div>
@@ -42,25 +39,25 @@
             <div class="col-md-2 col-sm-4">
                 <div class="panel panel-default"><div class="panel-body text-center">
                     <h2 id="kpiPopulation" style="margin:0;">0</h2>
-                    <small class="text-muted">People</small>
+                    <small class="text-muted">{{ .T "compliance.kpi.people" }}</small>
                 </div></div>
             </div>
             <div class="col-md-2 col-sm-4">
                 <div class="panel panel-default"><div class="panel-body text-center">
                     <h2 id="kpiCompletion" style="margin:0;">0%</h2>
-                    <small class="text-muted">Training completion</small>
+                    <small class="text-muted">{{ .T "compliance.kpi.completion" }}</small>
                 </div></div>
             </div>
             <div class="col-md-2 col-sm-4">
                 <div class="panel panel-default"><div class="panel-body text-center">
                     <h2 id="kpiClickRate" style="margin:0;">0%</h2>
-                    <small class="text-muted">Phishing click rate</small>
+                    <small class="text-muted">{{ .T "compliance.kpi.click_rate" }}</small>
                 </div></div>
             </div>
             <div class="col-md-2 col-sm-4">
                 <div class="panel panel-default"><div class="panel-body text-center">
                     <h2 id="kpiReportRate" style="margin:0;">0%</h2>
-                    <small class="text-muted">Phishing report rate</small>
+                    <small class="text-muted">{{ .T "compliance.kpi.report_rate" }}</small>
                 </div></div>
             </div>
             <div class="col-md-4 col-sm-12">
@@ -70,7 +67,7 @@
                         <span class="label label-warning" id="kpiRiskMed">0</span>
                         <span class="label label-danger" id="kpiRiskHigh">0</span>
                     </h2>
-                    <small class="text-muted">Risk: low / medium / high (avg <span id="kpiRiskAvg">0</span>)</small>
+                    <small class="text-muted">{{ .T "compliance.kpi.risk" }} ({{ .T "compliance.kpi.avg" }} <span id="kpiRiskAvg">0</span>)</small>
                 </div></div>
             </div>
         </div>
@@ -78,47 +75,44 @@
         <!-- Program detail -->
         <div class="row">
             <div class="col-md-6">
-                <h3>Training coverage</h3>
+                <h3>{{ .T "compliance.training.title" }}</h3>
                 <table class="table table-condensed">
-                    <tr><td>Assigned (in period)</td><td id="trAssigned" class="text-right">0</td></tr>
-                    <tr><td>Started</td><td id="trStarted" class="text-right">0</td></tr>
-                    <tr><td>Completed</td><td id="trCompleted" class="text-right">0</td></tr>
-                    <tr><td>Outstanding</td><td id="trOutstanding" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.training.assigned" }}</td><td id="trAssigned" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.training.started" }}</td><td id="trStarted" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.training.completed" }}</td><td id="trCompleted" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.training.outstanding" }}</td><td id="trOutstanding" class="text-right">0</td></tr>
                 </table>
             </div>
             <div class="col-md-6">
-                <h3>Phishing program</h3>
+                <h3>{{ .T "compliance.phishing.title" }}</h3>
                 <table class="table table-condensed">
-                    <tr><td>Campaigns</td><td id="phCampaigns" class="text-right">0</td></tr>
-                    <tr><td>Recipients targeted</td><td id="phTargeted" class="text-right">0</td></tr>
-                    <tr><td>Emails sent</td><td id="phSent" class="text-right">0</td></tr>
-                    <tr><td>Clicked</td><td id="phClicked" class="text-right">0</td></tr>
-                    <tr><td>Submitted data</td><td id="phSubmitted" class="text-right">0</td></tr>
-                    <tr><td>Reported</td><td id="phReported" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.campaigns" }}</td><td id="phCampaigns" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.targeted" }}</td><td id="phTargeted" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.sent" }}</td><td id="phSent" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.clicked" }}</td><td id="phClicked" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.submitted" }}</td><td id="phSubmitted" class="text-right">0</td></tr>
+                    <tr><td>{{ .T "compliance.phishing.reported" }}</td><td id="phReported" class="text-right">0</td></tr>
                 </table>
             </div>
         </div>
 
         <!-- Per-group breakdown -->
-        <h3>By group / department</h3>
+        <h3>{{ .T "compliance.group.title" }}</h3>
         <table id="groupTable" class="table">
             <thead>
                 <tr>
-                    <th>Group</th>
-                    <th class="text-right">Members</th>
-                    <th class="text-right">Trained %</th>
-                    <th class="text-right">Click %</th>
-                    <th class="text-right">Report %</th>
-                    <th class="text-right">Avg risk</th>
+                    <th>{{ .T "compliance.group.group" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.members" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.trained" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.click" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.report" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.avg_risk" }}</th>
                 </tr>
             </thead>
             <tbody></tbody>
         </table>
         <p class="text-muted"><small>
-            Group membership and "trained %" reflect current state; click/report % cover the
-            selected period's campaigns. Members matched by email; phone-only contacts are excluded.
-            Per-group click counts are raw, while the org-wide click rate applies the sandbox
-            (phish_filter) exclusion, so the two can differ slightly.
+            {{ .T "compliance.group.footnote" }}
         </small></p>
     </div>
 </div>

@@ -2,13 +2,13 @@
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
     <div class="row">
         <h1 class="page-header">
-            Email Templates
+            {{ .T "templates.title" }}
         </h1>
     </div>
     <div id="flashes" class="row"></div>
     <div class="row">
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
-            data-target="#modal"><i class="fa fa-plus"></i> New Template</button>
+            data-target="#modal"><i class="fa fa-plus"></i> {{ .T "templates.new" }}</button>
     </div>
     &nbsp;
     <div id="loading">
@@ -16,15 +16,15 @@
     </div>
     <div id="emptyMessage" class="row" style="display:none;">
         <div class="alert alert-info">
-            No templates yet. Let's create one!
+            {{ .T "templates.empty" }}
         </div>
     </div>
     <div class="row">
         <table id="templateTable" class="table" style="display:none;">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Modified Date</th>
+                    <th>{{ .T "common.name" }}</th>
+                    <th>{{ .T "templates.modified_date" }}</th>
                     <th class="col-md-2 no-sort"></th>
                 </tr>
             </thead>
@@ -41,49 +41,49 @@
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close" onclick="dismiss()"><span
                         aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="templateModalLabel">New Template</h4>
+                <h4 class="modal-title" id="templateModalLabel">{{ .T "templates.new" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="name">Name:</label>
+                <label class="control-label" for="name">{{ .T "common.name" }}</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" ng-model="template.name" placeholder="Template name" id="name"
+                    <input type="text" class="form-control" ng-model="template.name" placeholder="{{ .T "templates.name_placeholder" }}" id="name"
                         autofocus />
                 </div>
                 <div class="form-group">
                     <button class="btn btn-danger" data-toggle="modal" data-backdrop="static" data-target="#importEmailModal"><i
                             class="fa fa-envelope"></i>
-                        Import Email</button>
+                        {{ .T "templates.import_email" }}</button>
                     {{if .AIEnabled}}
                     <button class="btn btn-primary" data-toggle="modal" data-backdrop="static" data-target="#aiGenerateModal"><i
                             class="fa fa-magic"></i>
-                        Draft with AI</button>
+                        {{ .T "templates.draft_ai" }}</button>
                     {{end}}
                 </div>
-                <label class="control-label" for="envelope-sender">Envelope Sender: <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="This sender is shown to the user by most email clients. Defaults to the SMTP From as defined in the Sending Profile."></i></label>
+                <label class="control-label" for="envelope-sender">{{ .T "templates.envelope_sender" }} <i class="fa fa-question-circle" data-toggle="tooltip" data-placement="right" title="{{ .T "templates.envelope_sender_tooltip" }}"></i></label>
                 <div class="form-group">
                     <input type="text" class="form-control" placeholder="First Last <test@example.com>" id="envelope-sender" />
                 </div>
-                <label class="control-label" for="subject">Subject:</label>
+                <label class="control-label" for="subject">{{ .T "templates.subject" }}</label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="Email Subject" id="subject" />
+                    <input type="text" class="form-control" placeholder="{{ .T "templates.subject_placeholder" }}" id="subject" />
                 </div>
                 {{if .AIEnabled}}
                 <div class="form-group">
                     <button class="btn btn-info btn-sm" id="ai_score_button" data-toggle="modal" data-backdrop="static" data-target="#aiScoreModal" onclick="scoreTemplate()"><i class="fa fa-balance-scale"></i>
-                        Score with AI</button>
-                    <span class="text-muted" style="margin-left:8px;">Rate this draft 1–5 for how convincing it is.</span>
+                        {{ .T "templates.score_ai" }}</button>
+                    <span class="text-muted" style="margin-left:8px;">{{ .T "templates.score_ai_hint" }}</span>
                 </div>
                 {{end}}
                 <!-- Nav tabs -->
                 <ul class="nav nav-tabs" role="tablist">
-                    <li class="active" role="text"><a href="#text" aria-controls="text" role="tab" data-toggle="tab">Text</a></li>
-                    <li role="html"><a href="#html" aria-controls="html" role="tab" data-toggle="tab">HTML</a></li>
+                    <li class="active" role="text"><a href="#text" aria-controls="text" role="tab" data-toggle="tab">{{ .T "templates.tab_text" }}</a></li>
+                    <li role="html"><a href="#html" aria-controls="html" role="tab" data-toggle="tab">{{ .T "templates.tab_html" }}</a></li>
                 </ul>
                 <!-- Tab panes -->
                 <div class="tab-content">
                     <div role="tabpanel" class="tab-pane active" id="text">
-                        <textarea rows="10" id="text_editor" class="gophish-editor form-control" placeholder="Plaintext"></textarea>
+                        <textarea rows="10" id="text_editor" class="gophish-editor form-control" placeholder="{{ .T "templates.plaintext_placeholder" }}"></textarea>
                     </div>
                     <div role="tabpanel" class="tab-pane" id="html">
                         <textarea id="html_editor"></textarea>
@@ -91,9 +91,9 @@
                 </div>
                 <div class="checkbox checkbox-primary">
                     <input id="use_tracker_checkbox" type="checkbox" checked>
-                    <label for="use_tracker_checkbox">Add Tracking Image</label>
+                    <label for="use_tracker_checkbox">{{ .T "templates.add_tracking_image" }}</label>
                 </div>
-                <span class="btn btn-danger btn-file"><i class="fa fa-plus"></i> Add Files
+                <span class="btn btn-danger btn-file"><i class="fa fa-plus"></i> {{ .T "templates.add_files" }}
                     <input id="attachmentUpload" type="file" onchange="attach(this.files)" multiple>
                 </span>
                 <br />
@@ -102,7 +102,7 @@
                     <thead>
                         <tr>
                             <th class="col-md-1 no-sort"></th>
-                            <th class="col-md-10">Name</th>
+                            <th class="col-md-10">{{ .T "common.name" }}</th>
                             <th class="col-md-1 no-sort"></th>
                             <th class="datatable_hidden no-sort">Content</th>
                             <th class="datatable_hidden no-sort">Type</th>
@@ -114,8 +114,8 @@
                 <hr>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">Cancel</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit">Save Template</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default" onclick="dismiss()">{{ .T "common.cancel" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit">{{ .T "templates.save" }}</button>
             </div>
         </div>
     </div>
@@ -127,22 +127,22 @@
             <!-- New Email Modal -->
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="importEmailModalLabel">Import Email</h4>
+                <h4 class="modal-title" id="importEmailModalLabel">{{ .T "templates.import_email" }}</h4>
             </div>
             <div class="modal-body">
                 <div class="row" id="modal.flashes"></div>
-                <label class="control-label" for="email">Email Content:</label>
+                <label class="control-label" for="email">{{ .T "templates.email_content" }}</label>
                 <div class="form-group">
-                    <textarea rows="10" id="email_content" class="gophish-editor form-control" placeholder="Raw Email Source"></textarea>
+                    <textarea rows="10" id="email_content" class="gophish-editor form-control" placeholder="{{ .T "templates.raw_email_placeholder" }}"></textarea>
                 </div>
                 <div class="checkbox checkbox-primary">
                     <input id="convert_links_checkbox" type="checkbox" checked>
-                    <label for="convert_links_checkbox">Change Links to Point to Landing Page</label>
+                    <label for="convert_links_checkbox">{{ .T "templates.convert_links" }}</label>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
-                <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importEmail()">Import</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default">{{ .T "common.cancel" }}</button>
+                <button type="button" class="btn btn-primary" id="modalSubmit" onclick="importEmail()">{{ .T "common.import" }}</button>
             </div>
         </div>
     </div>
@@ -153,57 +153,57 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="aiGenerateModalLabel">Draft with AI</h4>
+                <h4 class="modal-title" id="aiGenerateModalLabel">{{ .T "templates.draft_ai" }}</h4>
             </div>
             <div class="modal-body">
-                <p class="text-muted">Describe the simulation you want and the model will draft Subject, HTML, and plaintext bodies. You can edit the result afterward.</p>
-                <label class="control-label" for="ai_audience">Audience: <span class="text-danger">*</span></label>
+                <p class="text-muted">{{ .T "templates.ai.intro" }}</p>
+                <label class="control-label" for="ai_audience">{{ .T "templates.ai.audience" }} <span class="text-danger">*</span></label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="e.g. IT staff at a mid-size finance company" id="ai_audience" />
+                    <input type="text" class="form-control" placeholder="{{ .T "templates.ai.audience_placeholder" }}" id="ai_audience" />
                 </div>
-                <label class="control-label" for="ai_theme">Theme: <span class="text-danger">*</span></label>
+                <label class="control-label" for="ai_theme">{{ .T "templates.ai.theme" }} <span class="text-danger">*</span></label>
                 <div class="form-group">
-                    <input type="text" class="form-control" placeholder="e.g. password expiration notice" id="ai_theme" />
+                    <input type="text" class="form-control" placeholder="{{ .T "templates.ai.theme_placeholder" }}" id="ai_theme" />
                 </div>
                 <div class="row">
                     <div class="col-sm-6">
-                        <label class="control-label" for="ai_urgency">Urgency:</label>
+                        <label class="control-label" for="ai_urgency">{{ .T "templates.ai.urgency" }}</label>
                         <select class="form-control" id="ai_urgency">
-                            <option value="">(model decides)</option>
-                            <option value="low">Low</option>
-                            <option value="medium" selected>Medium</option>
-                            <option value="high">High</option>
+                            <option value="">{{ .T "templates.ai.model_decides" }}</option>
+                            <option value="low">{{ .T "templates.ai.low" }}</option>
+                            <option value="medium" selected>{{ .T "templates.ai.medium" }}</option>
+                            <option value="high">{{ .T "templates.ai.high" }}</option>
                         </select>
                     </div>
                     <div class="col-sm-6">
-                        <label class="control-label" for="ai_length">Length:</label>
+                        <label class="control-label" for="ai_length">{{ .T "templates.ai.length" }}</label>
                         <select class="form-control" id="ai_length">
-                            <option value="">(model decides)</option>
-                            <option value="short" selected>Short</option>
-                            <option value="medium">Medium</option>
-                            <option value="long">Long</option>
+                            <option value="">{{ .T "templates.ai.model_decides" }}</option>
+                            <option value="short" selected>{{ .T "templates.ai.short" }}</option>
+                            <option value="medium">{{ .T "templates.ai.medium" }}</option>
+                            <option value="long">{{ .T "templates.ai.long" }}</option>
                         </select>
                     </div>
                 </div>
                 <br />
                 <div class="row">
                     <div class="col-sm-6">
-                        <label class="control-label" for="ai_language">Language:</label>
-                        <input type="text" class="form-control" placeholder="en (default)" id="ai_language" />
+                        <label class="control-label" for="ai_language">{{ .T "templates.ai.language" }}</label>
+                        <input type="text" class="form-control" placeholder="{{ .T "templates.ai.language_placeholder" }}" id="ai_language" />
                     </div>
                     <div class="col-sm-6">
-                        <label class="control-label" for="ai_brand">Brand to imitate:</label>
-                        <input type="text" class="form-control" placeholder="optional, e.g. Microsoft 365" id="ai_brand" />
+                        <label class="control-label" for="ai_brand">{{ .T "templates.ai.brand" }}</label>
+                        <input type="text" class="form-control" placeholder="{{ .T "templates.ai.brand_placeholder" }}" id="ai_brand" />
                     </div>
                 </div>
                 <div id="ai_generate_spinner" style="display:none; text-align:center; margin-top:20px;">
                     <i class="fa fa-spinner fa-spin fa-2x"></i>
-                    <p class="text-muted">Drafting&hellip; this usually takes a few seconds.</p>
+                    <p class="text-muted">{{ .T "templates.ai.drafting" }}</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default">Cancel</button>
-                <button type="button" class="btn btn-primary" id="aiGenerateSubmit" onclick="generateTemplate()">Generate</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default">{{ .T "common.cancel" }}</button>
+                <button type="button" class="btn btn-primary" id="aiGenerateSubmit" onclick="generateTemplate()">{{ .T "templates.ai.generate" }}</button>
             </div>
         </div>
     </div>
@@ -214,32 +214,32 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="aiScoreModalLabel">Template difficulty</h4>
+                <h4 class="modal-title" id="aiScoreModalLabel">{{ .T "templates.score.title" }}</h4>
             </div>
             <div class="modal-body">
                 <div id="ai_score_spinner" style="display:none; text-align:center; padding:30px 0;">
                     <i class="fa fa-spinner fa-spin fa-2x"></i>
-                    <p class="text-muted">Scoring&hellip;</p>
+                    <p class="text-muted">{{ .T "templates.score.scoring" }}</p>
                 </div>
                 <div id="ai_score_error" class="alert alert-danger" style="display:none;"></div>
                 <div id="ai_score_result" style="display:none;">
                     <div class="text-center" style="padding:10px 0 20px 0;">
                         <span id="ai_score_value" style="font-size:64px; font-weight:bold;">?</span>
                         <span style="font-size:24px; color:#777;">&nbsp;/&nbsp;5</span>
-                        <p class="text-muted" style="margin-top:8px;">1 = obvious phishing &nbsp;&middot;&nbsp; 5 = expert-tier (catches even security-aware users)</p>
+                        <p class="text-muted" style="margin-top:8px;">{{ .T "templates.score.scale_low" }} &nbsp;&middot;&nbsp; {{ .T "templates.score.scale_high" }}</p>
                     </div>
                     <p id="ai_score_rationale" style="font-style:italic;"></p>
-                    <h5><i class="fa fa-thumbs-up"></i> Strengths</h5>
+                    <h5><i class="fa fa-thumbs-up"></i> {{ .T "templates.score.strengths" }}</h5>
                     <ul id="ai_score_strengths"></ul>
-                    <h5><i class="fa fa-thumbs-down"></i> Weaknesses</h5>
+                    <h5><i class="fa fa-thumbs-down"></i> {{ .T "templates.score.weaknesses" }}</h5>
                     <ul id="ai_score_weaknesses"></ul>
-                    <h5><i class="fa fa-arrow-up"></i> How to make it harder to detect</h5>
+                    <h5><i class="fa fa-arrow-up"></i> {{ .T "templates.score.harder" }}</h5>
                     <ul id="ai_score_harder"></ul>
-                    <p class="text-muted" style="font-size:11px; margin-top:10px;">Scored by <span id="ai_score_model"></span>. Re-score is cheap; this rating is informational and is not saved.</p>
+                    <p class="text-muted" style="font-size:11px; margin-top:10px;">{{ .T "templates.score.scored_by" }} <span id="ai_score_model"></span>. {{ .T "templates.score.note" }}</p>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" data-dismiss="modal" class="btn btn-default">Close</button>
+                <button type="button" data-dismiss="modal" class="btn btn-default">{{ .T "common.close" }}</button>
             </div>
         </div>
     </div>
