@@ -250,6 +250,22 @@ func (p templateParams) SupportedLanguages() []string {
 	return i18n.Supported()
 }
 
+// loginParams is the render context for the pre-auth login page (which defines
+// its own base layout). Language is resolved from Accept-Language since there is
+// no logged-in user yet.
+type loginParams struct {
+	User     models.User
+	Title    string
+	Flashes  []interface{}
+	Token    string
+	Language string
+}
+
+// T localizes a key for the login page's language.
+func (p loginParams) T(key string, args ...interface{}) string {
+	return i18n.T(p.Language, key, args...)
+}
+
 // newTemplateParams returns the default template parameters for a user and
 // the CSRF token.
 func (as *AdminServer) newTemplateParams(r *http.Request) templateParams {
@@ -428,15 +444,11 @@ func (as *AdminServer) nextOrIndex(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, next, http.StatusFound)
 }
 
-func (as *AdminServer) handleInvalidLogin(w http.ResponseWriter, r *http.Request, message string) {
+func (as *AdminServer) handleInvalidLogin(w http.ResponseWriter, r *http.Request, messageKey string) {
 	session := ctx.Get(r, "session").(*sessions.Session)
-	Flash(w, r, "danger", message)
-	params := struct {
-		User    models.User
-		Title   string
-		Flashes []interface{}
-		Token   string
-	}{Title: "Login", Token: csrf.Token(r)}
+	lang := i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
+	Flash(w, r, "danger", i18n.T(lang, messageKey))
+	params := loginParams{Title: "Login", Token: csrf.Token(r), Language: lang}
 	params.Flashes = session.Flashes()
 	session.Save(r, w)
 	templates := template.New("template")
@@ -484,12 +496,11 @@ func (as *AdminServer) Impersonate(w http.ResponseWriter, r *http.Request) {
 // Login handles the authentication flow for a user. If credentials are valid,
 // a session is created
 func (as *AdminServer) Login(w http.ResponseWriter, r *http.Request) {
-	params := struct {
-		User    models.User
-		Title   string
-		Flashes []interface{}
-		Token   string
-	}{Title: "Login", Token: csrf.Token(r)}
+	params := loginParams{
+		Title:    "Login",
+		Token:    csrf.Token(r),
+		Language: i18n.FromAcceptLanguage(r.Header.Get("Accept-Language")),
+	}
 	session := ctx.Get(r, "session").(*sessions.Session)
 	switch {
 	case r.Method == "GET":
@@ -507,18 +518,18 @@ func (as *AdminServer) Login(w http.ResponseWriter, r *http.Request) {
 		u, err := models.GetUserByUsername(username)
 		if err != nil {
 			log.Error(err)
-			as.handleInvalidLogin(w, r, "Invalid Username/Password")
+			as.handleInvalidLogin(w, r, "login.invalid")
 			return
 		}
 		// Validate the user's password
 		err = auth.ValidatePassword(password, u.Hash)
 		if err != nil {
 			log.Error(err)
-			as.handleInvalidLogin(w, r, "Invalid Username/Password")
+			as.handleInvalidLogin(w, r, "login.invalid")
 			return
 		}
 		if u.AccountLocked {
-			as.handleInvalidLogin(w, r, "Account Locked")
+			as.handleInvalidLogin(w, r, "login.locked")
 			return
 		}
 		u.LastLogin = time.Now().UTC()

@@ -1,26 +1,42 @@
 package controllers
 
 import (
+	"bytes"
+	"html/template"
 	"net/http"
 
+	"github.com/rdumanski/gophish/i18n"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
 )
 
-// teachableMomentHTML is the first-party "you've been phished" education page
-// rendered when a campaign has TeachableMoment enabled (Phase 9). It is a Go
-// text/template executed against a models.PhishingTemplateContext, so it can
-// reference recipient fields such as {{.FirstName}}. The markup is fully
-// self-contained (inline CSS, no external resources) because the phishing
-// server is frequently deployed in network-isolated environments where the
-// target's browser cannot reach a CDN.
+// teachableData is the render context for the first-party teachable-moment page.
+// It carries only the recipient's first name (auto-escaped) and the resolved UI
+// language; all prose comes from the i18n catalog via T.
+type teachableData struct {
+	FirstName string
+	Lang      string
+}
+
+// T localizes a key for the teachable page's language.
+func (d teachableData) T(key string, args ...interface{}) string {
+	return i18n.T(d.Lang, key, args...)
+}
+
+// teachableMomentTmpl is the first-party "you've been phished" education page
+// rendered when a campaign has TeachableMoment enabled (Phase 9). It is
+// html/template (recipient FirstName is auto-escaped) and fully self-contained
+// (inline CSS, no external resources) because the phishing server is frequently
+// deployed in network-isolated environments where the browser can't reach a CDN.
+var teachableMomentTmpl = template.Must(template.New("teachable").Parse(teachableMomentHTML))
+
 const teachableMomentHTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Security Awareness</title>
+<title>{{ .T "teachable.title" }}</title>
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -71,69 +87,59 @@ const teachableMomentHTML = `<!DOCTYPE html>
     <div class="card">
       <div class="banner">
         <div class="icon">&#9888;</div>
-        <h1>This was a simulated phishing test</h1>
+        <h1>{{ .T "teachable.heading" }}</h1>
       </div>
       <div class="body">
-        <p class="lead">{{if .FirstName}}Hi {{.FirstName}}, this{{else}}This{{end}}
-        message was part of an internal security-awareness exercise &mdash; not a
-        real attack. No harm was done, but a genuine attacker could have used the
-        same trick to steal your credentials.</p>
+        <p class="lead">{{if .FirstName}}{{ .T "teachable.lead_hi" .FirstName }}{{else}}{{ .T "teachable.lead_nohi" }}{{end}} {{ .T "teachable.lead_body" }}</p>
 
         <div class="reassure">
-          <strong>You're not in trouble.</strong> These tests exist to help everyone
-          practice spotting suspicious messages in a safe setting.
+          <strong>{{ .T "teachable.reassure_strong" }}</strong> {{ .T "teachable.reassure_body" }}
         </div>
 
-        <h2>What to watch for next time</h2>
+        <h2>{{ .T "teachable.watch_heading" }}</h2>
         <ul>
-          <li><strong>Unexpected urgency.</strong> Messages that pressure you to act
-          immediately ("your account will be locked") are a classic red flag.</li>
-          <li><strong>Mismatched sender or links.</strong> Hover over links before
-          clicking and check that the address really belongs to who it claims.</li>
-          <li><strong>Requests for credentials.</strong> Legitimate services rarely
-          ask you to confirm your password through an emailed link.</li>
-          <li><strong>Small details that feel off.</strong> Odd phrasing, generic
-          greetings, or slightly wrong logos often give a phish away.</li>
+          <li><strong>{{ .T "teachable.watch_urgency_strong" }}</strong> {{ .T "teachable.watch_urgency_body" }}</li>
+          <li><strong>{{ .T "teachable.watch_links_strong" }}</strong> {{ .T "teachable.watch_links_body" }}</li>
+          <li><strong>{{ .T "teachable.watch_creds_strong" }}</strong> {{ .T "teachable.watch_creds_body" }}</li>
+          <li><strong>{{ .T "teachable.watch_details_strong" }}</strong> {{ .T "teachable.watch_details_body" }}</li>
         </ul>
 
-        <h2>What to do</h2>
+        <h2>{{ .T "teachable.do_heading" }}</h2>
         <ul>
-          <li>When a message feels suspicious, don't click &mdash; report it using
-          your organisation's phishing-report process.</li>
-          <li>If you ever did enter a password into a page like this, change it and
-          let your IT/security team know.</li>
+          <li>{{ .T "teachable.do_report" }}</li>
+          <li>{{ .T "teachable.do_password" }}</li>
         </ul>
       </div>
-      <div class="footer">
-        You're seeing this page because information was entered into a simulated
-        phishing page. Thanks for taking a moment to learn &mdash; awareness is
-        the best defence.
-      </div>
+      <div class="footer">{{ .T "teachable.footer" }}</div>
     </div>
   </div>
 </body>
 </html>`
 
 // renderTeachableMoment writes the first-party security-awareness page,
-// templated with the recipient's context. It is called from PhishHandler in
-// place of renderPhishResponse when the campaign has TeachableMoment enabled.
+// localized to the recipient's Accept-Language and personalised with their
+// first name. Called from PhishHandler in place of renderPhishResponse when the
+// campaign has TeachableMoment enabled.
 func renderTeachableMoment(w http.ResponseWriter, r *http.Request, ptx models.PhishingTemplateContext) {
-	html, err := models.ExecuteTemplate(teachableMomentHTML, ptx)
-	if err != nil {
-		// The template is a compile-time constant, so an error here means the
-		// recipient context held something unparseable; fall back to a plain
-		// generic page rather than leaking an error to the target.
+	data := teachableData{
+		FirstName: ptx.FirstName,
+		Lang:      i18n.FromAcceptLanguage(r.Header.Get("Accept-Language")),
+	}
+	var buf bytes.Buffer
+	if err := teachableMomentTmpl.Execute(&buf, data); err != nil {
+		// The template is a compile-time constant; an error here is unexpected.
+		// Fall back to a plain generic page rather than leaking an error.
 		log.Error(err)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write([]byte(genericTeachableMomentHTML))
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(html))
+	w.Write(buf.Bytes())
 }
 
-// genericTeachableMomentHTML is a name-free fallback used only if templating
-// the personalised page fails.
+// genericTeachableMomentHTML is a name-free, English fallback used only if
+// rendering the personalised page fails.
 const genericTeachableMomentHTML = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex, nofollow">
 <title>Security Awareness</title></head>

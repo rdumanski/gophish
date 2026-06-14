@@ -30,6 +30,22 @@ func TestNormalize(t *testing.T) {
 	}
 }
 
+func TestFromAcceptLanguage(t *testing.T) {
+	cases := map[string]string{
+		"pl-PL,pl;q=0.9,en;q=0.8": "pl",
+		"en-US,en;q=0.9":          "en",
+		"fr-FR,fr;q=0.9":          "en", // unsupported -> default
+		"de,fr;q=0.5,pl;q=0.3":    "pl", // first supported in list wins
+		"":                        "en",
+		"pl":                      "pl",
+	}
+	for h, want := range cases {
+		if got := FromAcceptLanguage(h); got != want {
+			t.Errorf("FromAcceptLanguage(%q) = %q, want %q", h, got, want)
+		}
+	}
+}
+
 // TestCatalogParity guards that every key exists in both locales, so a string
 // is never localized in one language and missing in the other.
 func TestCatalogParity(t *testing.T) {
