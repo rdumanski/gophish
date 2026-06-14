@@ -153,6 +153,25 @@ func (s *ModelsSuite) TestCampaignGetResults(c *check.C) {
 	c.Assert(len(campaign.Results), check.Equals, len(got.Results))
 }
 
+// TestCampaignStatsCountsReported pins the GORM v2 condition-accumulation fix
+// in getCampaignStats. The reused query object meant EmailReported was ANDed
+// with the prior status='Submitted Data' filter and read 0 even when
+// recipients had reported. Marking results reported must be reflected in the
+// stats (which drive the dashboard "Reported" metric and risk scoring).
+func (s *ModelsSuite) TestCampaignStatsCountsReported(c *check.C) {
+	campaign := s.createCampaign(c)
+	c.Assert(len(campaign.Results) >= 2, check.Equals, true)
+
+	for i := 0; i < 2; i++ {
+		c.Assert(campaign.Results[i].HandleEmailReport(EventDetails{}), check.Equals, nil)
+	}
+
+	stats, err := getCampaignStats(campaign.Id)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(stats.Total, check.Equals, int64(len(campaign.Results)))
+	c.Assert(stats.EmailReported, check.Equals, int64(2))
+}
+
 // TestGetCampaignResults pins the GORM v2 strict-scan fix: CampaignResults
 // is a DTO whose Results/Events slices are loaded by separate follow-up
 // queries, so they must be tagged gorm:"-". Without the tag the initial
