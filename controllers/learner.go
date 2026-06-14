@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/rdumanski/gophish/i18n"
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
 )
@@ -26,6 +27,9 @@ type learnerPageData struct {
 	URL     string
 	Token   string
 
+	// Lang is the recipient's UI language (from Accept-Language); T localizes.
+	Lang string
+
 	Completed bool
 
 	// Quiz fields (Phase 12b). HasQuiz is true when the module has a quiz; the
@@ -39,6 +43,11 @@ type learnerPageData struct {
 	Passed        bool
 }
 
+// T localizes a key for the learner page's language.
+func (d learnerPageData) T(key string, args ...interface{}) string {
+	return i18n.T(d.Lang, key, args...)
+}
+
 // learnerPageTmpl is the self-contained portal page. It is html/template (not
 // the text/template used for phishing pages) so recipient- and quiz-supplied
 // fields are auto-escaped; only Content is explicitly trusted. Inline CSS, no
@@ -46,7 +55,7 @@ type learnerPageData struct {
 var learnerPageTmpl = template.Must(template.New("learner").Parse(learnerPageHTML))
 
 const learnerPageHTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="{{.Lang}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -85,26 +94,26 @@ const learnerPageHTML = `<!DOCTYPE html>
     <div class="card">
       <div class="banner"><h1>{{.ModuleName}}</h1></div>
       <div class="body">
-        {{if .FirstName}}<p class="greet">Hi {{.FirstName}},</p>{{end}}
+        {{if .FirstName}}<p class="greet">{{ .T "learner.greeting" .FirstName }}</p>{{end}}
         {{if .Description}}<p class="desc">{{.Description}}</p>{{end}}
-        {{if .Completed}}<div class="done">&#10003; You&rsquo;ve completed this module. Thank you!</div>{{end}}
+        {{if .Completed}}<div class="done">&#10003; {{ .T "learner.completed" }}</div>{{end}}
 
         {{if eq .ContentType "html"}}
           <div class="content">{{.Content}}</div>
         {{else if eq .ContentType "video"}}
           <div class="video"><iframe src="{{.URL}}" allowfullscreen></iframe></div>
         {{else}}
-          <p>This training is hosted externally.</p>
-          <p><a class="btn" href="{{.URL}}" target="_blank" rel="noopener noreferrer">Open the course &rarr;</a></p>
+          <p>{{ .T "learner.external_intro" }}</p>
+          <p><a class="btn" href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{ .T "learner.open_course" }} &rarr;</a></p>
         {{end}}
 
         {{if not .Completed}}
           {{if .HasQuiz}}
             {{if .ShowResult}}
-              <div class="fail">You scored {{.LastScore}}%. You need {{.PassThreshold}}% to pass &mdash; review the material and try again.</div>
+              <div class="fail">{{ .T "learner.quiz_fail" .LastScore .PassThreshold }}</div>
             {{end}}
             <div class="quiz">
-              <h2>Quick check ({{.PassThreshold}}% to pass)</h2>
+              <h2>{{ .T "learner.quiz_heading" .PassThreshold }}</h2>
               <form method="POST" action="/learn/{{.Token}}/quiz">
                 {{range .Quiz.Questions}}
                   {{$qid := .Id}}
@@ -115,17 +124,17 @@ const learnerPageHTML = `<!DOCTYPE html>
                     {{end}}
                   </div>
                 {{end}}
-                <button type="submit" class="btn btn-complete">Submit answers</button>
+                <button type="submit" class="btn btn-complete">{{ .T "learner.submit_answers" }}</button>
               </form>
             </div>
           {{else}}
             <form class="complete-form" method="POST" action="/learn/{{.Token}}/complete">
-              <button type="submit" class="btn btn-complete">Mark as complete</button>
+              <button type="submit" class="btn btn-complete">{{ .T "learner.mark_complete" }}</button>
             </form>
           {{end}}
         {{end}}
       </div>
-      <div class="footer">Security awareness training</div>
+      <div class="footer">{{ .T "learner.footer" }}</div>
     </div>
   </div>
 </body>
@@ -144,7 +153,8 @@ func (ps *PhishingServer) LearnHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	quizzes, _ := models.GetQuizzesByModule(module.Id, e.UserID)
 	recipient, _ := models.GetRecipientByID(e.RecipientID)
-	renderLearnerPage(w, e, module, recipient, quizzes, false, 0, false)
+	lang := i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
+	renderLearnerPage(w, lang, e, module, recipient, quizzes, false, 0, false)
 }
 
 // LearnCompleteHandler marks an enrollment completed for modules WITHOUT a
@@ -163,7 +173,8 @@ func (ps *PhishingServer) LearnCompleteHandler(w http.ResponseWriter, r *http.Re
 	}
 	quizzes, _ := models.GetQuizzesByModule(module.Id, e.UserID)
 	recipient, _ := models.GetRecipientByID(e.RecipientID)
-	renderLearnerPage(w, e, module, recipient, quizzes, false, 0, false)
+	lang := i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
+	renderLearnerPage(w, lang, e, module, recipient, quizzes, false, 0, false)
 }
 
 // LearnQuizHandler scores a submitted quiz and gates completion on passing.
@@ -199,8 +210,9 @@ func (ps *PhishingServer) LearnQuizHandler(w http.ResponseWriter, r *http.Reques
 		log.Error(err)
 	}
 	recipient, _ := models.GetRecipientByID(e.RecipientID)
+	lang := i18n.FromAcceptLanguage(r.Header.Get("Accept-Language"))
 	// Show the fail banner only when they didn't pass.
-	renderLearnerPage(w, e, module, recipient, quizzes, !passed, score, passed)
+	renderLearnerPage(w, lang, e, module, recipient, quizzes, !passed, score, passed)
 }
 
 // resolveLearner loads the enrollment (by token) and its module, writing a 404
@@ -220,12 +232,13 @@ func (ps *PhishingServer) resolveLearner(w http.ResponseWriter, r *http.Request)
 	return e, module, true
 }
 
-func renderLearnerPage(w http.ResponseWriter, e models.Enrollment, module models.TrainingModule, recipient models.Recipient, quizzes []models.Quiz, showResult bool, lastScore int, passed bool) {
+func renderLearnerPage(w http.ResponseWriter, lang string, e models.Enrollment, module models.TrainingModule, recipient models.Recipient, quizzes []models.Quiz, showResult bool, lastScore int, passed bool) {
 	data := learnerPageData{
 		ModuleName:  module.Name,
 		Description: module.Description,
 		FirstName:   recipient.FirstName,
 		ContentType: module.ContentType,
+		Lang:        lang,
 		// module.URL is validated as absolute http(s) at module-save time
 		// (models.TrainingModule.Validate), which is what keeps the iframe
 		// src / external href safe — don't loosen that validation.

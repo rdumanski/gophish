@@ -77,6 +77,25 @@ func Normalize(lang string) string {
 	return DefaultLang
 }
 
+// FromAcceptLanguage picks a supported language from an Accept-Language header
+// (e.g. "pl-PL,pl;q=0.9,en;q=0.8"). It scans the listed tags in order and
+// returns the first whose primary subtag has a catalog, defaulting to English.
+// Used for pre-auth / recipient-facing pages where there's no stored preference.
+func FromAcceptLanguage(header string) string {
+	ensure()
+	for _, part := range strings.Split(header, ",") {
+		tag := strings.TrimSpace(part)
+		if i := strings.Index(tag, ";"); i >= 0 {
+			tag = tag[:i]
+		}
+		primary := strings.ToLower(strings.SplitN(tag, "-", 2)[0])
+		if _, ok := catalogs[primary]; ok && primary != "" {
+			return primary
+		}
+	}
+	return DefaultLang
+}
+
 // T returns the message for key in lang, falling back to English then the key.
 func T(lang, key string, args ...interface{}) string {
 	ensure()

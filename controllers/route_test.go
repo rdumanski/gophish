@@ -161,6 +161,27 @@ func TestRiskPageRenders(t *testing.T) {
 		[]string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`})
 }
 
+// TestLoginPagePolish pins that the pre-auth login page localizes from the
+// Accept-Language header (no stored preference yet).
+func TestLoginPagePolish(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+	req, err := http.NewRequest(http.MethodGet, ctx.adminServer.URL+"/login", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Accept-Language", "pl-PL,pl;q=0.9,en;q=0.8")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET /login: %v", err)
+	}
+	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	if !strings.Contains(string(body), "Zaloguj się") {
+		t.Fatalf("login page not localized to Polish (missing 'Zaloguj się')")
+	}
+}
+
 // TestAllAdminPagesRender executes every no-parameter admin page in both
 // languages so a broken {{ .T }} call or template typo from localization fails
 // the build rather than 500ing at runtime.
