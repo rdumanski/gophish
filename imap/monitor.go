@@ -9,6 +9,8 @@ package imap
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"net/mail"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -160,8 +162,33 @@ func checkForNewEmails(im models.IMAP) {
 				continue
 			}
 			if len(rids) < 1 {
-				// In the future this should be an alert in Gophish
-				log.Infof("User '%s' reported email with subject '%s'. This is not a GoPhish campaign; you should investigate it.", m.Email.From, m.Email.Subject)
+				// No rid survived the forward — fall back to matching the
+				// reporter's own address against their in-flight, not-yet-
+				// reported simulations. RestrictDomain (checked above) bounds
+				// who can trigger this, and the credit is stamped with a
+				// distinct source so heuristic matches stay auditable.
+				addr := reporterAddress(m.Email.From)
+				candidates, err := models.GetActiveUnreportedResultsByEmail(im.UserID, addr)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				r, reason := pickReporterResult(candidates)
+				if r == nil {
+					log.Infof("User '%s' reported email with subject '%s' (no rid; %s). Not auto-credited; you should investigate it.", m.Email.From, m.Email.Subject, reason)
+					continue
+				}
+				details := models.EventDetails{Browser: map[string]string{"source": "imap sender-address fallback"}}
+				if err := r.HandleEmailReport(details); err != nil {
+					log.Error("Error crediting report via sender fallback for ", addr, ": ", err.Error())
+					reportingFailed = append(reportingFailed, m.SeqNum)
+					continue
+				}
+				log.Infof("Credited report from '%s' to result %s (campaign %d) via sender-address fallback", addr, r.RID, r.CampaignID)
+				if im.DeleteReportedCampaignEmail {
+					deleteEmails = append(deleteEmails, m.SeqNum)
+				}
+				continue
 			}
 			for rid := range rids {
 				log.Infof("User '%s' reported email with rid %s", m.Email.From, rid)
@@ -201,6 +228,37 @@ func checkForNewEmails(im models.IMAP) {
 
 	} else {
 		log.Debug("No new emails for ", im.Username)
+	}
+}
+
+// angleAddrRegex pulls the bare address out of a "Name <addr@host>" header
+// when mail.ParseAddress can't (e.g. an un-encoded UTF-8 display name).
+var angleAddrRegex = regexp.MustCompile(`<([^>]+)>`)
+
+// reporterAddress extracts the bare email address from a message's From header.
+func reporterAddress(from string) string {
+	if addr, err := mail.ParseAddress(from); err == nil {
+		return addr.Address
+	}
+	if m := angleAddrRegex.FindStringSubmatch(from); len(m) == 2 {
+		return strings.TrimSpace(m[1])
+	}
+	return strings.TrimSpace(from)
+}
+
+// pickReporterResult decides which result, if any, a no-rid report should be
+// credited to, given the reporter's active unreported results (most-recent
+// first). It returns the chosen result and a reason for the decision so the
+// caller can log unambiguously. A single match is credited; zero or multiple
+// (ambiguous) matches are left for manual reconciliation.
+func pickReporterResult(results []models.Result) (*models.Result, string) {
+	switch len(results) {
+	case 0:
+		return nil, "no active simulation matches the sender"
+	case 1:
+		return &results[0], "single active simulation"
+	default:
+		return nil, fmt.Sprintf("%d active simulations match the sender, ambiguous", len(results))
 	}
 }
 

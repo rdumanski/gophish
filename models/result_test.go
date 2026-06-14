@@ -118,3 +118,49 @@ func (s *ModelsSuite) TestDuplicateResults(ch *check.C) {
 	ch.Assert(c.Results[0].Email, check.Equals, group.Targets[0].Email)
 	ch.Assert(c.Results[1].Email, check.Equals, group.Targets[2].Email)
 }
+
+// TestGetActiveUnreportedResultsByEmail backs the IMAP monitor's sender-address
+// fallback. A completed throwaway campaign is created first so the real
+// campaign's ids diverge from its result ids (campaign.Id != Result.Id) — this
+// would expose a JOIN/SELECT * scan that lets campaigns.id clobber Result.Id,
+// and also exercises the completed-campaign exclusion.
+func (s *ModelsSuite) TestGetActiveUnreportedResultsByEmail(c *check.C) {
+	throwaway := s.createCampaign(c)
+	c.Assert(CompleteCampaign(throwaway.Id, throwaway.UserID), check.Equals, nil)
+
+	campaign := s.createCampaign(c)
+	c.Assert(len(campaign.Results) >= 2, check.Equals, true)
+	// ids must diverge or the clobber bug would be masked.
+	c.Assert(campaign.Id != campaign.Results[0].Id, check.Equals, true)
+
+	email := campaign.Results[0].Email
+	got, err := GetActiveUnreportedResultsByEmail(1, email)
+	c.Assert(err, check.Equals, nil)
+	// Only the active campaign matches (the throwaway is Completed), proving
+	// both the active-only filter and that we got the right, un-clobbered row.
+	c.Assert(len(got), check.Equals, 1)
+	c.Assert(got[0].Id, check.Equals, campaign.Results[0].Id)
+	c.Assert(got[0].RID, check.Equals, campaign.Results[0].RID)
+
+	// Crediting must update THAT row — re-fetch by RID to confirm.
+	c.Assert(got[0].HandleEmailReport(EventDetails{}), check.Equals, nil)
+	updated, err := GetResult(campaign.Results[0].RID)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(updated.Reported, check.Equals, true)
+
+	// Reported results are excluded.
+	got, err = GetActiveUnreportedResultsByEmail(1, email)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(len(got), check.Equals, 0)
+
+	// Match is case-insensitive (use a still-unreported recipient).
+	got, err = GetActiveUnreportedResultsByEmail(1, "TEST2@EXAMPLE.COM")
+	c.Assert(err, check.Equals, nil)
+	c.Assert(len(got), check.Equals, 1)
+
+	// Once the campaign is Completed, nothing matches.
+	c.Assert(CompleteCampaign(campaign.Id, campaign.UserID), check.Equals, nil)
+	got, err = GetActiveUnreportedResultsByEmail(1, "test2@example.com")
+	c.Assert(err, check.Equals, nil)
+	c.Assert(len(got), check.Equals, 0)
+}
