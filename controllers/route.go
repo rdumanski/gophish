@@ -145,6 +145,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/training_campaigns", mid.Use(as.TrainingCampaignsPage, mid.RequireLogin))
 	router.HandleFunc("/quizzes", mid.Use(as.Quizzes, mid.RequireLogin))
 	router.HandleFunc("/risk", mid.Use(as.Risk, mid.RequireLogin))
+	router.HandleFunc("/leaderboard", mid.Use(as.Leaderboard, mid.RequireLogin))
 	router.HandleFunc("/compliance", mid.Use(as.Compliance, mid.RequireLogin))
 	router.HandleFunc("/language", mid.Use(as.SetLanguage, mid.RequireLogin))
 	router.HandleFunc("/compliance/report.pdf", mid.Use(as.ComplianceReportPDF, mid.RequireLogin))
@@ -337,6 +338,13 @@ func (as *AdminServer) Risk(w http.ResponseWriter, r *http.Request) {
 	params := as.newTemplateParams(r)
 	params.Title = "Risk Report"
 	getTemplate(w, "risk").ExecuteTemplate(w, "base", params)
+}
+
+// Leaderboard renders the gamified engagement / leaderboard page.
+func (as *AdminServer) Leaderboard(w http.ResponseWriter, r *http.Request) {
+	params := as.newTemplateParams(r)
+	params.Title = "Leaderboard"
+	getTemplate(w, "leaderboard").ExecuteTemplate(w, "base", params)
 }
 
 // Compliance renders the NIS2 compliance report page.

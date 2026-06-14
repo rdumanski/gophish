@@ -1,0 +1,49 @@
+{{define "body"}}
+<div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+    <h1 class="page-header">
+        {{ .T "leaderboard.title" }}
+    </h1>
+    <div id="flashes" class="row"></div>
+    <p class="text-muted">
+        {{ .T "leaderboard.intro" }}
+    </p>
+    <div id="loading">
+        <i class="fa fa-spinner fa-spin fa-4x"></i>
+    </div>
+    <div id="emptyMessage" class="row" style="display:none;">
+        <div class="alert alert-info">{{ .T "leaderboard.empty" }}</div>
+    </div>
+    <div id="report" style="display:none;">
+        <h3>{{ .T "leaderboard.departments" }}</h3>
+        <table id="deptTable" class="table table-condensed">
+            <thead>
+                <tr>
+                    <th class="col-md-1">#</th>
+                    <th>{{ .T "compliance.org.unit" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.members" }}</th>
+                    <th class="text-right">{{ .T "leaderboard.avg_score" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.report" }}</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h3>{{ .T "leaderboard.individuals" }}</h3>
+        <table id="leaderTable" class="table">
+            <thead>
+                <tr>
+                    <th class="col-md-1">#</th>
+                    <th class="col-md-1">{{ .T "leaderboard.score" }}</th>
+                    <th class="col-md-4">{{ .T "risk.recipient" }}</th>
+                    <th class="col-md-4">{{ .T "leaderboard.badges" }}</th>
+                    <th class="text-right">{{ .T "risk.reported" }}</th>
+                    <th class="text-right">{{ .T "risk.sims" }}</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+{{end}} {{define "scripts"}}
+<script src="/js/dist/app/leaderboard.min.js"></script>
+{{end}}

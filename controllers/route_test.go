@@ -192,7 +192,7 @@ func TestAllAdminPagesRender(t *testing.T) {
 	pages := []string{
 		"/", "/campaigns", "/groups", "/templates", "/landing_pages",
 		"/sending_profiles", "/settings", "/users", "/webhooks", "/domains",
-		"/training_modules", "/training_campaigns", "/quizzes", "/risk", "/compliance",
+		"/training_modules", "/training_campaigns", "/quizzes", "/risk", "/leaderboard", "/compliance",
 	}
 	for _, lang := range []string{"en", "pl"} {
 		resp, err := client.Get(ctx.adminServer.URL + "/language?lang=" + lang)
