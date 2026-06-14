@@ -10,7 +10,11 @@ function save(id) {
             first_name: unescapeHtml(target[0]),
             last_name: unescapeHtml(target[1]),
             email: unescapeHtml(target[2]),
-            position: unescapeHtml(target[3])
+            position: unescapeHtml(target[3]),
+            department: unescapeHtml(target[4]),
+            sub_department: unescapeHtml(target[5]),
+            wydzial: unescapeHtml(target[6]),
+            position_level: unescapeHtml(target[7])
         })
     })
     var group: any = {
@@ -84,6 +88,10 @@ function edit(id) {
                       escapeHtml(record.last_name),
                       escapeHtml(record.email),
                       escapeHtml(record.position),
+                      escapeHtml(record.department),
+                      escapeHtml(record.sub_department),
+                      escapeHtml(record.wydzial),
+                      escapeHtml(record.position_level),
                       '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
                   ])
                 });
@@ -116,7 +124,11 @@ function edit(id) {
                     record.first_name,
                     record.last_name,
                     record.email,
-                    record.position);
+                    record.position,
+                    record.department,
+                    record.sub_department,
+                    record.wydzial,
+                    record.position_level);
             });
             targets.DataTable().draw();
         }
@@ -128,7 +140,11 @@ var downloadCSVTemplate = function () {
         'First Name': 'Example',
         'Last Name': 'User',
         'Email': 'foobar@example.com',
-        'Position': 'Systems Administrator'
+        'Position': 'Systems Administrator',
+        'Department': 'Departament Eksploatacji',
+        'Sub-Department': 'Biuro Ruchu',
+        'Wydzial': 'Wydzial Nadzoru',
+        'Position Level': 'Specjalista'
     }]
     var filename = 'group_template.csv'
     var csvString = Papa.unparse(csvScope, {})
@@ -192,7 +208,8 @@ var deleteGroup = function (id) {
     })
 }
 
-function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
+function addTarget(firstNameInput, lastNameInput, emailInput, positionInput,
+    departmentInput = '', subDepartmentInput = '', wydzialInput = '', positionLevelInput = '') {
     // Create new data row.
     var email = escapeHtml(emailInput).toLowerCase();
     var newRow = [
@@ -200,6 +217,10 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
         escapeHtml(lastNameInput),
         email,
         escapeHtml(positionInput),
+        escapeHtml(departmentInput),
+        escapeHtml(subDepartmentInput),
+        escapeHtml(wydzialInput),
+        escapeHtml(positionLevelInput),
         '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
     ];
 
