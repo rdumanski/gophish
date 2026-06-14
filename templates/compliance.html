@@ -96,6 +96,54 @@
             </div>
         </div>
 
+        <!-- Management body (NIS2 Art. 20) -->
+        <h3>{{ .T "compliance.mgmt.title" }}</h3>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default"><div class="panel-body">
+                    <span class="label label-default" style="font-size:13px;">
+                        <span id="mbMembers">0</span> {{ .T "compliance.mgmt.members" }}</span>
+                    &nbsp; {{ .T "compliance.group.trained" }}: <strong id="mbTrained">0%</strong>
+                    &nbsp; {{ .T "compliance.group.click" }}: <strong id="mbClick">0%</strong>
+                    &nbsp; {{ .T "compliance.group.report" }}: <strong id="mbReport">0%</strong>
+                    &nbsp; {{ .T "compliance.group.avg_risk" }}: <strong id="mbRisk">0</strong>
+                    <p class="text-muted" style="margin:6px 0 0;"><small>{{ .T "compliance.mgmt.note" }}</small></p>
+                </div></div>
+            </div>
+        </div>
+
+        <!-- By organizational unit -->
+        <h3>{{ .T "compliance.org.title" }}</h3>
+        <table id="orgUnitTable" class="table table-condensed">
+            <thead>
+                <tr>
+                    <th>{{ .T "compliance.org.unit" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.members" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.trained" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.click" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.report" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.avg_risk" }}</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <!-- By position level -->
+        <h3>{{ .T "compliance.position.title" }}</h3>
+        <table id="positionTable" class="table table-condensed">
+            <thead>
+                <tr>
+                    <th>{{ .T "compliance.position.level" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.members" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.trained" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.click" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.report" }}</th>
+                    <th class="text-right">{{ .T "compliance.group.avg_risk" }}</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
         <!-- Per-group breakdown -->
         <h3>{{ .T "compliance.group.title" }}</h3>
         <table id="groupTable" class="table">

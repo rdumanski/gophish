@@ -117,8 +117,30 @@ func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 	})
 	pdf.Ln(3)
 
+	// Management body (NIS2 Art. 20)
+	sectionHeader(pdf, "Management body  (NIS2 Art. 20)")
+	mb := rep.ManagementBody
+	kvTable(pdf, [][2]string{
+		{"Members (Prezes / Wiceprezes)", fmt.Sprintf("%d", mb.Members)},
+		{"Training completed", pctStr(mb.TrainedPct)},
+		{"Phishing click rate", pctStr(mb.ClickPct)},
+		{"Phishing report rate", pctStr(mb.ReportPct)},
+		{"Average risk", fmt.Sprintf("%.1f", mb.AvgRisk)},
+	})
+	pdf.Ln(3)
+
+	// By org unit (Department > Sub-Department > Wydzial)
+	sectionHeader(pdf, "By organizational unit")
+	orgUnitTable(pdf, rep.OrgUnits)
+	pdf.Ln(3)
+
+	// By position level
+	sectionHeader(pdf, "By position level")
+	positionTable(pdf, rep.Positions)
+	pdf.Ln(3)
+
 	// Per-group breakdown
-	sectionHeader(pdf, "By group / department")
+	sectionHeader(pdf, "By group")
 	groupTable(pdf, rep.Groups)
 	pdf.Ln(3)
 
@@ -226,6 +248,76 @@ func groupTable(pdf *fpdf.Fpdf, groups []models.GroupComplianceRow) {
 			pdf.CellFormat(widths[j], 7, c, "", 0, align, fill, 0, "")
 		}
 		pdf.Ln(-1)
+	}
+}
+
+// orgMetricCells appends the shared metric columns (members + 4 rates/score).
+func orgMetricCells(pdf *fpdf.Fpdf, m models.OrgMetrics, widths []float64, fill bool) {
+	cells := []string{
+		fmt.Sprintf("%d", m.Members), pctStr(m.TrainedPct), pctStr(m.ClickPct),
+		pctStr(m.ReportPct), fmt.Sprintf("%.1f", m.AvgRisk),
+	}
+	for i, c := range cells {
+		pdf.CellFormat(widths[i+1], 7, c, "", 0, "R", fill, 0, "")
+	}
+	pdf.Ln(-1)
+}
+
+func orgMetricHeader(pdf *fpdf.Fpdf, first string, widths []float64) {
+	headers := []string{first, "Members", "Trained %", "Click %", "Report %", "Avg risk"}
+	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFillColor(225, 230, 235)
+	pdf.SetTextColor(20, 30, 40)
+	for i, h := range headers {
+		align := "R"
+		if i == 0 {
+			align = "L"
+		}
+		pdf.CellFormat(widths[i], 7, h, "", 0, align, true, 0, "")
+	}
+	pdf.Ln(-1)
+	pdf.SetFont("Arial", "", 9)
+	pdf.SetTextColor(60, 60, 60)
+}
+
+func orgUnitTable(pdf *fpdf.Fpdf, units []models.OrgUnitRow) {
+	widths := []float64{84, 20, 24, 22, 22, 24}
+	orgMetricHeader(pdf, "Unit", widths)
+	if len(units) == 0 {
+		pdf.CellFormat(0, 7, "  No org-structure data (import Department/Wydzial columns).", "", 1, "L", false, 0, "")
+		return
+	}
+	for i, u := range units {
+		fill := i%2 == 0
+		if fill {
+			pdf.SetFillColor(248, 248, 248)
+		}
+		indent := map[string]string{"department": "", "sub_department": "    ", "wydzial": "        "}[u.Level]
+		if u.Level == "department" {
+			pdf.SetFont("Arial", "B", 9)
+		}
+		pdf.CellFormat(widths[0], 7, indent+safe(u.Name), "", 0, "L", fill, 0, "")
+		orgMetricCells(pdf, u.OrgMetrics, widths, fill)
+		if u.Level == "department" {
+			pdf.SetFont("Arial", "", 9)
+		}
+	}
+}
+
+func positionTable(pdf *fpdf.Fpdf, rows []models.PositionLevelRow) {
+	widths := []float64{84, 20, 24, 22, 22, 24}
+	orgMetricHeader(pdf, "Position level", widths)
+	if len(rows) == 0 {
+		pdf.CellFormat(0, 7, "  No position-level data.", "", 1, "L", false, 0, "")
+		return
+	}
+	for i, r := range rows {
+		fill := i%2 == 0
+		if fill {
+			pdf.SetFillColor(248, 248, 248)
+		}
+		pdf.CellFormat(widths[0], 7, safe(r.Level), "", 0, "L", fill, 0, "")
+		orgMetricCells(pdf, r.OrgMetrics, widths, fill)
 	}
 }
 

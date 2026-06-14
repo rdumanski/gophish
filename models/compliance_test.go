@@ -102,3 +102,65 @@ func (s *ModelsSuite) TestComplianceGroupRollup(c *check.C) {
 	c.Assert(row.ReportPct, check.Equals, float64(25))  // 1/4
 	c.Assert(row.TrainedPct, check.Equals, float64(25)) // 1/4
 }
+
+// orgUnit finds a rollup row by level+name (test helper).
+func orgUnit(rep ComplianceReport, level, name string) *OrgUnitRow {
+	for i := range rep.OrgUnits {
+		if rep.OrgUnits[i].Level == level && rep.OrgUnits[i].Name == name {
+			return &rep.OrgUnits[i]
+		}
+	}
+	return nil
+}
+
+// TestComplianceOrgRollup pins the Department/Sub-Department/Wydzial + position
+// level + management-body breakdown built from canonical Recipient placement.
+func (s *ModelsSuite) TestComplianceOrgRollup(c *check.C) {
+	campaign := s.createCampaign(c) // recipients test1..4@example.com
+	c.Assert(len(campaign.Results), check.Equals, 4)
+
+	place := func(email, dept, sub, wyd, level string) {
+		_, err := UpsertRecipient(db, 1, BaseRecipient{
+			Email: email, Department: dept, SubDepartment: sub, Wydzial: wyd, PositionLevel: level})
+		c.Assert(err, check.Equals, nil)
+	}
+	place("test1@example.com", "Eksploatacja", "Ruch", "Wydzial A", "Prezes")
+	place("test2@example.com", "Eksploatacja", "Ruch", "Wydzial A", "Specjalista")
+	place("test3@example.com", "Eksploatacja", "Nadzor", "Wydzial B", "Kierownik")
+	place("test4@example.com", "IT", "Infra", "Wydzial C", "Specjalista")
+
+	start, end := fullPeriod()
+	rep, err := GetComplianceReport(1, start, end)
+	c.Assert(err, check.Equals, nil)
+
+	// Department rollup.
+	eks := orgUnit(rep, "department", "Eksploatacja")
+	c.Assert(eks, check.NotNil)
+	c.Assert(eks.Members, check.Equals, int64(3))
+	it := orgUnit(rep, "department", "IT")
+	c.Assert(it, check.NotNil)
+	c.Assert(it.Members, check.Equals, int64(1))
+	// Sub-department + wydzial exist under the department.
+	c.Assert(orgUnit(rep, "sub_department", "Ruch"), check.NotNil)
+	c.Assert(orgUnit(rep, "wydzial", "Wydzial A"), check.NotNil)
+
+	// Depth-first ordering: department comes before its sub-departments.
+	var deptIdx, subIdx = -1, -1
+	for i, r := range rep.OrgUnits {
+		if r.Level == "department" && r.Name == "Eksploatacja" {
+			deptIdx = i
+		}
+		if r.Level == "sub_department" && r.Name == "Ruch" {
+			subIdx = i
+		}
+	}
+	c.Assert(deptIdx >= 0 && subIdx > deptIdx, check.Equals, true)
+
+	// Positions ranked low->high: Specjalista (rank 1) before Prezes (rank 8).
+	c.Assert(len(rep.Positions) >= 2, check.Equals, true)
+	c.Assert(rep.Positions[0].Level, check.Equals, "Specjalista")
+	c.Assert(rep.Positions[0].Members, check.Equals, int64(2))
+
+	// Management body = Prezes + Wiceprezes; only test1 (Prezes) qualifies.
+	c.Assert(rep.ManagementBody.Members, check.Equals, int64(1))
+}
