@@ -9,6 +9,7 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.41.0
 	github.com/emersion/go-imap v1.2.1
 	github.com/emersion/go-message v0.15.0
+	github.com/go-pdf/fpdf v0.9.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/gorilla/csrf v1.7.3

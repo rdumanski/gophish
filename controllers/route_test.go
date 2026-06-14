@@ -161,6 +161,40 @@ func TestRiskPageRenders(t *testing.T) {
 		[]string{"Risk Report", `id="riskTable"`, "/js/dist/app/risk.min.js", `href="/risk"`})
 }
 
+func TestCompliancePageRenders(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+	client := loggedInClient(t, ctx)
+	assertPageRenders(t, client, ctx.adminServer.URL+"/compliance",
+		[]string{"NIS2 Compliance Report", `id="groupTable"`, "/js/dist/app/compliance.min.js", `href="/compliance"`})
+}
+
+// TestComplianceReportPDF pins the session-authed PDF download: a logged-in
+// client gets a real application/pdf body (so the api_key never rides the URL).
+func TestComplianceReportPDF(t *testing.T) {
+	ctx := setupTest(t)
+	defer tearDown(t, ctx)
+	client := loggedInClient(t, ctx)
+	resp, err := client.Get(ctx.adminServer.URL + "/compliance/report.pdf?start=all")
+	if err != nil {
+		t.Fatalf("GET /compliance/report.pdf: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("expected 200, got %d", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "application/pdf" {
+		t.Fatalf("expected application/pdf, got %q", ct)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if len(body) < 4 || string(body[:4]) != "%PDF" {
+		t.Fatalf("expected %%PDF magic prefix, got %q (len %d)", string(body[:min(4, len(body))]), len(body))
+	}
+}
+
 // loggedInClient returns an http.Client whose cookie jar holds an authenticated
 // admin session. Unlike attemptLogin, it drives the WHOLE flow (GET /login →
 // POST → page fetch) through the jar so the CSRF and session cookies round-trip

@@ -141,6 +141,9 @@ export const api = {
     risk: {
         get: () => query('/risk/', 'GET', {}, false),
     },
+    compliance: {
+        get: (start, end) => query('/compliance/?start=' + start + '&end=' + end, 'GET', {}, false),
+    },
     domains: {
         get: () => query('/domains/', 'GET', {}, false),
         post: (d) => query('/domains/', 'POST', d, false),
