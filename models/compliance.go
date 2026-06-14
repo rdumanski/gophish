@@ -3,6 +3,7 @@ package models
 import (
 	"errors"
 	"math"
+	"sort"
 	"strings"
 	"time"
 
@@ -69,6 +70,14 @@ type ComplianceReport struct {
 	Phishing PhishingProgram      `json:"phishing"`
 	Risk     RiskPosture          `json:"risk"`
 	Groups   []GroupComplianceRow `json:"groups"`
+
+	// Org-structure rollups (PSE): the same per-recipient metrics aggregated by
+	// org unit (Department > Sub-Department > Wydzial, depth-first ordered for
+	// indented display), by position level (ranked), and for the management body
+	// (Prezes/Wiceprezes) which NIS2 Art. 20 holds accountable.
+	OrgUnits       []OrgUnitRow       `json:"org_units"`
+	Positions      []PositionLevelRow `json:"positions"`
+	ManagementBody OrgMetrics         `json:"management_body"`
 }
 
 // TrainingCoverage rolls up the training enrollments ASSIGNED within the period
@@ -122,6 +131,94 @@ type GroupComplianceRow struct {
 	ClickPct   float64 `json:"click_pct"`
 	ReportPct  float64 `json:"report_pct"`
 	AvgRisk    float64 `json:"avg_risk"`
+}
+
+// OrgMetrics is the shared metric set for any org rollup bucket.
+type OrgMetrics struct {
+	Members    int64   `json:"members"`
+	TrainedPct float64 `json:"trained_pct"`
+	ClickPct   float64 `json:"click_pct"`
+	ReportPct  float64 `json:"report_pct"`
+	AvgRisk    float64 `json:"avg_risk"`
+}
+
+// OrgUnitRow is one node in the Department > Sub-Department > Wydzial breakdown.
+// Level says which tier it is so the UI can indent; Name is the deepest segment.
+type OrgUnitRow struct {
+	Level string `json:"level"` // "department" | "sub_department" | "wydzial"
+	Name  string `json:"name"`
+	OrgMetrics
+}
+
+// PositionLevelRow is the rollup for one position level, with its ladder rank.
+type PositionLevelRow struct {
+	Level string `json:"level"`
+	Rank  int    `json:"rank"`
+	OrgMetrics
+}
+
+// positionLevelRank orders PSE's position ladder (low -> high). Levels not in
+// the map sort last (rank 0). managementBodyLevels are the tiers NIS2 Art. 20
+// treats as the accountable management body.
+var positionLevelRank = map[string]int{
+	"Specjalista":         1,
+	"Starszy Specjalista": 2,
+	"Główny Specjalista":  3,
+	"Ekspert":             4,
+	"Kierownik":           5,
+	"Dyrektor":            6,
+	"Wiceprezes":          7,
+	"Prezes":              8,
+}
+
+var managementBodyLevels = map[string]bool{
+	"Prezes":     true,
+	"Wiceprezes": true,
+}
+
+// orgAcc accumulates per-recipient metrics for one rollup bucket.
+type orgAcc struct {
+	members, trained, clicked, reported, riskCount, riskSum int64
+}
+
+func (a *orgAcc) add(e string, clicked, reported, completed map[string]bool, riskByEmail map[string]int) {
+	a.members++
+	if clicked[e] {
+		a.clicked++
+	}
+	if reported[e] {
+		a.reported++
+	}
+	if completed[e] {
+		a.trained++
+	}
+	if sc, ok := riskByEmail[e]; ok {
+		a.riskCount++
+		a.riskSum += int64(sc)
+	}
+}
+
+func (a orgAcc) metrics() OrgMetrics {
+	m := OrgMetrics{
+		Members:    a.members,
+		TrainedPct: pct(a.trained, a.members),
+		ClickPct:   pct(a.clicked, a.members),
+		ReportPct:  pct(a.reported, a.members),
+	}
+	if a.riskCount > 0 {
+		m.AvgRisk = math.Round(float64(a.riskSum)/float64(a.riskCount)*10) / 10
+	}
+	return m
+}
+
+// accFor returns the accumulator for key, creating it on first use.
+func accFor(m map[string]*orgAcc, key string) *orgAcc {
+	a := m[key]
+	if a == nil {
+		a = &orgAcc{}
+		m[key] = a
+	}
+	return a
 }
 
 // pct returns part/whole as a percent (0–100) rounded to one decimal, 0 when
@@ -291,7 +388,101 @@ func GetComplianceReport(uid int64, start, end time.Time) (ComplianceReport, err
 		rep.Groups = append(rep.Groups, row)
 	}
 
+	// Org-structure rollups: aggregate the same per-recipient metrics by org
+	// unit and position level, keyed off the canonical Recipient placement (18a).
+	rep.OrgUnits = []OrgUnitRow{}
+	rep.Positions = []PositionLevelRow{}
+	recipients := []Recipient{}
+	if err := db.Where("user_id = ?", uid).Find(&recipients).Error; err != nil {
+		log.Error(err)
+		return rep, err
+	}
+	const sep = "\x1f"
+	deptAcc := map[string]*orgAcc{}
+	subAcc := map[string]*orgAcc{}
+	wydAcc := map[string]*orgAcc{}
+	posAcc := map[string]*orgAcc{}
+	var mgmt orgAcc
+	for _, rc := range recipients {
+		e := normEmail(rc.Email)
+		if e == "" {
+			continue
+		}
+		dept := strings.TrimSpace(rc.Department)
+		sub := strings.TrimSpace(rc.SubDepartment)
+		wyd := strings.TrimSpace(rc.Wydzial)
+		if dept != "" {
+			accFor(deptAcc, dept).add(e, clickedEmails, reportedEmails, completedEmails, riskByEmail)
+			if sub != "" {
+				accFor(subAcc, dept+sep+sub).add(e, clickedEmails, reportedEmails, completedEmails, riskByEmail)
+				if wyd != "" {
+					accFor(wydAcc, dept+sep+sub+sep+wyd).add(e, clickedEmails, reportedEmails, completedEmails, riskByEmail)
+				}
+			}
+		}
+		lvl := strings.TrimSpace(rc.PositionLevel)
+		if lvl != "" {
+			accFor(posAcc, lvl).add(e, clickedEmails, reportedEmails, completedEmails, riskByEmail)
+		}
+		if managementBodyLevels[lvl] {
+			mgmt.add(e, clickedEmails, reportedEmails, completedEmails, riskByEmail)
+		}
+	}
+	// Depth-first ordered org units: each department, then its sub-departments,
+	// then their wydziały.
+	depts := make([]string, 0, len(deptAcc))
+	for d := range deptAcc {
+		depts = append(depts, d)
+	}
+	sort.Strings(depts)
+	for _, d := range depts {
+		rep.OrgUnits = append(rep.OrgUnits, OrgUnitRow{Level: "department", Name: d, OrgMetrics: deptAcc[d].metrics()})
+		subs := childKeys(subAcc, d+sep)
+		for _, sk := range subs {
+			rep.OrgUnits = append(rep.OrgUnits, OrgUnitRow{Level: "sub_department", Name: lastSegment(sk, sep), OrgMetrics: subAcc[sk].metrics()})
+			for _, wk := range childKeys(wydAcc, sk+sep) {
+				rep.OrgUnits = append(rep.OrgUnits, OrgUnitRow{Level: "wydzial", Name: lastSegment(wk, sep), OrgMetrics: wydAcc[wk].metrics()})
+			}
+		}
+	}
+	// Positions, ranked low->high; unknown levels (rank 0) sort last.
+	for lvl, a := range posAcc {
+		rep.Positions = append(rep.Positions, PositionLevelRow{Level: lvl, Rank: positionLevelRank[lvl], OrgMetrics: a.metrics()})
+	}
+	sort.SliceStable(rep.Positions, func(i, j int) bool {
+		ri, rj := rep.Positions[i].Rank, rep.Positions[j].Rank
+		if ri == 0 {
+			ri = 1 << 30
+		}
+		if rj == 0 {
+			rj = 1 << 30
+		}
+		if ri != rj {
+			return ri < rj
+		}
+		return rep.Positions[i].Level < rep.Positions[j].Level
+	})
+	rep.ManagementBody = mgmt.metrics()
+
 	return rep, nil
+}
+
+// childKeys returns the sorted keys of m that start with prefix.
+func childKeys(m map[string]*orgAcc, prefix string) []string {
+	out := []string{}
+	for k := range m {
+		if strings.HasPrefix(k, prefix) {
+			out = append(out, k)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// lastSegment returns the final sep-separated segment of key.
+func lastSegment(key, sep string) string {
+	parts := strings.Split(key, sep)
+	return parts[len(parts)-1]
 }
 
 // emailSet returns the normalized set of recipient emails that clicked (status

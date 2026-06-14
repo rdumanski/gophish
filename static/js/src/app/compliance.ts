@@ -57,6 +57,41 @@ const render = (rep) => {
         ]).draw(false)
     })
 
+    // Management body (NIS2 Art. 20).
+    const mb = rep.management_body || {}
+    $('#mbMembers').text(mb.members || 0)
+    $('#mbTrained').text(fmtPct(mb.trained_pct || 0))
+    $('#mbClick').text(fmtPct(mb.click_pct || 0))
+    $('#mbReport').text(fmtPct(mb.report_pct || 0))
+    $('#mbRisk').text(mb.avg_risk || 0)
+
+    // By organizational unit (indent by level).
+    const indent = { department: '', sub_department: '    ', wydzial: '       ' }
+    const orgTable = $('#orgUnitTable').DataTable({
+        destroy: true, paging: false, searching: false, info: false, ordering: false
+    })
+    orgTable.clear()
+    $.each(rep.org_units || [], (i, u) => {
+        const name = (indent[u.level] || '') + escapeHtml(u.name)
+        orgTable.row.add([
+            u.level === 'department' ? `<strong>${name}</strong>` : name,
+            u.members, fmtPct(u.trained_pct), fmtPct(u.click_pct), fmtPct(u.report_pct),
+            `<span data-order="${u.avg_risk}">${riskBadge(u.avg_risk)}</span>`
+        ]).draw(false)
+    })
+
+    // By position level (already ranked low->high by the server).
+    const posTable = $('#positionTable').DataTable({
+        destroy: true, paging: false, searching: false, info: false, ordering: false
+    })
+    posTable.clear()
+    $.each(rep.positions || [], (i, p) => {
+        posTable.row.add([
+            escapeHtml(p.level), p.members, fmtPct(p.trained_pct), fmtPct(p.click_pct),
+            fmtPct(p.report_pct), `<span data-order="${p.avg_risk}">${riskBadge(p.avg_risk)}</span>`
+        ]).draw(false)
+    })
+
     const label = period.start === 'all'
         ? T("compliance.all_time_through", period.end)
         : T("compliance.reporting_period", period.start, period.end)
