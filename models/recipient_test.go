@@ -54,3 +54,54 @@ func (s *ModelsSuite) TestPostCampaignLinksResultsToRecipients(ch *check.C) {
 		ch.Assert(rec.Id, check.Equals, r.RecipientID)
 	}
 }
+
+// TestUpsertRecipientOrgFields covers org/level fields on create, refresh, and
+// the non-empty guard (empty incoming values preserve an existing placement).
+func (s *ModelsSuite) TestUpsertRecipientOrgFields(c *check.C) {
+	br := BaseRecipient{Email: "u@example.com", FirstName: "U",
+		Department: "D1", SubDepartment: "S1", Wydzial: "W1", PositionLevel: "Specjalista"}
+	id, err := UpsertRecipient(db, 1, br)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(id > 0, check.Equals, true)
+
+	r, err := GetRecipientByEmail("u@example.com", 1)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(r.Department, check.Equals, "D1")
+	c.Assert(r.SubDepartment, check.Equals, "S1")
+	c.Assert(r.Wydzial, check.Equals, "W1")
+	c.Assert(r.PositionLevel, check.Equals, "Specjalista")
+
+	// Refresh with new values overwrites.
+	br.Department = "D2"
+	_, err = UpsertRecipient(db, 1, br)
+	c.Assert(err, check.Equals, nil)
+	r, _ = GetRecipientByEmail("u@example.com", 1)
+	c.Assert(r.Department, check.Equals, "D2")
+
+	// Empty org values must NOT wipe the existing placement.
+	_, err = UpsertRecipient(db, 1, BaseRecipient{Email: "u@example.com", FirstName: "U"})
+	c.Assert(err, check.Equals, nil)
+	r, _ = GetRecipientByEmail("u@example.com", 1)
+	c.Assert(r.Department, check.Equals, "D2")
+}
+
+// TestPostGroupPersistsOrgFields covers the import -> target -> display path:
+// org/level/phone fields survive PostGroup and come back via GetTargets.
+func (s *ModelsSuite) TestPostGroupPersistsOrgFields(c *check.C) {
+	g := Group{Name: "Org Group", UserID: 1}
+	g.Targets = []Target{{BaseRecipient: BaseRecipient{
+		Email: "o@example.com", FirstName: "O",
+		Department: "Eksploatacja", SubDepartment: "Ruch", Wydzial: "Wydzial Ruchu",
+		PositionLevel: "Specjalista", Phone: "+48555000111",
+	}}}
+	c.Assert(PostGroup(&g), check.Equals, nil)
+
+	ts, err := GetTargets(g.Id)
+	c.Assert(err, check.Equals, nil)
+	c.Assert(len(ts), check.Equals, 1)
+	c.Assert(ts[0].Department, check.Equals, "Eksploatacja")
+	c.Assert(ts[0].SubDepartment, check.Equals, "Ruch")
+	c.Assert(ts[0].Wydzial, check.Equals, "Wydzial Ruchu")
+	c.Assert(ts[0].PositionLevel, check.Equals, "Specjalista")
+	c.Assert(ts[0].Phone, check.Equals, "+48555000111")
+}

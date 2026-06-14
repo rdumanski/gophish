@@ -17,15 +17,21 @@ import (
 // rather than via a historical data backfill. Rows created before Phase 10a
 // link the next time a campaign including that email is created.
 type Recipient struct {
-	Id           int64     `json:"id" gorm:"primaryKey;column:id"`
-	UserID       int64     `json:"-" gorm:"column:user_id"`
-	Email        string    `json:"email"`
-	FirstName    string    `json:"first_name"`
-	LastName     string    `json:"last_name"`
-	Position     string    `json:"position"`
-	Phone        string    `json:"phone"`
-	CreatedDate  time.Time `json:"created_date"`
-	ModifiedDate time.Time `json:"modified_date"`
+	Id        int64  `json:"id" gorm:"primaryKey;column:id"`
+	UserID    int64  `json:"-" gorm:"column:user_id"`
+	Email     string `json:"email"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Position  string `json:"position"`
+	Phone     string `json:"phone"`
+	// Org structure (PSE): Department > SubDepartment > Wydzial + ordered
+	// position level. Canonical home for a person's org placement.
+	Department    string    `json:"department" gorm:"column:department"`
+	SubDepartment string    `json:"sub_department" gorm:"column:sub_department"`
+	Wydzial       string    `json:"wydzial" gorm:"column:wydzial"`
+	PositionLevel string    `json:"position_level" gorm:"column:position_level"`
+	CreatedDate   time.Time `json:"created_date"`
+	ModifiedDate  time.Time `json:"modified_date"`
 }
 
 // UpsertRecipient finds the Recipient for (userID, email) or creates it,
@@ -52,14 +58,18 @@ func UpsertRecipient(tx *gorm.DB, userID int64, br BaseRecipient) (int64, error)
 	err := tx.Where("user_id = ? AND email = ?", userID, br.Email).First(&r).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		r = Recipient{
-			UserID:       userID,
-			Email:        br.Email,
-			FirstName:    br.FirstName,
-			LastName:     br.LastName,
-			Position:     br.Position,
-			Phone:        br.Phone,
-			CreatedDate:  now,
-			ModifiedDate: now,
+			UserID:        userID,
+			Email:         br.Email,
+			FirstName:     br.FirstName,
+			LastName:      br.LastName,
+			Position:      br.Position,
+			Phone:         br.Phone,
+			Department:    br.Department,
+			SubDepartment: br.SubDepartment,
+			Wydzial:       br.Wydzial,
+			PositionLevel: br.PositionLevel,
+			CreatedDate:   now,
+			ModifiedDate:  now,
 		}
 		if err := tx.Create(&r).Error; err != nil {
 			return 0, err
@@ -75,6 +85,20 @@ func UpsertRecipient(tx *gorm.DB, userID int64, br BaseRecipient) (int64, error)
 	r.Position = br.Position
 	if br.Phone != "" {
 		r.Phone = br.Phone
+	}
+	// Org fields only overwrite when supplied, so a campaign built from a group
+	// whose targets lack org data doesn't wipe an existing placement.
+	if br.Department != "" {
+		r.Department = br.Department
+	}
+	if br.SubDepartment != "" {
+		r.SubDepartment = br.SubDepartment
+	}
+	if br.Wydzial != "" {
+		r.Wydzial = br.Wydzial
+	}
+	if br.PositionLevel != "" {
+		r.PositionLevel = br.PositionLevel
 	}
 	r.ModifiedDate = now
 	if err := tx.Save(&r).Error; err != nil {
