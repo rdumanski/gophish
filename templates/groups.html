@@ -10,6 +10,9 @@
         <button type="button" class="btn btn-primary" onclick="edit(-1)" data-toggle="modal" data-backdrop="static"
             data-target="#modal">
             <i class="fa fa-plus"></i> {{ .T "groups.new" }}</button>
+        <button type="button" class="btn btn-default" onclick="regenerateOrgGroups()"
+            title="{{ .T "groups.regenerate_org_tip" }}">
+            <i class="fa fa-sitemap"></i> {{ .T "groups.regenerate_org" }}</button>
     </div>
     &nbsp;
     <div id="loading">

@@ -20,6 +20,10 @@ type Group struct {
 	Name         string    `json:"name"`
 	ModifiedDate time.Time `json:"modified_date"`
 	Targets      []Target  `json:"targets" gorm:"-"`
+	// IsAuto marks a system-managed group auto-generated per org unit
+	// (18b.2). These are rebuilt by RegenerateOrgGroups and shouldn't be hand-
+	// edited; the UI badges them and the manual group APIs ignore them.
+	IsAuto bool `json:"is_auto" gorm:"column:is_auto"`
 }
 
 // GroupSummaries is a struct representing the overview of Groups.
@@ -36,6 +40,7 @@ type GroupSummary struct {
 	Name         string    `json:"name"`
 	ModifiedDate time.Time `json:"modified_date"`
 	NumTargets   int64     `json:"num_targets"`
+	IsAuto       bool      `json:"is_auto" gorm:"column:is_auto"`
 }
 
 // GroupTarget is used for a many-to-many relationship between 1..* Groups and 1..* Targets
@@ -160,7 +165,7 @@ func GetGroups(uid int64) ([]Group, error) {
 func GetGroupSummaries(uid int64) (GroupSummaries, error) {
 	gs := GroupSummaries{}
 	query := db.Table("groups").Where("user_id=?", uid)
-	err := query.Select("id, name, modified_date").Scan(&gs.Groups).Error
+	err := query.Select("id, name, modified_date, is_auto").Scan(&gs.Groups).Error
 	if err != nil {
 		log.Error(err)
 		return gs, err

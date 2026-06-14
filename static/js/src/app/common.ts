@@ -101,6 +101,9 @@ export const api = {
         post: (group) => query('/groups/', 'POST', group, false),
         summary: () => query('/groups/summary', 'GET', {}, true),
     },
+    org_groups: {
+        regenerate: () => query('/org_groups/regenerate', 'POST', {}, true),
+    },
     groupId: {
         get: (id) => query('/groups/' + id, 'GET', {}, false),
         put: (group) => query('/groups/' + group.id, 'PUT', group, false),
