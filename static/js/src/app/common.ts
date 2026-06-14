@@ -129,6 +129,10 @@ export const api = {
         get: () => query('/phish_filter/', 'GET', {}, false),
         put: (pf) => query('/phish_filter/', 'PUT', pf, false),
     },
+    remediation: {
+        get: () => query('/remediation/', 'GET', {}, true),
+        put: (s) => query('/remediation/', 'PUT', s, true),
+    },
     templateId: {
         get: (id) => query('/templates/' + id, 'GET', {}, false),
         put: (template) => query('/templates/' + template.id, 'PUT', template, false),

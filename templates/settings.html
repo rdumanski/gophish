@@ -12,6 +12,8 @@
         <li role="uiSettings"><a href="#uiSettings" aria-controls="uiSettings" role="tab" data-toggle="tab">{{ .T "settings.tab.ui" }}</a></li>
         <li role="reportingSettings"><a href="#reportingSettings" aria-controls="reportingSettings" role="tab" id="reporttab"
             data-toggle="tab">{{ .T "settings.tab.reporting" }}</a></li>
+        <li role="remediationSettings"><a href="#remediationSettings" aria-controls="remediationSettings" role="tab" id="remediationtab"
+            data-toggle="tab">{{ .T "settings.tab.remediation" }}</a></li>
         {{if .ModifySystem}}
         <li role="sandboxFilterSettings"><a href="#sandboxFilterSettings" aria-controls="sandboxFilterSettings" role="tab" id="sandboxfiltertab"
             data-toggle="tab">{{ .T "settings.tab.sandbox" }}</a></li>
@@ -243,6 +245,42 @@
         </form>
         </div>
         <!-- Reporting Settings End -->
+
+        <!-- Remediation auto-enrollment (Phase 20) -->
+        <div role="tabpanel" class="tab-pane" id="remediationSettings">
+            <br />
+            <p class="text-muted">{{ .T "settings.remediation.intro" }}</p>
+            <div class="checkbox">
+                <label><input type="checkbox" id="rem_enabled"> {{ .T "settings.remediation.enable" }}</label>
+            </div>
+            <div class="row">
+                <label for="rem_module" class="col-sm-3 control-label form-label">{{ .T "settings.remediation.module" }}</label>
+                <div class="col-md-6"><select id="rem_module" class="form-control"></select></div>
+            </div>
+            <br />
+            <div class="row">
+                <label for="rem_trigger" class="col-sm-3 control-label form-label">{{ .T "settings.remediation.trigger" }}</label>
+                <div class="col-md-6">
+                    <select id="rem_trigger" class="form-control">
+                        <option value="click_or_submit">{{ .T "settings.remediation.trigger_click_or_submit" }}</option>
+                        <option value="submit">{{ .T "settings.remediation.trigger_submit" }}</option>
+                    </select>
+                </div>
+            </div>
+            <br />
+            <div class="row">
+                <label for="rem_smtp" class="col-sm-3 control-label form-label" data-toggle="tooltip" title="{{ .T "settings.remediation.smtp_tooltip" }}">{{ .T "settings.remediation.smtp" }}</label>
+                <div class="col-md-6"><select id="rem_smtp" class="form-control"></select></div>
+            </div>
+            <br />
+            <div class="row">
+                <label for="rem_base_url" class="col-sm-3 control-label form-label" data-toggle="tooltip" title="{{ .T "settings.remediation.base_url_tooltip" }}">{{ .T "settings.remediation.base_url" }}</label>
+                <div class="col-md-6"><input type="text" id="rem_base_url" class="form-control" placeholder="https://learn.example.com" /></div>
+            </div>
+            <br />
+            <button class="btn btn-primary" id="saveRemediation" type="button"><i class="fa fa-save"></i> {{ .T "common.save" }}</button>
+        </div>
+        <!-- Remediation End -->
 
         {{if .ModifySystem}}
         <!-- Sandbox Filter Settings Begin -->

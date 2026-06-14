@@ -66,6 +66,54 @@ func learnerLink(baseURL, token string) string {
 }
 
 // SendTrainingInvitations emails every enrollee in a training campaign their
+// sendEnrollmentInvitation emails one learner their portal link via the named
+// SMTP profile. Used by remediation auto-enrollment (Phase 20), which sends a
+// single message per failure rather than a batch; the campaign path keeps its
+// own batched single-connection loop below.
+func sendEnrollmentInvitation(uid int64, e Enrollment, module TrainingModule, smtpName, baseURL string) error {
+	if strings.TrimSpace(baseURL) == "" {
+		return ErrInvitationNoBaseURL
+	}
+	smtp, err := GetSMTPByName(smtpName, uid)
+	if err != nil {
+		return ErrSMTPNotFound
+	}
+	from, err := mail.ParseAddress(smtp.FromAddress)
+	if err != nil {
+		return ErrInvalidFromAddress
+	}
+	recipient, err := GetRecipientByID(e.RecipientID)
+	if err != nil {
+		return err
+	}
+	dialer, err := smtp.GetDialer()
+	if err != nil {
+		return err
+	}
+	sender, err := dialer.Dial()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = sender.Close() }()
+
+	msg := gomail.NewMessage()
+	buildInvitationMessage(msg, *from, invitationData{
+		ToEmail:    recipient.Email,
+		ToName:     strings.TrimSpace(recipient.FirstName + " " + recipient.LastName),
+		FirstName:  recipient.FirstName,
+		ModuleName: module.Name,
+		Link:       learnerLink(baseURL, e.Token),
+	})
+	if err := gomail.SendCustomFrom(sender, from.Address, msg); err != nil {
+		return err
+	}
+	e.InvitedDate = time.Now().UTC()
+	if err := db.Save(&e).Error; err != nil {
+		log.Error(err)
+	}
+	return nil
+}
+
 // learner-portal link, via the chosen SMTP profile. It reuses the low-level
 // SMTP dialer + gomail directly (roadmap Decision B) rather than the phishing
 // Campaign/MailLog path. Sends are synchronous and batched over one connection;

@@ -99,6 +99,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/quizzes/{id:[0-9]+}", as.Quiz)
 	router.HandleFunc("/risk/", as.Risk)
 	router.HandleFunc("/engagement/", as.Engagement)
+	router.HandleFunc("/remediation/", as.Remediation)
 	router.HandleFunc("/compliance/", as.Compliance)
 	router.HandleFunc("/domains/", mid.Use(as.Domains, mid.RequirePermission(models.PermissionModifySystem)))
 	router.HandleFunc("/domains/{id:[0-9]+}/check", mid.Use(as.CheckDomain, mid.RequirePermission(models.PermissionModifySystem)))
