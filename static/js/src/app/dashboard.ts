@@ -92,6 +92,25 @@ var statsMapping = {
     "submitted_data": "Submitted Data",
 }
 
+// i18n keys for the donut-chart labels (statsMapping gives the English label,
+// which still keys the `statuses` colour map).
+var statsLabelKey = {
+    "sent": "status.sent",
+    "opened": "status.opened",
+    "email_reported": "status.reported",
+    "clicked": "status.clicked",
+    "submitted_data": "status.submitted",
+}
+
+// i18n keys for a campaign's status badge.
+var campaignStatusKey = {
+    "Queued": "campaign_status.queued",
+    "In progress": "campaign_status.in_progress",
+    "Completed": "campaign_status.completed",
+    "Created": "campaign_status.created",
+    "Emails Sent": "campaign_status.emails_sent",
+}
+
 function deleteCampaign(idx) {
     if (confirm(T("dashboard.delete_confirm", campaigns[idx].name))) {
         api.campaignId.delete(campaigns[idx].id)
@@ -184,8 +203,9 @@ function generateStatsPieCharts(campaigns) {
             return true
         }
         const status_label = statsMapping[status]
+        const display = T(statsLabelKey[status] || status_label)
         stats_data.push({
-            name: status_label,
+            name: display,
             y: Math.floor((count / total) * 100),
             count: count
         })
@@ -195,7 +215,7 @@ function generateStatsPieCharts(campaigns) {
         })
         var stats_chart = renderPieChart({
             elemId: status + '_chart',
-            title: status_label,
+            title: display,
             name: status,
             data: stats_data,
             colors: [statuses[status_label].color, "#dddddd"]
@@ -332,6 +352,7 @@ $(document).ready(function () {
                 $.each(campaigns, function (i, campaign) {
                     var campaign_date = moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a')
                     var label = statuses[campaign.status].label || "label-default";
+                    var statusText = campaignStatusKey[campaign.status] ? T(campaignStatusKey[campaign.status]) : campaign.status;
                     //section for tooltips on the status of a campaign to show some quick stats
                     var launchDate;
                     if (moment(campaign.launch_date).isAfter(moment())) {
@@ -350,7 +371,7 @@ $(document).ready(function () {
                         campaign.stats.clicked,
                         campaign.stats.submitted_data,
                         campaign.stats.email_reported,
-                        "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
+                        "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + statusText + "</span>",
                         "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.view_results") + "'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
