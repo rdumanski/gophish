@@ -772,6 +772,7 @@
   "training_campaigns.completion": "Completion",
   "training_campaigns.create": "Create Campaign",
   "training_campaigns.created": "Training campaign \"%s\" created.",
+  "training_campaigns.created_col": "Created",
   "training_campaigns.delete_confirm": "This will delete the training campaign '%s' and its enrollments.",
   "training_campaigns.delete_title": "Are you sure?",
   "training_campaigns.deleted_text": "The training campaign has been deleted.",
