@@ -772,6 +772,7 @@
   "training_campaigns.completion": "Ukończenie",
   "training_campaigns.create": "Utwórz kampanię",
   "training_campaigns.created": "Kampania szkoleniowa \"%s\" utworzona.",
+  "training_campaigns.created_col": "Utworzono",
   "training_campaigns.delete_confirm": "Spowoduje to usunięcie kampanii szkoleniowej '%s' i jej zapisów.",
   "training_campaigns.delete_title": "Czy na pewno?",
   "training_campaigns.deleted_text": "Kampania szkoleniowa została usunięta.",
