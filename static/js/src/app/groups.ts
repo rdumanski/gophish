@@ -20,6 +20,18 @@ function orgUnitCell(department, subDepartment, wydzial) {
         .prop('outerHTML')
 }
 
+// The Groups page swaps between a list view and a full-width editor view in
+// place (the editor used to be a modal overlay). These toggle between them.
+function showEditView(title) {
+    $("#groupListView").hide()
+    $("#editorTitle").text(title)
+    $("#groupEditView").show()
+}
+function showListView() {
+    $("#groupEditView").hide()
+    $("#groupListView").show()
+}
+
 // Save attempts to POST or PUT to /groups/
 function save(id) {
     var targets = []
@@ -50,9 +62,9 @@ function save(id) {
         api.groupId.put(group)
             .success(function (data) {
                 successFlash(T("groups.updated"))
-                load()
+                showListView()
                 dismiss()
-                $("#modal").modal('hide')
+                load()
             })
             .error(function (data) {
                 modalError(data.responseJSON.message)
@@ -63,9 +75,9 @@ function save(id) {
         api.groups.post(group)
             .success(function (data) {
                 successFlash(T("groups.added"))
-                load()
+                showListView()
                 dismiss()
-                $("#modal").modal('hide')
+                load()
             })
             .error(function (data) {
                 modalError(data.responseJSON.message)
@@ -79,11 +91,14 @@ function dismiss() {
     $("#modal\\.flashes").empty()
 }
 
-// Holds the jQuery DataTable instance for the targets table inside
-// the edit-group modal. Set by edit(); read by load() and the file
-// upload handler when batch-adding rows.
+// Holds the jQuery DataTable instance for the targets table inside the
+// full-width editor view. Set by edit(); read by load() and the file upload
+// handler when batch-adding rows.
 let targets: any
 function edit(id) {
+    // Reveal the editor first so the table is visible when DataTables
+    // initialises and can size its columns correctly.
+    showEditView(T(id == -1 ? "groups.new_title" : "groups.edit_title"))
     targets = $("#targetsTable").dataTable({
         destroy: true, // Destroy any other instantiated table - http://datatables.net/manual/tech-notes/3#destroy
         columnDefs: [{
@@ -91,14 +106,15 @@ function edit(id) {
             targets: "no-sort"
         }]
     })
-    $("#modalSubmit").unbind('click').click(function () {
+    // Reset any state left over from a previous edit session (there is no
+    // longer a modal-close event to clear it).
+    targets.DataTable().clear().draw()
+    $("#name").val("")
+    $("#modal\\.flashes").empty()
+    $("#editorSave").unbind('click').click(function () {
         save(id)
     })
-    if (id == -1) {
-        $("#groupModalLabel").text(T("groups.new_title"));
-        var group = {}
-    } else {
-        $("#groupModalLabel").text(T("groups.edit_title"));
+    if (id != -1) {
         api.groupId.get(id)
             .success(function (group) {
                 $("#name").val(group.name)
@@ -289,7 +305,7 @@ function load() {
                         : escapeHtml(group.name)
                     const actions = group.is_auto
                         ? ""
-                        : "<div class='pull-right'><button class='btn btn-primary' data-toggle='modal' data-backdrop='static' data-target='#modal' onclick='edit(" + group.id + ")'>\
+                        : "<div class='pull-right'><button class='btn btn-primary' onclick='edit(" + group.id + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button>\
                     <button class='btn btn-danger' onclick='deleteGroup(" + group.id + ")'>\
@@ -342,8 +358,11 @@ $(document).ready(function () {
             .remove()
             .draw();
     });
-    $("#modal").on("hide.bs.modal", function () {
+    // Cancel discards edits and returns to the list (replaces the old
+    // modal-close behaviour).
+    $("#editorCancel").click(function () {
         dismiss();
+        showListView();
     });
     $("#csv-template").click(downloadCSVTemplate)
 });
