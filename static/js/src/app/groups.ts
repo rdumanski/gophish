@@ -2,19 +2,40 @@ import { api, errorFlash, escapeHtml, modalError, successFlash, T, unescapeHtml 
 
 var groups = []
 
+// orgUnitCell builds the combined "Org Unit" cell for the targets table: a
+// breadcrumb of the non-empty Department › Sub-Department › Wydział parts for
+// display, with the raw values stashed in data-attributes so save() can read
+// them back. Built with jQuery DOM so both the attributes and the visible text
+// are escaped safely (escapeHtml alone doesn't escape quotes).
+function orgUnitCell(department, subDepartment, wydzial) {
+    const d = (department || '').trim()
+    const s = (subDepartment || '').trim()
+    const w = (wydzial || '').trim()
+    const display = [d, s, w].filter(p => p !== '').join(' › ')
+    return $('<span class="org-unit"></span>')
+        .attr('data-department', d)
+        .attr('data-sub-department', s)
+        .attr('data-wydzial', w)
+        .text(display)
+        .prop('outerHTML')
+}
+
 // Save attempts to POST or PUT to /groups/
 function save(id) {
     var targets = []
     $.each($("#targetsTable").DataTable().rows().data(), function (i, target) {
+        // Org Unit (column 4) is a single <span> carrying the three raw org
+        // values as data-attributes; .attr() returns them already decoded.
+        const $org = $(target[4])
         targets.push({
             first_name: unescapeHtml(target[0]),
             last_name: unescapeHtml(target[1]),
             email: unescapeHtml(target[2]),
             position: unescapeHtml(target[3]),
-            department: unescapeHtml(target[4]),
-            sub_department: unescapeHtml(target[5]),
-            wydzial: unescapeHtml(target[6]),
-            position_level: unescapeHtml(target[7])
+            department: $org.attr('data-department') || '',
+            sub_department: $org.attr('data-sub-department') || '',
+            wydzial: $org.attr('data-wydzial') || '',
+            position_level: unescapeHtml(target[5])
         })
     })
     var group: any = {
@@ -88,9 +109,7 @@ function edit(id) {
                       escapeHtml(record.last_name),
                       escapeHtml(record.email),
                       escapeHtml(record.position),
-                      escapeHtml(record.department),
-                      escapeHtml(record.sub_department),
-                      escapeHtml(record.wydzial),
+                      orgUnitCell(record.department, record.sub_department, record.wydzial),
                       escapeHtml(record.position_level),
                       '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
                   ])
@@ -217,9 +236,7 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput,
         escapeHtml(lastNameInput),
         email,
         escapeHtml(positionInput),
-        escapeHtml(departmentInput),
-        escapeHtml(subDepartmentInput),
-        escapeHtml(wydzialInput),
+        orgUnitCell(departmentInput, subDepartmentInput, wydzialInput),
         escapeHtml(positionLevelInput),
         '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
     ];
