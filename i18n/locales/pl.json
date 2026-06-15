@@ -357,6 +357,7 @@
   "groups.bad_file_ext": "Nieobsługiwane rozszerzenie pliku (użyj .csv lub .txt)",
   "groups.bulk_import": "Import zbiorczy użytkowników",
   "groups.col_department": "Departament",
+  "groups.col_org_unit": "Jednostka org.",
   "groups.col_position_level": "Poziom stanowiska",
   "groups.col_sub_department": "Pod-Departament",
   "groups.col_wydzial": "Wydzial",

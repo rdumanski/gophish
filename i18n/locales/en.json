@@ -357,6 +357,7 @@
   "groups.bad_file_ext": "Unsupported file extension (use .csv or .txt)",
   "groups.bulk_import": "Bulk Import Users",
   "groups.col_department": "Department",
+  "groups.col_org_unit": "Org unit",
   "groups.col_position_level": "Position level",
   "groups.col_sub_department": "Sub-Department",
   "groups.col_wydzial": "Wydzial",
