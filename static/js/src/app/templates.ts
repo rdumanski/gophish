@@ -22,6 +22,19 @@ var icons = {
     "application/x-msdownload": "fa-file-o"
 }
 
+// The Templates page swaps between a list view and a full-width editor view in
+// place (the editor used to be a modal overlay). The import-email, AI-generate
+// and AI-score dialogs remain modals, launched from inside the editor.
+function showEditView(title) {
+    $("#templateListView").hide()
+    $("#templateModalLabel").text(title)
+    $("#templateEditView").show()
+}
+function showListView() {
+    $("#templateEditView").hide()
+    $("#templateListView").show()
+}
+
 // Save attempts to POST to /templates/
 function save(idx) {
     var template: any = {
@@ -89,7 +102,7 @@ function dismiss() {
     $("#text_editor").val("")
     $("#html_editor").val("")
     lastGeneratedBy = ''
-    $("#modal").modal('hide')
+    showListView()
 }
 
 var deleteTemplate = function (idx) {
@@ -168,7 +181,10 @@ function attach(files) {
 
 function edit(idx) {
     lastGeneratedBy = ''
-    $("#modalSubmit").unbind('click').click(function () {
+    // Reveal the editor first so CKEditor and the DataTable initialise while
+    // their containers are visible (sizing/render depend on it).
+    showEditView(T(idx == -1 ? "templates.modal_new" : "templates.modal_edit"))
+    $("#editorSave").unbind('click').click(function () {
         save(idx)
     })
     $("#attachmentUpload").unbind('click').click(function () {
@@ -194,7 +210,6 @@ function edit(idx) {
         attachments: []
     }
     if (idx != -1) {
-        $("#templateModalLabel").text(T("templates.modal_edit"))
         template = templates[idx]
         $("#name").val(template.name)
         $("#subject").val(template.subject)
@@ -219,9 +234,6 @@ function edit(idx) {
         } else {
             $("#use_tracker_checkbox").prop("checked", false)
         }
-
-    } else {
-        $("#templateModalLabel").text(T("templates.modal_new"))
     }
     // Handle Deletion
     $("#attachmentsTable").unbind('click').on("click", "span>i.fa-trash-o", function () {
@@ -232,7 +244,8 @@ function edit(idx) {
 }
 
 function copy(idx) {
-    $("#modalSubmit").unbind('click').click(function () {
+    showEditView(T("templates.modal_new"))
+    $("#editorSave").unbind('click').click(function () {
         save(-1)
     })
     $("#attachmentUpload").unbind('click').click(function () {
@@ -453,12 +466,12 @@ function load() {
                     templateRows.push([
                         escapeHtml(template.name),
                         moment(template.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
-                        "<div class='pull-right'><span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_edit") + "' onclick='edit(" + i + ")'>\
+                        "<div class='pull-right'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_edit") + "' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
-                    </button></span>\
-		    <span data-toggle='modal' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_copy") + "' onclick='copy(" + i + ")'>\
+                    </button>\
+		    <button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_copy") + "' onclick='copy(" + i + ")'>\
                     <i class='fa fa-copy'></i>\
-                    </button></span>\
+                    </button>\
                     <button class='btn btn-danger' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_delete") + "' onclick='deleteTemplate(" + i + ")'>\
                     <i class='fa fa-trash-o'></i>\
                     </button></div>"
@@ -518,9 +531,6 @@ $(document).ready(function () {
     // Scrollbar fix - https://stackoverflow.com/questions/19305821/multiple-modals-overlay
     $(document).on('hidden.bs.modal', '.modal', function () {
         $('.modal:visible').length && $(document.body).addClass('modal-open');
-    });
-    $('#modal').on('hidden.bs.modal', function (event) {
-        dismiss()
     });
     $("#importEmailModal").on('hidden.bs.modal', function (event) {
         $("#email_content").val("")
