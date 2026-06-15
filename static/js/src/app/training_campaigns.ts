@@ -92,7 +92,7 @@ const load = () => {
                     due,
                     progressCell(tc.stats),
                     moment(tc.created_date).format("MMM Do YYYY"),
-                    `<div class="pull-right">
+                    `<div class="pull-right" style="white-space:nowrap">
                         <button class="btn btn-primary send_button" data-toggle="modal" data-backdrop="static" data-target="#sendModal" data-campaign-id="${tc.id}" title="${T("training_campaigns.send_tooltip")}">
                           <i class="fa fa-envelope"></i>
                         </button>
