@@ -154,7 +154,7 @@ const load = () => {
                     q.question_count,
                     q.pass_threshold + "%",
                     moment(q.modified_date).format("MMM Do YYYY"),
-                    `<div class="pull-right">
+                    `<div class="pull-right" style="white-space:nowrap">
                         <button class="btn btn-primary edit_button" data-toggle="modal" data-backdrop="static" data-target="#modal" data-quiz-id="${q.id}">
                           <i class="fa fa-pencil"></i>
                         </button>
