@@ -305,7 +305,7 @@ function load() {
                         : escapeHtml(group.name)
                     const actions = group.is_auto
                         ? ""
-                        : "<div class='pull-right'><button class='btn btn-primary' onclick='edit(" + group.id + ")'>\
+                        : "<div class='pull-right' style='white-space:nowrap'><button class='btn btn-primary' onclick='edit(" + group.id + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button>\
                     <button class='btn btn-danger' onclick='deleteGroup(" + group.id + ")'>\

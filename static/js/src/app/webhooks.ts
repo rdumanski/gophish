@@ -65,7 +65,7 @@ const load = () => {
                     escapeHtml(webhook.url),
                     escapeHtml(webhook.is_active),
                     `
-                      <div class="pull-right">
+                      <div class="pull-right" style="white-space:nowrap">
                         <button class="btn btn-primary ping_button" data-webhook-id="${webhook.id}">
                           ${T("webhooks.ping")}
                         </button>

@@ -137,7 +137,7 @@ const load = () => {
                     escapeHtml(d.role),
                     healthCell(d),
                     last,
-                    `<div class="pull-right">
+                    `<div class="pull-right" style="white-space:nowrap">
                         <button class="btn btn-primary check_button" data-domain-id="${d.id}" title="${T("domains.run_health_check")}"><i class="fa fa-heartbeat"></i></button>
                         <button class="btn btn-default records_button" data-domain-id="${d.id}" title="${T("domains.dns_records")}"><i class="fa fa-list"></i></button>
                         <button class="btn btn-primary edit_button" data-toggle="modal" data-backdrop="static" data-target="#modal" data-domain-id="${d.id}"><i class="fa fa-pencil"></i></button>
