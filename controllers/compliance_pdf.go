@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,19 @@ import (
 	log "github.com/rdumanski/gophish/logger"
 	"github.com/rdumanski/gophish/models"
 )
+
+// DejaVu Sans Condensed is embedded so the report renders Polish diacritics
+// (ł ą ś ż ń ę ó ć ź …) — fpdf's built-in core fonts are Latin-1 only. See
+// controllers/fonts/README.md for license/attribution.
+//
+//go:embed fonts/DejaVuSansCondensed.ttf
+var dejaVuRegular []byte
+
+//go:embed fonts/DejaVuSansCondensed-Bold.ttf
+var dejaVuBold []byte
+
+// pdfFont is the family name registered with fpdf for both weights.
+const pdfFont = "DejaVu"
 
 // ComplianceReportPDF serves the NIS2 compliance report as a downloadable PDF.
 // It lives on the admin server (session-authed via RequireLogin) rather than the
@@ -54,10 +68,13 @@ const (
 	pdfMargin = 15.0
 )
 
-// renderCompliancePDF lays out the report onto an A4 page. Text is kept ASCII —
-// fpdf's built-in fonts are Latin-1 only.
+// renderCompliancePDF lays out the report onto an A4 page. An embedded UTF-8
+// font (DejaVu) is registered so full Unicode — including Polish diacritics —
+// renders correctly.
 func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 	pdf := fpdf.New("P", "mm", "A4", "")
+	pdf.AddUTF8FontFromBytes(pdfFont, "", dejaVuRegular)
+	pdf.AddUTF8FontFromBytes(pdfFont, "B", dejaVuBold)
 	pdf.SetMargins(pdfMargin, pdfMargin, pdfMargin)
 	pdf.SetAutoPageBreak(true, pdfMargin)
 	pdf.AddPage()
@@ -69,14 +86,14 @@ func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 	periodEnd := rep.PeriodEnd.Format("2006-01-02")
 
 	// Title
-	pdf.SetFont("Arial", "B", 18)
+	pdf.SetFont(pdfFont, "B", 18)
 	pdf.SetTextColor(20, 30, 40)
 	pdf.CellFormat(0, 10, "NIS2 Compliance Report", "", 1, "L", false, 0, "")
-	pdf.SetFont("Arial", "", 10)
+	pdf.SetFont(pdfFont, "", 10)
 	pdf.SetTextColor(110, 110, 110)
 	pdf.CellFormat(0, 6, fmt.Sprintf("Reporting period: %s to %s", periodStart, periodEnd), "", 1, "L", false, 0, "")
 	pdf.CellFormat(0, 6, fmt.Sprintf("Prepared by %s  |  Generated %s",
-		safe(rep.Operator), rep.GeneratedAt.Format("2006-01-02 15:04 UTC")), "", 1, "L", false, 0, "")
+		rep.Operator, rep.GeneratedAt.Format("2006-01-02 15:04 UTC")), "", 1, "L", false, 0, "")
 	pdf.Ln(4)
 
 	// Executive summary KPIs
@@ -88,7 +105,7 @@ func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 		{"Report rate", pctStr(rep.Phishing.ReportRate)},
 	})
 	pdf.Ln(2)
-	pdf.SetFont("Arial", "", 10)
+	pdf.SetFont(pdfFont, "", 10)
 	pdf.SetTextColor(60, 60, 60)
 	pdf.CellFormat(0, 6, fmt.Sprintf("Human risk: %d low / %d medium / %d high  (average score %.1f)",
 		rep.Risk.Low, rep.Risk.Medium, rep.Risk.High, rep.Risk.Average), "", 1, "L", false, 0, "")
@@ -145,7 +162,7 @@ func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 	pdf.Ln(3)
 
 	// Footer / framing
-	pdf.SetFont("Arial", "I", 8)
+	pdf.SetFont(pdfFont, "", 8)
 	pdf.SetTextColor(130, 130, 130)
 	pdf.MultiCell(0, 4, "This report supports demonstrating security-awareness governance under NIS2 "+
 		"Art. 21(2)(g) (cyber-hygiene and training) and Art. 20 (management-body oversight). "+
@@ -163,7 +180,7 @@ func renderCompliancePDF(rep models.ComplianceReport) (*bytes.Buffer, error) {
 type kpi struct{ label, value string }
 
 func sectionHeader(pdf *fpdf.Fpdf, title string) {
-	pdf.SetFont("Arial", "B", 12)
+	pdf.SetFont(pdfFont, "B", 12)
 	pdf.SetTextColor(20, 30, 40)
 	pdf.CellFormat(0, 8, title, "", 1, "L", false, 0, "")
 	pdf.SetDrawColor(200, 200, 200)
@@ -183,11 +200,11 @@ func kpiRow(pdf *fpdf.Fpdf, kpis []kpi) {
 		pdf.SetFillColor(pdfGray, pdfGray, pdfGray)
 		pdf.Rect(cx, y, w, 18, "F")
 		pdf.SetXY(cx, y+3)
-		pdf.SetFont("Arial", "B", 16)
+		pdf.SetFont(pdfFont, "B", 16)
 		pdf.SetTextColor(20, 30, 40)
 		pdf.CellFormat(w, 8, k.value, "", 2, "C", false, 0, "")
 		pdf.SetX(cx)
-		pdf.SetFont("Arial", "", 8)
+		pdf.SetFont(pdfFont, "", 8)
 		pdf.SetTextColor(110, 110, 110)
 		pdf.CellFormat(w, 5, k.label, "", 0, "C", false, 0, "")
 	}
@@ -195,7 +212,7 @@ func kpiRow(pdf *fpdf.Fpdf, kpis []kpi) {
 }
 
 func kvTable(pdf *fpdf.Fpdf, rows [][2]string) {
-	pdf.SetFont("Arial", "", 10)
+	pdf.SetFont(pdfFont, "", 10)
 	pdf.SetTextColor(60, 60, 60)
 	for i, row := range rows {
 		fill := i%2 == 0
@@ -210,7 +227,7 @@ func kvTable(pdf *fpdf.Fpdf, rows [][2]string) {
 func groupTable(pdf *fpdf.Fpdf, groups []models.GroupComplianceRow) {
 	headers := []string{"Group", "Members", "Trained %", "Click %", "Report %", "Avg risk"}
 	widths := []float64{60, 24, 24, 24, 24, 24}
-	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFont(pdfFont, "B", 9)
 	pdf.SetFillColor(225, 230, 235)
 	pdf.SetTextColor(20, 30, 40)
 	for i, h := range headers {
@@ -221,7 +238,7 @@ func groupTable(pdf *fpdf.Fpdf, groups []models.GroupComplianceRow) {
 		pdf.CellFormat(widths[i], 7, h, "", 0, align, true, 0, "")
 	}
 	pdf.Ln(-1)
-	pdf.SetFont("Arial", "", 9)
+	pdf.SetFont(pdfFont, "", 9)
 	pdf.SetTextColor(60, 60, 60)
 	if len(groups) == 0 {
 		pdf.CellFormat(0, 7, "  No groups defined.", "", 1, "L", false, 0, "")
@@ -233,7 +250,7 @@ func groupTable(pdf *fpdf.Fpdf, groups []models.GroupComplianceRow) {
 			pdf.SetFillColor(248, 248, 248)
 		}
 		cells := []string{
-			safe(g.Name),
+			g.Name,
 			fmt.Sprintf("%d", g.Members),
 			pctStr(g.TrainedPct),
 			pctStr(g.ClickPct),
@@ -265,7 +282,7 @@ func orgMetricCells(pdf *fpdf.Fpdf, m models.OrgMetrics, widths []float64, fill 
 
 func orgMetricHeader(pdf *fpdf.Fpdf, first string, widths []float64) {
 	headers := []string{first, "Members", "Trained %", "Click %", "Report %", "Avg risk"}
-	pdf.SetFont("Arial", "B", 9)
+	pdf.SetFont(pdfFont, "B", 9)
 	pdf.SetFillColor(225, 230, 235)
 	pdf.SetTextColor(20, 30, 40)
 	for i, h := range headers {
@@ -276,12 +293,12 @@ func orgMetricHeader(pdf *fpdf.Fpdf, first string, widths []float64) {
 		pdf.CellFormat(widths[i], 7, h, "", 0, align, true, 0, "")
 	}
 	pdf.Ln(-1)
-	pdf.SetFont("Arial", "", 9)
+	pdf.SetFont(pdfFont, "", 9)
 	pdf.SetTextColor(60, 60, 60)
 }
 
 func orgUnitTable(pdf *fpdf.Fpdf, units []models.OrgUnitRow) {
-	widths := []float64{84, 20, 24, 22, 22, 24}
+	widths := []float64{74, 18, 22, 22, 22, 22}
 	orgMetricHeader(pdf, "Unit", widths)
 	if len(units) == 0 {
 		pdf.CellFormat(0, 7, "  No org-structure data (import Department/Wydzial columns).", "", 1, "L", false, 0, "")
@@ -294,18 +311,18 @@ func orgUnitTable(pdf *fpdf.Fpdf, units []models.OrgUnitRow) {
 		}
 		indent := map[string]string{"department": "", "sub_department": "    ", "wydzial": "        "}[u.Level]
 		if u.Level == "department" {
-			pdf.SetFont("Arial", "B", 9)
+			pdf.SetFont(pdfFont, "B", 9)
 		}
-		pdf.CellFormat(widths[0], 7, indent+safe(u.Name), "", 0, "L", fill, 0, "")
+		pdf.CellFormat(widths[0], 7, indent+u.Name, "", 0, "L", fill, 0, "")
 		orgMetricCells(pdf, u.OrgMetrics, widths, fill)
 		if u.Level == "department" {
-			pdf.SetFont("Arial", "", 9)
+			pdf.SetFont(pdfFont, "", 9)
 		}
 	}
 }
 
 func positionTable(pdf *fpdf.Fpdf, rows []models.PositionLevelRow) {
-	widths := []float64{84, 20, 24, 22, 22, 24}
+	widths := []float64{74, 18, 22, 22, 22, 22}
 	orgMetricHeader(pdf, "Position level", widths)
 	if len(rows) == 0 {
 		pdf.CellFormat(0, 7, "  No position-level data.", "", 1, "L", false, 0, "")
@@ -316,22 +333,9 @@ func positionTable(pdf *fpdf.Fpdf, rows []models.PositionLevelRow) {
 		if fill {
 			pdf.SetFillColor(248, 248, 248)
 		}
-		pdf.CellFormat(widths[0], 7, safe(r.Level), "", 0, "L", fill, 0, "")
+		pdf.CellFormat(widths[0], 7, r.Level, "", 0, "L", fill, 0, "")
 		orgMetricCells(pdf, r.OrgMetrics, widths, fill)
 	}
 }
 
 func pctStr(v float64) string { return fmt.Sprintf("%.1f%%", v) }
-
-// safe strips non-Latin-1 runes so fpdf's built-in fonts don't render mojibake.
-func safe(s string) string {
-	b := make([]rune, 0, len(s))
-	for _, r := range s {
-		if r < 256 {
-			b = append(b, r)
-		} else {
-			b = append(b, '?')
-		}
-	}
-	return string(b)
-}
