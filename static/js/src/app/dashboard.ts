@@ -372,7 +372,7 @@ $(document).ready(function () {
                         campaign.stats.submitted_data,
                         campaign.stats.email_reported,
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + statusText + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.view_results") + "'>\
+                        "<div class='pull-right' style='white-space:nowrap'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.view_results") + "'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
                     <button class='btn btn-danger' onclick='deleteCampaign(" + i + ")' data-toggle='tooltip' data-placement='left' title='" + T("dashboard.delete_campaign") + "'>\

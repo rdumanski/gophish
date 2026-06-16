@@ -408,7 +408,7 @@ $(document).ready(function () {
                         escapeHtml(campaign.name),
                         moment(campaign.created_date).format('MMMM Do YYYY, h:mm:ss a'),
                         "<span class=\"label " + label + "\" data-toggle=\"tooltip\" data-placement=\"right\" data-html=\"true\" title=\"" + quickStats + "\">" + campaign.status + "</span>",
-                        "<div class='pull-right'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.view_results") + "'>\
+                        "<div class='pull-right' style='white-space:nowrap'><a class='btn btn-primary' href='/campaigns/" + campaign.id + "' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.view_results") + "'>\
                     <i class='fa fa-bar-chart'></i>\
                     </a>\
             <span data-toggle='modal' data-backdrop='static' data-target='#modal'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("campaigns.copy_campaign") + "' onclick='copy(" + i + ")'>\

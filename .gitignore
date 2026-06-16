@@ -27,9 +27,14 @@ gophish_admin.crt
 gophish_admin.key
 
 *.exe
+*.exe~
 gophish.db*
 gophish
 
 # Air hot-reload temp dir
 tmp/
 build-errors.log
+
+# Local demo runtime + seeding (not part of the product)
+demo/
+seed_demo.py

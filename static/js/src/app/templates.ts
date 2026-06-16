@@ -466,7 +466,7 @@ function load() {
                     templateRows.push([
                         escapeHtml(template.name),
                         moment(template.modified_date).format('MMMM Do YYYY, h:mm:ss a'),
-                        "<div class='pull-right'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_edit") + "' onclick='edit(" + i + ")'>\
+                        "<div class='pull-right' style='white-space:nowrap'><button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_edit") + "' onclick='edit(" + i + ")'>\
                     <i class='fa fa-pencil'></i>\
                     </button>\
 		    <button class='btn btn-primary' data-toggle='tooltip' data-placement='left' title='" + T("templates.tooltip_copy") + "' onclick='copy(" + i + ")'>\

@@ -84,7 +84,7 @@ const load = () => {
                     escapeHtml(m.description || ""),
                     moment(m.modified_date).format("MMMM Do YYYY, h:mm:ss a"),
                     `
-                      <div class="pull-right">
+                      <div class="pull-right" style="white-space:nowrap">
                         <button class="btn btn-primary edit_button" data-toggle="modal" data-backdrop="static" data-target="#modal" data-module-id="${m.id}">
                           <i class="fa fa-pencil"></i>
                         </button>
