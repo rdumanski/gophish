@@ -1,0 +1,25 @@
+# Built and run on the EC2 box by deploy/aws/provision.sh.
+# Build context is the repo root (two levels up); the env file and data volume
+# are provisioned by cloud-init.
+services:
+  gophish:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: gophish-local:latest
+    container_name: gophish
+    restart: unless-stopped
+    env_file:
+      - /opt/gophish/gophish.env
+    ports:
+      # Phishing/landing server — public.
+      - "80:80"
+      - "443:443"
+      # Admin UI — published on all host interfaces, but the firewall (security
+      # group) decides who reaches it. Default SG keeps 3333 closed, so it is
+      # reachable only via an SSH tunnel to this host. host:port mapping stays
+      # 0.0.0.0 so `ssh -L 3333:localhost:3333` works.
+      - "3333:3333"
+    volumes:
+      # SQLite DB (DB_FILE_PATH=/data/gophish.db) on the persistent EBS volume.
+      - /opt/gophish-data:/data

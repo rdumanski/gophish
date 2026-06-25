@@ -2,7 +2,11 @@
 # Without this, Windows clones get CRLF, and shebangs like `#!/bin/bash\r`
 # fail in Docker with "no such file or directory" on /bin/bash\r.
 *.sh         text eol=lf
+*.tftpl      text eol=lf
 Dockerfile   text eol=lf
+
+# Compose files are read by Docker inside Linux; keep them LF.
+docker-compose.yml text eol=lf
 
 static/api-doc/* linguist-vendored
 static/bootstrap/* linguist-vendored

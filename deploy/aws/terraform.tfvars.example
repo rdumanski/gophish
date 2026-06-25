@@ -1,0 +1,21 @@
+# Copy to terraform.tfvars and edit. terraform.tfvars is gitignored.
+
+aws_region = "eu-central-1"
+
+# Paste the CONTENTS of your public key, e.g. `cat ~/.ssh/id_ed25519.pub`.
+ssh_public_key = "ssh-ed25519 AAAA... you@host"
+
+# Lock SSH (and the admin-UI tunnel) to your IP. Find it: curl ifconfig.me
+# Leave as 0.0.0.0/0 only if your IP changes constantly and you accept the risk.
+allowed_ssh_cidr = "0.0.0.0/0"
+
+# Leave empty to reach the admin UI only via SSH tunnel (recommended).
+# Set to "YOUR.IP/32" to expose port 3333 directly.
+admin_allowed_cidr = ""
+
+# Abuse contact baked into gophish config (good hygiene for phishing infra).
+contact_address = "abuse@yourcompany.com"
+
+# instance_type    = "t3.medium"  # keep for the first build; downsize later if you like
+# repo_ref         = "master"     # the box builds THIS ref — push your changes first
+# data_volume_size = 20

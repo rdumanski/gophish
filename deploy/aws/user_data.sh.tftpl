@@ -1,0 +1,26 @@
+#!/bin/bash
+# Thin cloud-init bootstrap. Keep this MINIMAL: any change here replaces the
+# whole instance. All the real work lives in deploy/aws/provision.sh, which you
+# can re-run by hand over SSH without a Terraform-triggered rebuild.
+set -euxo pipefail
+exec > /var/log/gophish-userdata.log 2>&1
+
+# Environment file consumed by the container (see docker/run.sh for the knobs).
+mkdir -p /opt/gophish
+cat > /opt/gophish/gophish.env <<'ENVEOF'
+ADMIN_LISTEN_URL=0.0.0.0:3333
+ADMIN_USE_TLS=true
+PHISH_LISTEN_URL=0.0.0.0:80
+PHISH_USE_TLS=false
+DB_FILE_PATH=/data/gophish.db
+CONTACT_ADDRESS=${contact_address}
+ENVEOF
+
+# Fetch source and hand off to the provisioner.
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y git ca-certificates curl
+rm -rf /opt/gophish-src
+git clone --branch "${repo_ref}" --depth 1 "${repo_url}" /opt/gophish-src
+
+bash /opt/gophish-src/deploy/aws/provision.sh
